@@ -26,8 +26,13 @@
 ; * Calls to __fxstat(2) were replaced with a stub which always returns an
 ;   error.
 ;
-; The `qq gcc' was a gcc run on Ubuntu 14.04 i386 system with gcc 4.8.4, ld
-; (binutils) 2.24, glibc 2.19.
+; Notes:
+;
+; * The `qq gcc' was a gcc run on Ubuntu 14.04 i386 system with gcc 4.8.4, ld
+;   (binutils) 2.24, glibc 2.19.
+; * -Wl,-z,norelro would make it 256 bytes smaller, but it causes a
+;   segmentation fault (probably needs manual address recalculation)
+; * -Wl,--hash-style=sysv wouldn't make the executable larger.
 ;
 
 bits 32
