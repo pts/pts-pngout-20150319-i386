@@ -28253,14 +28253,52 @@ times +(P.bss.end-P.bss)-(0x987ca40-0x805d225) times 0 nop  ; Assert.
 
 %ifidn TARGET, x
 X.ucbss:     ;---               +0x023e0    @0x987ca40...0x987ee20
-..@0x987ca40: resb +0x20
+_stdio_openlist_use_count: equ $-B.data
+..@0x987ca40: resb 4
+_stdio_openlist_del_count: equ $-B.data
+..@0x987ca44: resb 4
+..@0x987ca48: resb 0x18
+_fixed_buffers: equ $-B.data
 buf_stdin: equ $-B.data
 ..@0x987ca60: resb +0x1000
 buf_stdin.end: equ $-B.data
 buf_stdout: equ $-B.data
 ..@0x987da60: resb +0x1000
 buf_stdout.end: equ $-B.data
-..@0x987ea60: resb +0x3c0
+next_start.1278: equ $-B.data
+..@0x987ea60: resb 4
+been_there_done_that: equ $-B.data
+..@0x987ea64: resb 1
+..@0x987ea65: resb 3
+_exit_cleanup: equ $-B.data
+..@0x987ea68: resb 4
+__libc_stack_end: equ $-B.data
+..@0x987ea6c: resb 4
+environ: equ $-B.data
+..@0x987ea70: resb 4
+__pagesize: equ $-B.data
+..@0x987ea74: resb 4
+__app_fini: equ $-B.data
+..@0x987ea78: resb 4
+__rtld_fini: equ $-B.data
+..@0x987ea7c: resb 4
+been_there_done_that.3001: equ $-B.data
+..@0x987ea80: resb 1
+..@0x987ea81: resb 3
+errno: equ $-B.data
+..@0x987ea84: resb 4
+h_errno: equ $-B.data
+..@0x987ea88: resb 4
+__curbrk: equ $-B.data
+..@0x987ea8c: resb 4
+..@0x987ea90: resb 0x10
+__malloc_state: equ $-B.data
+..@0x987eaa0: resb 0x378
+_dl_phdr: equ $-B.data
+..@0x987ee18: resb 4
+_dl_phnum: equ $-B.data
+..@0x987ee1c: resb 4
+..@0x987ee20:
 X.ucbss.end:
 times -(X.ucbss.end-X.ucbss)+(0x987ee20-0x987ca40) times 0 nop  ; Assert.
 times +(X.ucbss.end-X.ucbss)-(0x987ee20-0x987ca40) times 0 nop  ; Assert.
