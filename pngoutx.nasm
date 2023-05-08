@@ -4,8 +4,6 @@
 ;
 ; Compile: tools/nasm-0.98.39 -O0 -w+orphan-labels -f bin -o pngoutx pngoutx.nasm && chmod +x pngoutx && cmp pngoutx.golden pngoutx && echo OK
 ;
-; Based on pngoutss.nasm and pngoutl.nasm.
-;
 ; Based on: pngout-20150319-linux/i686/pngout in https://www.jonof.id.au/files/kenutils/pngout-20150319-linux.tar.gz (87976 bytes)
 ; Based on: https://www.jonof.id.au/files/kenutils/
 ;
@@ -94,7 +92,7 @@ B.data equ B.code-0x1000
 %elifidn TARGET, l  ; dynamically linked for Linux i386 against glibc, remastered
 B.code equ -0x8048000
 B.data equ B.code-0x1000
-%elifidn TARGET, ss  ; dynamically linked for Linux i386 against glibc, section headers stripped
+%elifidn TARGET, ls  ; dynamically linked for Linux i386 against glibc, section headers stripped
 B.code equ -0x8048000
 B.data equ B.code
 %else
@@ -8291,7 +8289,7 @@ _before_text: equ $-B.code
 ..@0x8048cc2: times 0x63-5*4-1 daa  ; Magic value to put unknown_func to addr 0x8048d10.
 %endif  ; TARGET, l
 
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 SS.ELF_ehdr:  ; addr=0x8048000 off=0x0
 ..@0x8048000: db 0x7f, 0x45, 0x4c, 0x46, 0x01, 0x01, 0x01, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 ..@0x8048010: db 0x02, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00
@@ -8694,7 +8692,7 @@ opendir: equ $-B.code
 ..@0x8048d00: jmp [opendir@addr]
 ..@0x8048d06: push 0x158
 ..@0x8048d0b: jmp strict near B.code+_plt0
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 
 P.text:      ;0x06d10..0x18698  +0x11988    @0x8048d10...0x805a698
 times -(P.text-B.code-$$)+0x8048d10 times 0 nop  ; Assert.
@@ -10419,11 +10417,11 @@ main: equ $-B.code
 ..@0x804a80d: db 0x74, 0x0b  ;; jz A.code+0x804a81a
 ..@0x804a80f: db 0x8b, 0x4c, 0x24, 0x58  ;; mov ecx,[esp+0x58]
 ..@0x804a813: db 0x89, 0x8c, 0x24, 0x38, 0x01, 0x00, 0x00  ;; mov [esp+0x138],ecx
-%ifidn TARGET, ss
+%ifidn TARGET, ls
   ..@0x804a81a: call B.code+setup_sigint_handler
-%else  ; TARGET, ss
+%else  ; TARGET, ls
   ..@0x804a81a: times 5 nop  ; Use the default SIGINT handler (terminate process).
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 ..@0x804a81f: db 0x8d, 0x84, 0x24, 0x10, 0x01, 0x00, 0x00  ;; lea eax,[esp+0x110]
 ..@0x804a826: db 0x89, 0x04, 0x24  ;; mov [esp],eax
 ..@0x804a829: call R.code+0x804ed60
@@ -11158,7 +11156,7 @@ jmp_exit1_after_printing_help: equ $-B.code
 ..@0x804b56b: jmp strict near R.code+0x804b4bb
 
 _nop_start: equ $-B.code  ; Contains _start, _fini_array_once, _fini_array_loop, _fini_array_entry0, _init_array_entry0.
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 _start: equ $-B.code
 ..@0x804b570: db 0x31, 0xed  ;; xor ebp,ebp
 ..@0x804b572: pop esi
@@ -11243,9 +11241,9 @@ _init_array_entry0: equ $-B.code
 ..@0x804b652: jmp strict near B.code+_init_array_loop
 ..@0x804b657: jmp strict near B.code+_init_array_loop
 ..@0x804b65c: times 4 nop
-%else  ; TARGET, ss
+%else  ; TARGET, ls
 ..@0x804b570: times 0x804b660-0x804b570 nop
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 
 unknown_func4: equ $-B.code  ; _Bool unknown_func4(int x) { return x == 0 ? && global_cleanup_counter == 2; }
 ..@0x804b660: db 0x8b, 0x54, 0x24, 0x04  ;; mov edx,[esp+0x4]
@@ -11274,7 +11272,7 @@ message_printf: equ $-B.code  ; Prints to message_filep with vfprintf, noop if m
 ..@0x804b6aa: db 0xf3, 0xc3  ;; rep ret
 ..@0x804b6ac: db 0x8d, 0x74, 0x26, 0x00  ;; lea esi,[esi+0x0]
 
-%ifidn TARGET, ss  ; Contains handle_sigint, setup_sigint_handler.
+%ifidn TARGET, ls  ; Contains handle_sigint, setup_sigint_handler.
 handle_sigint: equ $-B.code
 ..@0x804b6b0: db 0x83, 0xec, 0x1c  ;; sub esp,byte +0x1c
 ..@0x804b6b3: db 0x83, 0x7c, 0x24, 0x20, 0x02  ;; cmp dword [esp+0x20],byte +0x2
@@ -11326,9 +11324,9 @@ setup_sigint_handler: equ $-B.code
 ..@0x804b786: db 0x81, 0xc4, 0xa8, 0x00, 0x00, 0x00  ;; add esp,0xa8
 ..@0x804b78c: pop ebx
 ..@0x804b78d: ret
-%else  ; TARGET, ss
+%else  ; TARGET, ls
 ..@0x804b6b0: times 0x804b78e-0x804b6b0 nop
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 ..@0x804b78e: dw 0x9066  ;; o16 nop
 print_help: equ $-B.code
 ..@0x804b790: db 0x83, 0xec, 0x1c  ;; sub esp,byte +0x1c
@@ -25326,13 +25324,13 @@ unknown_func1: equ $-B.code
 ..@0x8058fbf: db 0xc7, 0x04, 0x24, 0x03, 0x00, 0x00, 0x00  ;; mov dword [esp],0x3
 ..@0x8058fc6: db 0x89, 0x54, 0x24, 0x08  ;; mov [esp+0x8],edx
 ..@0x8058fca: db 0x89, 0x44, 0x24, 0x04  ;; mov [esp+0x4],eax
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 ..@0x8058fce: call B.code+__fxstat
-%else  ; TARGET, ss. Simulate an error in unused __fxstat.
+%else  ; TARGET, ls. Simulate an error in unused __fxstat.
 ..@0x8058fce: db 0x31, 0xc0  ;; xor eax,eax
 ..@0x8058fd0: dec eax
 ..@0x8058fd1: times 2 nop
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 ..@0x8058fd3: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8058fd5: db 0x78, 0x29  ;; js A.code+0x8059000
 ..@0x8058fd7: db 0x8b, 0x44, 0x24, 0x44  ;; mov eax,[esp+0x44]
@@ -25373,13 +25371,13 @@ unknown_func1: equ $-B.code
 ..@0x8059063: db 0xc7, 0x04, 0x24, 0x03, 0x00, 0x00, 0x00  ;; mov dword [esp],0x3
 ..@0x805906a: db 0x89, 0x54, 0x24, 0x08  ;; mov [esp+0x8],edx
 ..@0x805906e: db 0x89, 0x44, 0x24, 0x04  ;; mov [esp+0x4],eax
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 ..@0x8059072: call B.code+__fxstat
-%else  ; TARGET, ss. Simulate an error in unused __fxstat.
+%else  ; TARGET, ls. Simulate an error in unused __fxstat.
 ..@0x8059072: db 0x31, 0xc0  ;; xor eax,eax
 ..@0x8059074: dec eax
 ..@0x8059075: times 2 nop
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 ..@0x8059077: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8059079: db 0x0f, 0x88, 0xe9, 0x03, 0x00, 0x00  ;; js near A.code+0x8059468
 ..@0x805907f: db 0x8b, 0x84, 0x24, 0xa8, 0x00, 0x00, 0x00  ;; mov eax,[esp+0xa8]
@@ -25603,13 +25601,13 @@ unknown_func1: equ $-B.code
 ..@0x80593b7: db 0xc7, 0x04, 0x24, 0x03, 0x00, 0x00, 0x00  ;; mov dword [esp],0x3
 ..@0x80593be: db 0x89, 0x54, 0x24, 0x08  ;; mov [esp+0x8],edx
 ..@0x80593c2: db 0x89, 0x44, 0x24, 0x04  ;; mov [esp+0x4],eax
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 ..@0x80593c6: call B.code+__fxstat
-%else  ; TARGET, ss. Simulate an error in unused __fxstat.
+%else  ; TARGET, ls. Simulate an error in unused __fxstat.
 ..@0x80593c6: db 0x31, 0xc0  ;; xor eax,eax
 ..@0x80593c8: dec eax
 ..@0x80593c9: times 2 nop
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 ..@0x80593cb: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80593cd: db 0x0f, 0x88, 0x95, 0x00, 0x00, 0x00  ;; js near A.code+0x8059468
 ..@0x80593d3: db 0x8b, 0x44, 0x24, 0x50  ;; mov eax,[esp+0x50]
@@ -25667,13 +25665,13 @@ unknown_func1: equ $-B.code
 ..@0x80594cd: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80594cf: db 0x74, 0x12  ;; jz A.code+0x80594e3
 ..@0x80594d1: db 0x89, 0x04, 0x24  ;; mov [esp],eax
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 ..@0x80594d4: call B.code+closedir
-%else  ; TARGET, ss. Simulate an error in fake closedir.
+%else  ; TARGET, ls. Simulate an error in fake closedir.
 ..@0x80594d4: db 0x31, 0xc0  ;; xor eax,eax
 ..@0x80594d6: dec eax
 ..@0x80594d7: times 2 nop
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 ..@0x80594d9: db 0xc7, 0x05, 0x24, 0xc3, 0x87, 0x09, 0x00, 0x00  ;; mov dword [dword 0x987c324],0x0
 ..@0x80594e1: db 0x00, 0x00
 ..@0x80594e3: db 0x89, 0x5c, 0x24, 0x04  ;; mov [esp+0x4],ebx
@@ -25747,13 +25745,13 @@ unknown_func1: equ $-B.code
 ..@0x80595f3: call B.code+memcpy
 ..@0x80595f8: db 0xa1, 0x24, 0xc3, 0x87, 0x09  ;; mov eax,[0x987c324]
 ..@0x80595fd: db 0x89, 0x04, 0x24  ;; mov [esp],eax
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 ..@0x8059600: call B.code+readdir
 ..@0x8059605: db 0x85, 0xc0  ;; test eax,eax
-%else  ; TARGET, ss. Simulate an error in fake readdir.
+%else  ; TARGET, ls. Simulate an error in fake readdir.
 ..@0x8059600: db 0x31, 0xc0  ;; xor eax,eax
 ..@0x8059602: times 5 nop
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 ..@0x8059607: db 0x89, 0xc6  ;; mov esi,eax
 ..@0x8059609: db 0xa3, 0x6c, 0xc5, 0x87, 0x09  ;; mov [0x987c56c],eax
 ..@0x805960e: db 0x0f, 0x84, 0xf7, 0x01, 0x00, 0x00  ;; jz near A.code+0x805980b
@@ -25792,13 +25790,13 @@ unknown_func1: equ $-B.code
 ..@0x805968a: db 0xc6, 0x04, 0x31, 0x00  ;; mov byte [ecx+esi],0x0
 ..@0x805968e: db 0x89, 0xc8  ;; mov eax,ecx
 ..@0x8059690: db 0x89, 0x04, 0x24  ;; mov [esp],eax
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 ..@0x8059693: call B.code+opendir
 ..@0x8059698: db 0x85, 0xc0  ;; test eax,eax
-%else  ; TARGET, ss. Simulate an error in fake opendir.
+%else  ; TARGET, ls. Simulate an error in fake opendir.
 ..@0x8059693: db 0x31, 0xc0  ;; xor eax,eax
 ..@0x8059695: times 5 nop
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 ..@0x805969a: db 0xa3, 0x24, 0xc3, 0x87, 0x09  ;; mov [0x987c324],eax
 ..@0x805969f: db 0x0f, 0x84, 0x7d, 0x01, 0x00, 0x00  ;; jz near A.code+0x8059822
 ..@0x80596a5: db 0x8b, 0x3d, 0xe8, 0xd1, 0x05, 0x08  ;; mov edi,[dword 0x805d1e8]
@@ -25893,13 +25891,13 @@ unknown_func1: equ $-B.code
 ..@0x805980a: ret
 ..@0x805980b: db 0xa1, 0x24, 0xc3, 0x87, 0x09  ;; mov eax,[0x987c324]
 ..@0x8059810: db 0x89, 0x04, 0x24  ;; mov [esp],eax
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 ..@0x8059813: call B.code+closedir
-%else  ; TARGET, ss. Simulate an error in fake closedir.
+%else  ; TARGET, ls. Simulate an error in fake closedir.
 ..@0x8059813: db 0x31, 0xc0  ;; xor eax,eax
 ..@0x8059815: dec eax
 ..@0x8059816: times 2 nop
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 ..@0x8059818: db 0xc7, 0x05, 0x24, 0xc3, 0x87, 0x09, 0x00, 0x00  ;; mov dword [dword 0x987c324],0x0
 ..@0x8059820: db 0x00, 0x00
 ..@0x8059822: db 0xa1, 0x00, 0xbf, 0x87, 0x09  ;; mov eax,[0x987bf00]
@@ -26925,7 +26923,7 @@ str_message_on_sigint.end: equ $-B.code
 ;
 %endif  ; TARGET, l
 
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 SS.libc.after_text:  ; addr=0x805a698 off=0x12698
 ..@0x805a698: times 8 nop
 _fini: equ $-B.code
@@ -26997,7 +26995,7 @@ str_message_on_sigint: equ $-B.code
 ..@0x805a750: db 0x20, 0x61, 0x67, 0x61, 0x69, 0x6e, 0x20, 0x74, 0x6f, 0x20, 0x65, 0x78, 0x69, 0x74, 0x20, 0x69
 ..@0x805a760: db 0x6d, 0x6d, 0x65, 0x64, 0x69, 0x61, 0x74, 0x65, 0x6c, 0x79, 0x2e, 0x0a
 str_message_on_sigint.end: equ $-B.code
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 
 P.rodata:    ;0x1876c..0x19a20  +0x012b4    @0x805a76c...0x805ba20
 times -(P.rodata-B.code-$$)+0x805a76c times 0 nop  ; Assert.
@@ -27729,7 +27727,7 @@ _before_data: equ $-B.data
 ..@0x805d1ac: times 0x805d1c4-0x805d0c0+8+12-0x100 daa
 %endif  ; TARGET, ;
 
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 SS.eh_frame_hdr:  ; addr=0x805ba20 off=0x13a20
 ..@0x805ba20: db 0x01, 0x1b, 0x03, 0x3b, 0x08, 0x02, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x20, 0xd0, 0xfe, 0xff
 ..@0x805ba30: db 0x24, 0x02, 0x00, 0x00, 0xf0, 0xd2, 0xfe, 0xff, 0x40, 0x04, 0x00, 0x00, 0x57, 0xdc, 0xfe, 0xff
@@ -28115,7 +28113,7 @@ closedir@addr: equ $-B.code
 ..@0x805d1bc: dd A.code+0x8048cf6
 opendir@addr: equ $-B.code
 ..@0x805d1c0: dd A.code+0x8048d06
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 
 P.data:      ;0x1a1c4..0x1a1f0  +0x0002c    @0x805d1c4...0x805d1f0  file_size=end_off=0x1a1f0=106992 (previous attempt was 122880 bytes)
 times -(P.data-B.data-$$)+0x805d1c4 times 0 nop  ; Assert.
@@ -28156,7 +28154,7 @@ stdout: equ $-B.data
 ..@0x805d224: resb 1
 %endif  ; TARGET, l
 
-%ifidn TARGET, ss
+%ifidn TARGET, ls
 times (+($-$$)-0x151f0) times 0 nop  ; Assert on file size.
 times (-($-$$)+0x151f0) times 0 nop  ; Assert on file size.
 
@@ -28172,7 +28170,7 @@ stdout: equ $-B.data
 ..@0x805d220: resb 0x4
 _fini_array_once_flag: equ $-B.data
 ..@0x805d224: resb 1
-%endif  ; TARGET, ss
+%endif  ; TARGET, ls
 
 P.bss:       ;---               +0x181f840  @0x805d225...0x987ca40
 times -(P.bss-B.data-$$)+0x805d225 times 0 nop  ; Assert.
