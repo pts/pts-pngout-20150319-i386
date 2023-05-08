@@ -19713,21 +19713,21 @@ code_ptr_0x805d1cc: equ $+0x8048000
 
 P.bss:  ; addr=0x805d1f0 off=0x151f0
 absolute $
-_init_fini_array_func@daddr: equ $+0x8048000
+_init_fini_array_func@daddr: equ $+0x8049000
 ..@0x805d1f0: resb 0x10
-stderr@daddr: equ $+0x8048000
+stderr@daddr: equ $+0x8049000
 ..@0x805d200: resb 0x4
-stdin@daddr: equ $+0x8048000
+stdin@daddr: equ $+0x8049000
 ..@0x805d204: resb 0x1c
-stdout@daddr: equ $+0x8048000
+stdout@daddr: equ $+0x8049000
 ..@0x805d220: resb 0x4
-_fini_array_once_flag: equ $+0x8048000
+_fini_array_once_flag: equ $+0x8049000
 ..@0x805d224: resb 0x1c
-global_cleanup_counter: equ $+0x8048000
+global_cleanup_counter: equ $+0x8049000
 ..@0x805d240: resb 0x4
-message_filep: equ $+0x8048000
+message_filep: equ $+0x8049000
 ..@0x805d244: resb 0x181f33c
-global_struct_sigaction: equ $+0x8048000
+global_struct_sigaction: equ $+0x8049000
 ..@0x987c580: resb 0x4c0
 
 ; __END__
