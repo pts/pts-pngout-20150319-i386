@@ -2,7 +2,7 @@
 ; pngoutl.nasm: PNGOUT dynamically linked for Linux i386 against glibc, remastered
 ; by pts@fazekas.hu at Fri May  5 15:57:26 CEST 2023
 ;
-; Compile: tools/nasm-0.98.39 -O0 -w+orphan-labels -f elf -o pngoutl.o pngoutl.nasm && qq gcc -Wl,-Ttext=8048bb0 -Wl,--build-id=none -m32 -s -O2 -march=i386 -W -Wall -o pngoutl pngoutl.o -lm && cmp pngoutl.golden pngoutl && echo OK
+; Compile: tools/nasm-0.98.39 -O0 -w+orphan-labels -f elf -o pngoutl.o pngoutl.nasm && qq gcc -Wl,-Ttext=8048bb0 -Wl,--section-start,.init_array=805d000 -Wl,--build-id=none -Wl,-z,norelro -m32 -s -O2 -march=i386 -W -Wall -o pngoutl pngoutl.o -lm && cmp pngoutl.golden pngoutl && echo OK
 ;
 ; Based on pngoutss.nasm.
 ;
@@ -30,8 +30,11 @@
 ;
 ; * The `qq gcc' was a gcc run on Ubuntu 14.04 i386 system with gcc 4.8.4, ld
 ;   (binutils) 2.24, glibc 2.19.
-; * -Wl,-z,norelro would make it 256 bytes smaller, but it causes a
-;   segmentation fault (probably needs manual address recalculation)
+; * -Wl,-z,norelro would make it 256 bytes smaller, but after recalculating
+;   of the start address of .data, 256 bytes have to be added back, so
+;   there is no size gain. Making the ELF section header shorter doesn't make
+;   the file smaller either. However, we keep it, to make it compatible with
+;   older Linux systems.
 ; * -Wl,--hash-style=sysv wouldn't make the executable larger.
 ;
 
@@ -18775,7 +18778,7 @@ times -(_rodata_end-_rodata)+(0x805ba20-0x805a76c) times 0 nop  ; Assert.
 times +(_rodata_end-_rodata)-(0x805ba20-0x805a76c) times 0 nop  ; Assert.
 
 section .data align=1  ; addr=0x805d1c4 off=0x151c4
-times 0x805d1c4-0x805d0c0+8+12 daa
+times 0x805d1c4-0x805d0c0+8+12-0x100 daa
 _data:
 ..@0x805d1c4: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 code_ptr_0x805d1cc:
