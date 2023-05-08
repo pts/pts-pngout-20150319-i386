@@ -12,8 +12,6 @@
 ; Status and TODOs:
 ;
 ; * It works on Linux i386 and Linux amd64.
-; * !! TODO(pts): It doesn't fflush(stdout) the % progress message, it does a
-;   final write(...) in the end only. Why?
 ;
 ; Differences from pngout above:
 ;
@@ -33,6 +31,8 @@
 ; * EI_OSABI in ELF_phdr were changed from SYSV to Linux.
 ; * Dynamic linking against glibc was replaced with static linking against
 ;   uClibc. The entire file was remastered as a byproduct.
+; * stdout output buffer (4096 bytes) is larger than in glibc 2.19 (1024
+;   bytes, TTY only) for TTY.
 ;
 ; Memory map and file layout with -Ttext=0x8042000:
 ;
