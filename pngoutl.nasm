@@ -1,5 +1,5 @@
 ;
-; pngoutl.nasm: PNGOUT dynamically linked for Linux i386 against glibc, remastered
+; pngoutl.nasm: PNGOUT dynamically linked for Linux i386 against glibc, remastered (82416 bytes)
 ; by pts@fazekas.hu at Fri May  5 15:57:26 CEST 2023
 ;
 ; Compile: tools/nasm-0.98.39 -O0 -w+orphan-labels -f bin -o pngoutl pngoutl.nasm && chmod +x pngoutl && cmp pngoutl.golden pngoutl && echo OK
@@ -21,6 +21,9 @@
 ;   stub which always returns an error.
 ; * Calls to __fxstat(2) were replaced with a stub which always returns an
 ;   error.
+; * glibc crt*.o init and fini routines were removed.
+; * The remaining code was remastered in `nasm -f elf' source format. 5560
+;   bytes were saved in the executable as a byproduct of this remastering.
 ; * gcc + ld was dropped as a dependency, the output execuable is generated
 ;   by nasm only, thus it is more deterministic.
 ; * ELF section headers ware stripped from the end of the file (not needed
