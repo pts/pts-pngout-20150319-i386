@@ -12,7 +12,7 @@
 ;
 ; * ELF section headers ware stripped from the end of the file (not needed
 ;   for execution).
-; * EI_OSABI in ELF_phdr were changed fom SYSV to Linux.
+; * EI_OSABI in ELF_phdr were changed from SYSV to Linux.
 ;
 
 bits 32
