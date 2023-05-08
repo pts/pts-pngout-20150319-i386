@@ -16,6 +16,6 @@
 ;
 
 %define TARGET ls
-%include "pngoutx.nasm"
+%include "pngouta.nasm"
 
 ; __END__
