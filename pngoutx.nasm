@@ -84,12 +84,18 @@
 ;   .data+.bss    off=0x00013f00 vaddr 0x805cf00 align 2**12 filesz 0x002f0 memsz 0x181fb28 flags rw-
 ;
 
+%ifndef TARGET
+%define TARGET x  ; statically linked for Linux i386 using uClibc.
+%endif
+
 bits 32
 cpu 386
 org 0
-R.code equ $-0x8042000
 B.code equ -0x8042000
-B.data equ -0x8043000
+
+%ifidn TARGET,x  ; statically linked for Linux i386 using uClibc.
+R.code equ $+B.code
+B.data equ B.code-0x1000
 A.code equ 0
 
 ; !! Create labels within the code instead. Also add all labels from pngoutx_libc.lst.
@@ -7779,6 +7785,7 @@ FAKE_main: equ $-B.code
 
 X.gap3:      ;0x06d09..0x06d10  +0x00007    @0x8048d09...0x8048d10
 times +0x00007 nop
+%endif
 
 P.text:      ;0x06d10..0x18698  +0x11988    @0x8048d10...0x805a698
 times -(P.text-B.code-$$)+0x8048d10 times 0 nop  ; Assert.
@@ -25863,8 +25870,10 @@ P.text.end:
 times -(P.text.end-P.text)+(0x805a698-0x8048d10) times 0 nop  ; Assert.
 times +(P.text.end-P.text)-(0x805a698-0x8048d10) times 0 nop  ; Assert.
 
+%ifidn TARGET,x
 X.gap5:      ;0x18698..0x1876c  +0x000d4    @0x805a698...0x805a76c
 times +0x000d4 db 0
+%endif
 
 P.rodata:    ;0x1876c..0x19a20  +0x012b4    @0x805a76c...0x805ba20
 times -(P.rodata-B.code-$$)+0x805a76c times 0 nop  ; Assert.
@@ -26450,6 +26459,7 @@ P.rodata.end:
 times -(P.rodata.end-P.rodata)+(0x805ba20-0x805a76c) times 0 nop  ; Assert.
 times +(P.rodata.end-P.rodata)-(0x805ba20-0x805a76c) times 0 nop  ; Assert.
 
+%ifidn TARGET,x
 X.gap6:      ;0x19a20..0x19f40  +0x00520    @0x805ba20...0x805cf40  memsize=infilesize+0x1000=0x1520, virtual memory gap
 ..@0x805ba20:
 times +0x00520 db 0
@@ -26527,6 +26537,7 @@ filestruct_stderr.__bufend: equ $-B.data
 X.gap7:      ;0x1a1ac..0x1a1c4  +0x00018    @0x805d1ac...0x805d1c4
 ..@0x805d1ac:
 times +0x00018 db 0
+%endif
 
 P.data:      ;0x1a1c4..0x1a1f0  +0x0002c    @0x805d1c4...0x805d1f0  file_size=end_off=0x1a1f0=106992 (previous attempt was 122880 bytes)
 times -(P.data-B.data-$$)+0x805d1c4 times 0 nop  ; Assert.
@@ -26543,9 +26554,11 @@ times +(P.data.end-P.data)-(0x805d1f0-0x805d1c4) times 0 nop  ; Assert.
 times (+($-$$)-0x1a1f0) times 0 nop  ; Assert on file size.
 times (-($-$$)+0x1a1f0) times 0 nop  ; Assert on file size.
 
+%ifidn TARGET,x
 X.gap8:      ;---               +0x35       @0x805d1f0...0x805d225
 absolute $
 ..@0x805d1f0: resb +0x35
+%endif
 
 P.bss:       ;---               +0x181f840  @0x805d225...0x987ca40
 times -(P.bss-B.data-$$)+0x805d225 times 0 nop  ; Assert.
@@ -26566,6 +26579,7 @@ P.bss.end:
 times -(P.bss.end-P.bss)+(0x987ca40-0x805d225) times 0 nop  ; Assert.
 times +(P.bss.end-P.bss)-(0x987ca40-0x805d225) times 0 nop  ; Assert.
 
+%ifidn TARGET,x
 X.ucbss:     ;---               +0x023e0    @0x987ca40...0x987ee20
 ..@0x987ca40: resb +0x20
 buf_stdin: equ $-B.data
@@ -26578,5 +26592,6 @@ buf_stdout.end: equ $-B.data
 X.ucbss.end:
 times -(X.ucbss.end-X.ucbss)+(0x987ee20-0x987ca40) times 0 nop  ; Assert.
 times +(X.ucbss.end-X.ucbss)-(0x987ee20-0x987ca40) times 0 nop  ; Assert.
+%endif
 
 ; __END__
