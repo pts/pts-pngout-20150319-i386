@@ -31,8 +31,9 @@
 ; * EI_OSABI in ELF_phdr were changed from SYSV to Linux.
 ; * Dynamic linking against glibc was replaced with static linking against
 ;   uClibc. The entire file was remastered as a byproduct.
-; * stdout output buffer (4096 bytes) is larger than in glibc 2.19 (1024
-;   bytes, TTY only) for TTY.
+; * stdout output buffer (1024 bytes) is larger than in glibc 2.19 (1024
+;   bytes for TTY, larger for non-TTY) for non-TTY. Also buffer boundaries
+;   are different by a few bytes (sometimes uClibc flushes at 1023 bytes).
 ;
 ; Memory map and file layout with -Ttext=0x8042000:
 ;
@@ -26487,7 +26488,7 @@ filestruct_stdout.__filedes: equ $-B.data
 filestruct_stdout.__bufstart: equ $-B.data
 ..@0x805cff8:   dd buf_stdout
 filestruct_stdout.__bufend: equ $-B.data
-..@0x805cffc:   dd buf_stdout.end
+..@0x805cffc:   dd buf_stdout+0x400  ; buf_stdout.end  ; Limited to 0x400 == 1024 bytes to match glibc 2.19 on TTY.
 ..@0x805d000:   db 0x60, 0xda, 0x87, 0x09, 0x60, 0xda, 0x87, 0x09, 0x60, 0xda, 0x87, 0x09, 0x60, 0xda, 0x87, 0x09
 ..@0x805d010:   db 0x40, 0xd0, 0x05, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 ..@0x805d020:   db 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
