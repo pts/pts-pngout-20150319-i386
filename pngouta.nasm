@@ -8,6 +8,13 @@
 ; Based on: pngout-20150319-linux/i686/pngout in https://www.jonof.id.au/files/kenutils/pngout-20150319-linux.tar.gz (87976 bytes)
 ; Based on: https://www.jonof.id.au/files/kenutils/
 ;
+; !! TODO(pts): Maybe we do need __fxstat for file size. This is a regression:
+;    $ ./pngoutx test/test.png test/testa.png
+;    test/testa.png already exists. Overwrite? (y/n) y
+;     In:   16737 bytes               test/test.png /c2 /f0
+;    Out:   19507 bytes               test/testa.png /c2 /f5
+;    Unable to compress further: copying original file
+;
 
 %ifndef TARGET
 %define TARGET x  ; statically linked for Linux i386 using uClibc.
@@ -53,7 +60,7 @@ A.code equ 0
 ; libc functions used.
 ;extern log
 ;extern read
-;extern printf
+;extern printf  ; TODO(pts): Remove for macOS, in favor of home-made vfprintf(stdout, ...) call, in case we are using our own stdout.
 ;extern fflush
 ;extern memmove
 ;extern free
@@ -985,8 +992,8 @@ printf: equ $-B.code
 ..@0x8043ff0: push edx
 ..@0x8043ff1: push eax
 ..@0x8043ff2: db 0xff, 0x74, 0x24, 0x28  ;; push dword [esp+0x28]
-..@0x8043ff6: db 0xff, 0x35, 0x44, 0xcf, 0x05, 0x08  ;; push dword [dword 0x805cf44]
-..@0x8043ffc: call R.code+0x80445df
+..@0x8043ff6: push dword [stdout]
+..@0x8043ffc: call B.code+vfprintf
 ..@0x8044001: db 0x83, 0xc4, 0x2c  ;; add esp,byte +0x2c
 ..@0x8044004: ret
 fseeko64: equ $-B.code
@@ -1718,7 +1725,7 @@ _vfprintf_internal: equ $-B.code
 ..@0x80447cc: db 0x0f, 0x84, 0xd0, 0x04, 0x00, 0x00  ;; jz near 0x8044ca2
 ..@0x80447d2: db 0x89, 0x54, 0x24, 0x10  ;; mov [esp+0x10],edx
 ..@0x80447d6: db 0xc7, 0x84, 0x24, 0x54, 0x01, 0x00, 0x00, 0x00  ;; mov dword [esp+0x154],0x0
-..@0x80447de: db 0x00, 0x00, 0x00  ; !! TODO(pts): Move this to the end of the previous instruction.
+..@0x80447de: db 0x00, 0x00, 0x00  ; !! TODO(pts): Move this etc. to the end of the previous instruction.
 ..@0x80447e1: db 0x83, 0xec, 0x0c  ;; sub esp,byte +0xc
 ..@0x80447e4: db 0x8d, 0x5c, 0x24, 0x1c  ;; lea ebx,[esp+0x1c]
 ..@0x80447e8: push ebx
