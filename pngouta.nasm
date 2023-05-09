@@ -1007,6 +1007,7 @@ unused_puts: equ $-B.code  ; Unused. TODO(pts): Remove this, not just blank it o
 ..@0x8043f69: times 0x8043fe5-0x8043f69 hlt
 %endif  ; TARGET, ls
 printf: equ $-B.code  ; TODO(pts): Compare stack use of the vfprintf(...) call with message_printf, maybe unify.
+%ifidn TARGET, ls
 ..@0x8043fe5: db 0x83, 0xec, 0x1c  ;; sub esp,byte +0x1c
 ..@0x8043fe8: db 0x8d, 0x44, 0x24, 0x24  ;; lea eax,[esp+0x24]
 ..@0x8043fec: db 0x89, 0x44, 0x24, 0x18  ;; mov [esp+0x18],eax
@@ -1017,6 +1018,24 @@ printf: equ $-B.code  ; TODO(pts): Compare stack use of the vfprintf(...) call w
 ..@0x8043ffc: call B.code+vfprintf
 ..@0x8044001: db 0x83, 0xc4, 0x2c  ;; add esp,byte +0x2c
 ..@0x8044004: ret
+%else  ; TARGET, ls
+;esp:retaddr fmt val
+..@0x8043fe5: push esp  ; 1 byte.
+;esp:&retaddr retaddr fmt val
+..@0x8043fe6: add dword [esp], strict byte 2*4  ; 4 bytes.
+;esp:ap=&val retaddr fmt val
+              push dword [esp+2*4]  ; 4 bytes.
+;esp:fmt ap=&val retaddr fmt val
+              push dword [stdout]  ; 6 bytes.
+;esp:filep fmt ap=&val retaddr fmt val
+              call B.code+vfprintf  ; 5 bytes.
+;esp:filep fmt ap=&val retaddr fmt val
+              add esp, strict byte 3*4  ; 3 bytes, same as `times 3 pop edx'.
+;esp:retaddr fmt val
+              ret  ; 1 byte.
+;esp:fmt val  ; Cleaned up by the caller.
+              times 8 nop  ; Padding to keep offsets intact.
+%endif  ; TARGET, ls
 fseeko64: equ $-B.code
 ..@0x8044005: push ebp
 ..@0x8044006: push edi
