@@ -4,5 +4,6 @@
 /pngoutl
 /pngoutl.o
 /pngoutx
+/pngoutd
 /test/*.png
 /test/*.png.golden

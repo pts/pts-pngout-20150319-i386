@@ -7,7 +7,7 @@
 NASM="${NASM:-tools/nasm-0.98.39}"  # Works on Linux i386 and Linux amd64.
 set -ex
 
-for F in pngoutl.nasm pngoutlo.nasm pngoutls.nasm pngoutx.nasm; do
+for F in pngoutl.nasm pngoutlo.nasm pngoutls.nasm pngoutx.nasm pngoutd.nasm; do
   BF="${F%.*}"
   # It should produce identical output with -O999999999 as with -O0.
   "$NASM" -O0 -w+orphan-labels -f bin -o "$BF" "$F"
