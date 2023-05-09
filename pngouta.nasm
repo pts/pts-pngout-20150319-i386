@@ -75,7 +75,7 @@ A.code equ 0
 ; libc functions used.
 ;extern log
 ;extern read
-;extern printf  ; TODO(pts): Remove for macOS, in favor of home-made vfprintf(stdout, ...) call, in case we are using our own stdout.
+;extern printf  ; Not used anymore in pngoutl and pngoutx. !! Remove from uClibc, possibly reuse some code bytes. Relink pngout with a shorter .plt etc.
 ;extern fflush
 ;extern memmove
 ;extern free
@@ -92,7 +92,7 @@ A.code equ 0
 ;extern strcpy
 ;extern realloc
 ;extern malloc
-;extern puts  ; Not used anymore in pngoutl and pngoutx. !! Remove from uClibc, possibly reuse some code bytes. Relink pngout with a shorter plt etc.
+;extern puts  ; Not used anymore in pngoutl and pngoutx. !! Remove from uClibc, possibly reuse some code bytes. Relink pngout with a shorter .plt etc.
 ;extern exit
 ;extern srand
 ;extern strchr
@@ -947,81 +947,11 @@ ftello: equ $-B.code
 ..@0x8043f66: pop ebx
 ..@0x8043f67: pop esi
 ..@0x8043f68: ret
-%ifidn TARGET, ls
-puts: equ $-B.code
-..@0x8043f69: push edi
-..@0x8043f6a: push esi
-..@0x8043f6b: push ebx
-..@0x8043f6c: db 0x83, 0xec, 0x10  ;; sub esp,byte +0x10
-..@0x8043f6f: db 0x8b, 0x35, 0x44, 0xcf, 0x05, 0x08  ;; mov esi,[dword 0x805cf44]
-..@0x8043f75: db 0x8b, 0x7e, 0x34  ;; mov edi,[esi+0x34]
-..@0x8043f78: db 0x85, 0xff  ;; test edi,edi
-..@0x8043f7a: db 0x75, 0x1f  ;; jnz 0x8043f9b
-..@0x8043f7c: db 0x8d, 0x5e, 0x38  ;; lea ebx,[esi+0x38]
-..@0x8043f7f: push eax
-..@0x8043f80: push ebx
-..@0x8043f81: push strict dword 0x804773d
-..@0x8043f86: db 0x8d, 0x44, 0x24, 0x0c  ;; lea eax,[esp+0xc]
-..@0x8043f8a: push eax
-..@0x8043f8b: call R.code+0x8047740
-..@0x8043f90: db 0x89, 0x1c, 0x24  ;; mov [esp],ebx
-..@0x8043f93: call R.code+0x804773d
-..@0x8043f98: db 0x83, 0xc4, 0x10  ;; add esp,byte +0x10
-..@0x8043f9b: push ecx
-..@0x8043f9c: push ecx
-..@0x8043f9d: push esi
-..@0x8043f9e: db 0xff, 0x74, 0x24, 0x2c  ;; push dword [esp+0x2c]
-..@0x8043fa2: call R.code+0x804594b
-..@0x8043fa7: db 0x83, 0xc4, 0x10  ;; add esp,byte +0x10
-..@0x8043faa: db 0x83, 0xf8, 0xff  ;; cmp eax,byte -0x1
-..@0x8043fad: db 0x89, 0xc3  ;; mov ebx,eax
-..@0x8043faf: db 0x74, 0x16  ;; jz 0x8043fc7
-..@0x8043fb1: push edx
-..@0x8043fb2: push edx
-..@0x8043fb3: push esi
-..@0x8043fb4: push strict byte +0xa
-..@0x8043fb6: call R.code+0x8045890
-..@0x8043fbb: db 0x83, 0xc4, 0x10  ;; add esp,byte +0x10
-..@0x8043fbe: inc eax
-..@0x8043fbf: db 0x75, 0x05  ;; jnz 0x8043fc6
-..@0x8043fc1: db 0x83, 0xcb, 0xff  ;; or ebx,byte -0x1
-..@0x8043fc4: db 0xeb, 0x01  ;; jmp short 0x8043fc7
-..@0x8043fc6: inc ebx
-..@0x8043fc7: db 0x85, 0xff  ;; test edi,edi
-..@0x8043fc9: db 0x75, 0x11  ;; jnz 0x8043fdc
-..@0x8043fcb: push eax
-..@0x8043fcc: push eax
-..@0x8043fcd: push strict byte +0x1
-..@0x8043fcf: db 0x8d, 0x44, 0x24, 0x0c  ;; lea eax,[esp+0xc]
-..@0x8043fd3: push eax
-..@0x8043fd4: call R.code+0x8047740
-..@0x8043fd9: db 0x83, 0xc4, 0x10  ;; add esp,byte +0x10
-..@0x8043fdc: db 0x83, 0xc4, 0x10  ;; add esp,byte +0x10
-..@0x8043fdf: db 0x89, 0xd8  ;; mov eax,ebx
-..@0x8043fe1: pop ebx
-..@0x8043fe2: pop esi
-..@0x8043fe3: pop edi
-..@0x8043fe4: ret
-%else  ; TARGET, ls
 unused_puts: equ $-B.code  ; Unused. TODO(pts): Remove this, not just blank it out.
 ..@0x8043f69: times 0x8043fe5-0x8043f69 hlt
-%endif  ; TARGET, ls
 printf: equ $-B.code  ; TODO(pts): Compare stack use of the vfprintf(...) call with message_printf, maybe unify.
-%ifidn TARGET, ls
-..@0x8043fe5: db 0x83, 0xec, 0x1c  ;; sub esp,byte +0x1c
-..@0x8043fe8: db 0x8d, 0x44, 0x24, 0x24  ;; lea eax,[esp+0x24]
-..@0x8043fec: db 0x89, 0x44, 0x24, 0x18  ;; mov [esp+0x18],eax
-..@0x8043ff0: push edx
-..@0x8043ff1: push eax
-..@0x8043ff2: db 0xff, 0x74, 0x24, 0x28  ;; push dword [esp+0x28]
-..@0x8043ff6: push dword [stdout]
-..@0x8043ffc: call B.code+vfprintf
-..@0x8044001: db 0x83, 0xc4, 0x2c  ;; add esp,byte +0x2c
-..@0x8044004: ret
-%else  ; TARGET, ls
 unused_printf: equ $-B.code  ; Unused. TODO(pts): Remove this, not just blank it out.
 ..@0x8043fe5: times 0x8044005-0x8043fe5 hlt
-%endif  ; TARGET, ls
 fseeko64: equ $-B.code
 ..@0x8044005: push ebp
 ..@0x8044006: push edi
