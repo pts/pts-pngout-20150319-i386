@@ -4,8 +4,6 @@
 ;
 ; Compile: tools/nasm-0.98.39 -O0 -w+orphan-labels -f bin -o pngoutl pngoutl.nasm && chmod +x pngoutl && cmp pngoutl.golden pngoutl && echo OK
 ;
-; Based on pngoutss.nasm.
-;
 ; Based on: pngout-20150319-linux/i686/pngout in https://www.jonof.id.au/files/kenutils/pngout-20150319-linux.tar.gz (87976 bytes)
 ; Based on: https://www.jonof.id.au/files/kenutils/
 ;
