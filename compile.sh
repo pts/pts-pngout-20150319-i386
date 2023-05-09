@@ -9,6 +9,7 @@ set -ex
 
 for F in pngoutl.nasm pngoutlo.nasm pngoutls.nasm pngoutx.nasm; do
   BF="${F%.*}"
+  # It should produce identical output with -O999999999 as with -O0.
   "$NASM" -O0 -w+orphan-labels -f bin -o "$BF" "$F"
   chmod +x "$BF"
   cmp "$BF".golden "$BF"
