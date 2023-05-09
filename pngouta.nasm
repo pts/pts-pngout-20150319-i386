@@ -77,7 +77,7 @@ A.code equ 0
 ;extern strcpy
 ;extern realloc
 ;extern malloc
-;extern puts
+;extern puts  ; Not used anymore in pngoutl and pngoutx. !! Remove from uClibc, possibly reuse some code bytes. Relink pngout with a shorter plt etc.
 ;extern exit
 ;extern srand
 ;extern strchr
@@ -931,6 +931,7 @@ ftello: equ $-B.code
 ..@0x8043f66: pop ebx
 ..@0x8043f67: pop esi
 ..@0x8043f68: ret
+%ifidn TARGET, ls
 puts: equ $-B.code
 ..@0x8043f69: push edi
 ..@0x8043f6a: push esi
@@ -985,7 +986,11 @@ puts: equ $-B.code
 ..@0x8043fe2: pop esi
 ..@0x8043fe3: pop edi
 ..@0x8043fe4: ret
-printf: equ $-B.code
+%else  ; TARGET, ls
+unused_puts: equ $-B.code  ; Unused. TODO(pts): Remove this, not just blank it out.
+..@0x8043f69: times 0x8043fe5-0x8043f69 hlt
+%endif  ; TARGET, ls
+printf: equ $-B.code  ; TODO(pts): Compare stack use of the vfprintf(...) call with message_printf, maybe unify.
 ..@0x8043fe5: db 0x83, 0xec, 0x1c  ;; sub esp,byte +0x1c
 ..@0x8043fe8: db 0x8d, 0x44, 0x24, 0x24  ;; lea eax,[esp+0x24]
 ..@0x8043fec: db 0x89, 0x44, 0x24, 0x18  ;; mov [esp+0x18],eax
@@ -11023,9 +11028,16 @@ main: equ $-B.code
 ..@0x804b1b7: db 0xc7, 0x06, 0x2e, 0x70, 0x6e, 0x67  ;; mov dword [esi],0x676e702e
 ..@0x804b1bd: db 0xc6, 0x46, 0x04, 0x00  ;; mov byte [esi+0x4],0x0
 ..@0x804b1c1: jmp strict near R.code+0x804af54
-jmp_operation_cancelled: equ $-B.code:  ; This happens when the user replies no to the `Overwrite?' prompt: puts(str_message_operation_cancelled) + exit(1).
-..@0x804b1c6: db 0xc7, 0x04, 0x24, 0x48, 0xb1, 0x05, 0x08  ;; mov dword [esp],str_message_operation_cancelled
-..@0x804b1cd: call B.code+puts  ; !! Use fwrite(..., stdout) instead, so that stdout is explicitly mentioned. We have to add a newline.
+jmp_operation_cancelled: equ $-B.code:  ; This happens when the user replies no to the `Overwrite?' prompt: printf(str_message_operation_cancelled_nl);  exit(1).
+%ifidn TARGET, ls
+..@0x804b1c6: db 0xc7, 0x04, 0x24
+              dd str_message_operation_cancelled  ;; mov dword [esp],str_message_operation_cancelled
+..@0x804b1cd: call B.code+puts
+%else  ; TARGET, ls
+..@0x804b1c6: db 0xc7, 0x04, 0x24
+              dd str_message_operation_cancelled_nl  ;; mov dword [esp],str_message_operation_cancelled_nl
+..@0x804b1cd: call B.code+printf
+%endif  ; TARGGET, ls
 ..@0x804b1d2: db 0xc7, 0x04, 0x24, 0x01, 0x00, 0x00, 0x00  ;; mov dword [esp],0x1
 ..@0x804b1d9: call B.code+exit  ; It doesn't return.
 ..@0x804b1de: db 0xc7, 0x07, 0x2e, 0x70, 0x6e, 0x67  ;; mov dword [edi],0x676e702e
@@ -27243,8 +27255,13 @@ str_release_date: equ $-B.code
 ..@0x805b120: db 0x63, 0x25, 0x63, 0x25, 0x63, 0x20, 0x25, 0x30, 0x38, 0x78, 0x20, 0x25, 0x30, 0x38, 0x78, 0x20
 ..@0x805b130: db 0x25, 0x30, 0x38, 0x78, 0x0a, 0x00, 0x2f, 0x63, 0x25, 0x64, 0x00, 0x20, 0x2f, 0x64, 0x25, 0x64
 ..@0x805b140: db 0x00, 0x20, 0x2f, 0x6e, 0x25, 0x64, 0x0a, 0x00
+%ifidn TARGET, ls
 str_message_operation_cancelled: equ $-B.code
 ..@0x805b148: db 'Operation cancelled.', 0
+%else  ; TARGET, ls
+unused_str_message_operation_cancelled: equ $-B.code
+..@0x805b148: times 21 db 0  ; Unused.
+%endif  ; TARGET, ls
 str_fmt_in_bytes: equ $-B.code
 ..@0x805b15d: db 0x0d, ' In:%8d bytes', 0x0a, 0
 ..@0x805b16d: db 0x0d, 0x20, 0x49
