@@ -1019,22 +1019,8 @@ printf: equ $-B.code  ; TODO(pts): Compare stack use of the vfprintf(...) call w
 ..@0x8044001: db 0x83, 0xc4, 0x2c  ;; add esp,byte +0x2c
 ..@0x8044004: ret
 %else  ; TARGET, ls
-;esp:retaddr fmt val
-..@0x8043fe5: push esp  ; 1 byte.
-;esp:&retaddr retaddr fmt val
-..@0x8043fe6: add dword [esp], strict byte 2*4  ; 4 bytes.
-;esp:ap=&val retaddr fmt val
-              push dword [esp+2*4]  ; 4 bytes.
-;esp:fmt ap=&val retaddr fmt val
-              push dword [stdout]  ; 6 bytes.
-;esp:filep fmt ap=&val retaddr fmt val
-              call B.code+vfprintf  ; 5 bytes.
-;esp:filep fmt ap=&val retaddr fmt val
-              add esp, strict byte 3*4  ; 3 bytes, same as `times 3 pop edx'.
-;esp:retaddr fmt val
-              ret  ; 1 byte.
-;esp:fmt val  ; Cleaned up by the caller.
-              times 8 nop  ; Padding to keep offsets intact.
+unused_printf: equ $-B.code  ; Unused. TODO(pts): Remove this, not just blank it out.
+..@0x8043fe5: times 0x8044005-0x8043fe5 hlt
 %endif  ; TARGET, ls
 fseeko64: equ $-B.code
 ..@0x8044005: push ebp
@@ -8845,6 +8831,11 @@ opendir: equ $-B.code
 P.text:      ;0x06d10..0x18698  +0x11988    @0x8048d10...0x805a698
 times -(P.text-B.code-$$)+0x8048d10 times 0 nop  ; Assert.
 times +(P.text-B.code-$$)-0x8048d10 times 0 nop  ; Assert.
+%ifidn TARGET, ls
+%define maybe_prog_printf printf  ; Use glibc.
+%else
+%define maybe_prog_printf prog_printf  ; Use the one in this executable.
+%endif
 unknown_func2: equ $-B.code
 ..@0x8048d10: push ebp
 ..@0x8048d11: push edi
@@ -10465,11 +10456,11 @@ main: equ $-B.code
 ..@0x804a645: db 0xc7, 0x04, 0x24, 0x08, 0xaf, 0x05, 0x08  ;; mov dword [esp],str_message_already_ask_overwrite
 ..@0x804a64c: db 0x8d, 0x9c, 0x24, 0x90, 0x00, 0x00, 0x00  ;; lea ebx,[esp+0x90] ; Filename.
 ..@0x804a653: db 0x89, 0x4c, 0x24, 0x04  ;; mov [esp+0x4],ecx
-..@0x804a657: call B.code+printf
+..@0x804a657: call B.code+maybe_prog_printf
 ..@0x804a65c: db 0xeb, 0x0e  ;; jmp short A.code+0x804a66c
 ..@0x804a65e: dw 0x9066  ;; o16 nop
 ..@0x804a660: db 0xc7, 0x04, 0x24, 0x30, 0xaf, 0x05, 0x08  ;; mov dword [esp],str_message_unrecognised_response
-..@0x804a667: call B.code+printf
+..@0x804a667: call B.code+maybe_prog_printf
 ..@0x804a66c: mov eax, [stdin]
 ..@0x804a671: db 0xc7, 0x44, 0x24, 0x04, 0x80, 0x00, 0x00, 0x00  ;; mov dword [esp+0x4],0x80
 ..@0x804a679: db 0x89, 0x1c, 0x24  ;; mov [esp],ebx
@@ -11095,7 +11086,7 @@ jmp_operation_cancelled: equ $-B.code:  ; This happens when the user replies no 
 %else  ; TARGET, ls
 ..@0x804b1c6: db 0xc7, 0x04, 0x24
               dd str_message_operation_cancelled_nl  ;; mov dword [esp],str_message_operation_cancelled_nl
-..@0x804b1cd: call B.code+printf
+..@0x804b1cd: call B.code+maybe_prog_printf
 %endif  ; TARGGET, ls
 ..@0x804b1d2: db 0xc7, 0x04, 0x24, 0x01, 0x00, 0x00, 0x00  ;; mov dword [esp],0x1
 ..@0x804b1d9: call B.code+exit  ; It doesn't return.
@@ -11257,19 +11248,19 @@ jmp_exit1_after_printing_help: equ $-B.code
 ..@0x804b452: db 0x8b, 0x54, 0x24, 0x7c  ;; mov edx,[esp+0x7c]
 ..@0x804b456: db 0xc7, 0x04, 0x24, 0xdc, 0xae, 0x05, 0x08  ;; mov dword [esp],str_message_already_cancelled
 ..@0x804b45d: db 0x89, 0x54, 0x24, 0x04  ;; mov [esp+0x4],edx
-..@0x804b461: call B.code+printf
+..@0x804b461: call B.code+maybe_prog_printf
 ..@0x804b466: db 0xc7, 0x04, 0x24, 0x01, 0x00, 0x00, 0x00  ;; mov dword [esp],0x1
 ..@0x804b46d: call B.code+exit
 ..@0x804b472: db 0x0f, 0xbe, 0x05, 0x4c, 0xca, 0x87, 0x09  ;; movsx eax,byte [dword 0x987ca4c]
 ..@0x804b479: db 0xc7, 0x04, 0x24, 0x36, 0xb1, 0x05, 0x08  ;; mov dword [esp],0x805b136
 ..@0x804b480: db 0x89, 0x44, 0x24, 0x04  ;; mov [esp+0x4],eax
-..@0x804b484: call B.code+printf
+..@0x804b484: call B.code+maybe_prog_printf
 ..@0x804b489: db 0x83, 0x7c, 0x24, 0x68, 0x00  ;; cmp dword [esp+0x68],byte +0x0
 ..@0x804b48e: db 0x78, 0x14  ;; js A.code+0x804b4a4
 ..@0x804b490: db 0x8b, 0x74, 0x24, 0x68  ;; mov esi,[esp+0x68]
 ..@0x804b494: db 0xc7, 0x04, 0x24, 0xdb, 0xb4, 0x05, 0x08  ;; mov dword [esp],0x805b4db
 ..@0x804b49b: db 0x89, 0x74, 0x24, 0x04  ;; mov [esp+0x4],esi
-..@0x804b49f: call B.code+printf
+..@0x804b49f: call B.code+maybe_prog_printf
 ..@0x804b4a4: db 0x0f, 0xb6, 0x05, 0x4c, 0xca, 0x87, 0x09  ;; movzx eax,byte [dword 0x987ca4c]
 ..@0x804b4ab: db 0x3c, 0x03  ;; cmp al,0x3
 ..@0x804b4ad: db 0x0f, 0x84, 0xa1, 0x00, 0x00, 0x00  ;; jz near A.code+0x804b554
@@ -11278,7 +11269,7 @@ jmp_exit1_after_printing_help: equ $-B.code
 ..@0x804b4bb: db 0xa1, 0x44, 0xca, 0x87, 0x09  ;; mov eax,[0x987ca44]
 ..@0x804b4c0: db 0xc7, 0x04, 0x24, 0x41, 0xb1, 0x05, 0x08  ;; mov dword [esp],0x805b141
 ..@0x804b4c7: db 0x89, 0x44, 0x24, 0x04  ;; mov [esp+0x4],eax
-..@0x804b4cb: call B.code+printf
+..@0x804b4cb: call B.code+maybe_prog_printf
 ..@0x804b4d0: db 0xc7, 0x04, 0x24, 0x00, 0x00, 0x00, 0x00  ;; mov dword [esp],0x0
 ..@0x804b4d7: call B.code+exit
 ..@0x804b4dc: db 0xc7, 0x04, 0x24, 0x84, 0xae, 0x05, 0x08  ;; mov dword [esp],0x805ae84
@@ -11308,7 +11299,7 @@ jmp_exit1_after_printing_help: equ $-B.code
 ..@0x804b554: db 0x0f, 0xbe, 0x05, 0x20, 0xc6, 0x87, 0x09  ;; movsx eax,byte [dword 0x987c620]
 ..@0x804b55b: db 0xc7, 0x04, 0x24, 0x3b, 0xb1, 0x05, 0x08  ;; mov dword [esp],0x805b13b
 ..@0x804b562: db 0x89, 0x44, 0x24, 0x04  ;; mov [esp+0x4],eax
-..@0x804b566: call B.code+printf
+..@0x804b566: call B.code+maybe_prog_printf
 ..@0x804b56b: jmp strict near R.code+0x804b4bb
 
 _nop_start: equ $-B.code  ; Contains _start, _fini_array_once, _fini_array_loop, _fini_array_entry0, _init_array_entry0.
@@ -11407,16 +11398,19 @@ unknown_func4: equ $-B.code  ; _Bool unknown_func4(int x) { return x == 0 ? && g
 ..@0x804b666: db 0x85, 0xd2  ;; test edx,edx
 ..@0x804b668: db 0x75, 0x0c  ;; jnz A.code+0x804b676
 ..@0x804b66a: db 0x31, 0xc0  ;; xor eax,eax
-..@0x804b66c: db 0x83, 0x3d, 0x40, 0xd2, 0x05, 0x08, 0x02  ;; cmp dword [dword global_cleanup_counter],byte +0x2
+..@0x804b66c: db 0x83, 0x3d, 0x40, 0xd2, 0x05, 0x08, 0x02  ;; cmp dword [global_cleanup_counter],byte +0x2
 ..@0x804b673: db 0x0f, 0x94, 0xc0  ;; setz al
 ..@0x804b676: db 0xf3, 0xc3  ;; rep ret
 ..@0x804b678: nop
 ..@0x804b679: db 0x8d, 0xb4, 0x26, 0x00, 0x00, 0x00, 0x00  ;; lea esi,[esi+0x0]
-message_printf: equ $-B.code  ; Prints to message_filep with vfprintf, noop if message_filep is NULL.
-..@0x804b680: db 0x8b, 0x15, 0x44, 0xd2, 0x05, 0x08  ;; mov edx,[dword message_filep]
+
+message_printf: equ $-B.code  ; Prints to message_filep with vfprintf, noop if message_filep is NULL. Also used for printing the help text.
+; int message_printf(const char *fmt, ...) { va_list ap; if (!message_filep) return 0; va_start(ap, fmt); return vfprintf(message_filep, fmt, ap); }
+..@0x804b680: mov edx, [message_filep]
 ..@0x804b686: db 0x31, 0xc0  ;; xor eax,eax
 ..@0x804b688: db 0x85, 0xd2  ;; test edx,edx
-..@0x804b68a: db 0x74, 0x1e  ;; jz A.code+0x804b6aa
+..@0x804b68a: jz strict short B.code+message_printf.ret
+%ifidn TARGET, ls
 ..@0x804b68c: db 0x83, 0xec, 0x1c  ;; sub esp,byte +0x1c
 ..@0x804b68f: db 0x8d, 0x44, 0x24, 0x24  ;; lea eax,[esp+0x24]
 ..@0x804b693: db 0x89, 0x14, 0x24  ;; mov [esp],edx
@@ -11425,8 +11419,34 @@ message_printf: equ $-B.code  ; Prints to message_filep with vfprintf, noop if m
 ..@0x804b69e: db 0x89, 0x44, 0x24, 0x04  ;; mov [esp+0x4],eax
 ..@0x804b6a2: call B.code+vfprintf
 ..@0x804b6a7: db 0x83, 0xc4, 0x1c  ;; add esp,byte +0x1c
+message_printf.ret: equ $-B.code
 ..@0x804b6aa: db 0xf3, 0xc3  ;; rep ret
 ..@0x804b6ac: db 0x8d, 0x74, 0x26, 0x00  ;; lea esi,[esi+0x0]
+%else  ; TARGET, ls
+..@0x804b68c: jmp strict short B.code+message_printf.filep_in_edx
+prog_printf: equ $-B.code  ; Same as printf(3) in the libc, implemented using fprintf(stdout, ...).
+; int prog_printf(const char *fmt, ...) { return vfprintf(stdout, fmt, ap); }
+..@0x804b68e: mov edx, [stdout]  ; 6 bytes.
+              ; Fall through to code shared by prog_printf and message_printf.
+message_printf.filep_in_edx: equ $-B.code
+;esp:retaddr fmt val
+..@0x804b694: push esp  ; 1 byte.
+;esp:&retaddr retaddr fmt val
+..@0x804b695: add dword [esp], strict byte 2*4  ; 4 bytes.
+;esp:ap=&val retaddr fmt val
+              push dword [esp+2*4]  ; 4 bytes.
+;esp:fmt ap=&val retaddr fmt val
+              push edx  ; 1 byte. Pushes the filep (stdout or message_filep).
+;esp:filep fmt ap=&val retaddr fmt val
+              call B.code+vfprintf  ; 5 bytes.
+;esp:filep fmt ap=&val retaddr fmt val
+              add esp, strict byte 3*4  ; 3 bytes, same as `times 3 pop edx'.
+;esp:retaddr fmt val
+message_printf.ret: equ $-B.code
+              ret  ; 1 byte.
+;esp:fmt val  ; Cleaned up by the caller.
+              times 9 nop  ; Padding to keep offsets intact.
+%endif  ; TARGET, ls
 
 %ifidn TARGET, ls  ; Contains handle_sigint, setup_sigint_handler.
 handle_sigint: equ $-B.code
