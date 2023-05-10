@@ -17275,7 +17275,8 @@ print_help: equ $-B.code
 ..@0x8051129: db 0x2b, 0x44, 0x24, 0x6c  ;; sub eax,[esp+0x6c]
 ..@0x805112d: db 0x2b, 0x54, 0x24, 0x70  ;; sub edx,[esp+0x70]
 ..@0x8051131: db 0x79, 0x09  ;; jns A.code+0x805113c
-..@0x8051133: db 0x81, 0xc2, 0x40, 0x42, 0x0f, 0x00  ;; add edx,0xf4240
+..@0x8051133: db 0x81, 0xc2, 0x40, 0x42, 0x0f, 0x00  ;; add edx, 1000000
+%ifidn TARGET, ls
 ..@0x8051139: db 0x83, 0xe8, 0x01  ;; sub eax,byte +0x1
               ; Now the to-be-displayed time difference is in EAX (seconds) + EDX (microseconds).
 ..@0x805113c: db 0x89, 0x44, 0x24, 0x4c  ;; mov [esp+0x4c],eax
@@ -17289,6 +17290,27 @@ print_help: equ $-B.code
 ..@0x805115d: db 0xde, 0xf9  ;; fdivp st1
 ..@0x805115f: db 0xdd, 0x5c, 0x24, 0x04  ;; fstp qword [esp+0x4]  ; Store double-precision float (64-bit) to printf value argument.
 ..@0x8051163: call [funcptr_printf]
+%else  ; TARGET, ls
+..@0x8051139: dec eax
+              ; Now the to-be-displayed time difference is in EAX (seconds) + EDX (microseconds).
+..@0x8051140: db 0xc7, 0x04, 0x24
+                dd str_fmt_took_time  ;; mov dword [esp],str_fmt_took_time. Push to the stack for *funcptr_printf.
+              test eax, eax
+              jns .1
+              xor eax, eax  ; Convert a negative number to 0.
+              xor edx, edx
+.1:           mov [esp+4], eax  ; Seconds. Push to the stack for *funcptr_printf.
+              ; Now we divide EDX by 1000, to convert from microseconds to
+              ; milliseconds. We use EAX as a scratch register.
+              ; Multiplication is faster than division, so we do it like
+              ; this.
+              mov eax, 0x10624dd3
+              mul edx  ; EDX:EAX := EAX * EDX.
+              shr edx, 6
+              mov [esp+8], edx  ; Milliseconds. Push to the stack for *funcptr_printf.
+              call [funcptr_printf]
+              times 4 dw 0x9066  ;; o16 nop  ; Padding.
+%endif  ; TARGET, ls
 ..@0x8051169: jmp strict near R.code+0x8051092
 ..@0x805116e: db 0x8b, 0x45, 0x14  ;; mov eax,[ebp+0x14]
 ..@0x8051171: db 0x85, 0xc0  ;; test eax,eax
@@ -27332,9 +27354,15 @@ str_fmt_percent: equ $-B.code
 ..@0x805b57d: db 0x0a, 'Early ESC! ', 0
 ..@0x805b58a: db 0x0d, '!malloc failed (gpo->kbuf)', 0
 ..@0x805b5a6: db 'Out:%8d bytes (stored)', 0
-str_message_took_time: equ $-B.code
+%ifidn TARGET, ls
+str_fmt_took_time: equ $-B.code
 ..@0x805b5bd: db 'Took %.3f sec.', 0x0a, 0  ; Message displayed if the -v flag is specified.
 ..@0x805b5cd: times 0x805b5e0-0x805b5cd db 0  ; Padding, otherwise unused.
+%else  ; TARGET, ls
+str_fmt_took_time: equ $-B.code
+..@0x805b5bd: db 'Took %u.%03u sec.', 0x0a, 0  ; Message displayed if the -v flag is specified.
+..@0x805b5d0: times 0x805b5e0-0x805b5d0 db 0  ; Padding, otherwise unused.
+%endif  ; TARGET, ls
 code_ptr_0x805b5e0: equ $-B.code
 ..@0x805b5e0: dd A.code+0x804dd08
 code_ptr_0x805b5e4: equ $-B.code
@@ -27456,8 +27484,13 @@ code_ptr_0x805b6bc: equ $-B.code
 ..@0x805b720: db 0x26, 0x88, 0xc0, 0x81, 0x88, 0x2e, 0xa0, 0x3f, 0xac, 0x4c, 0x2e, 0x48, 0xec, 0x5f, 0xc9, 0x3f
 ..@0x805b730: db 0xfe, 0x82, 0x2b, 0x65, 0x47, 0x15, 0xc7, 0xbf, 0x00, 0x00, 0xc0, 0xff, 0xff, 0xff, 0xdf, 0x41
 ..@0x805b740: db 0x00, 0x00, 0x00, 0x3f
+%ifidn TARGET, ls
 f32_1000000: equ $-B.code
 ..@0x805b744: db 0x00, 0x24, 0x74, 0x49  ; (32-bit float)1000000.
+%else  ; TARGET, ls
+unused_f32_1000000: equ $-B.code
+..@0x805b744: times 4 db 0  ; Unused.
+%endif  ; TARGET, ls
 ..@0x805b748: times 0x18 db 0  ; Padding.
 code_ptr_0x805b760: equ $-B.code
 ..@0x805b760: dd A.code+0x80534a0
