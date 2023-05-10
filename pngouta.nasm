@@ -8,6 +8,12 @@
 ; Based on: pngout-20150319-linux/i686/pngout in https://www.jonof.id.au/files/kenutils/pngout-20150319-linux.tar.gz (87976 bytes)
 ; Based on: https://www.jonof.id.au/files/kenutils/
 ;
+; This program targets 32-bit Intel architecture (IA-32), and within that
+; the P6 (-march=i686, Pentium Pro) processor family or later. It doesn't
+; work with earlier CPUs (e.g. 386, 486, 586 == P5 == Pentium) because the
+; PNGOUT machine code uses some P6-specific instructions (e.g. fucomi,
+; cmovs).
+;
 
 %ifndef TARGET
 %define TARGET x  ; statically linked for Linux i386 using uClibc 0.9.30.1 (2009-03-02).
@@ -658,7 +664,7 @@ fclose: equ $-B.code
 ..@0x8043e5c: push ebx
 ..@0x8043e5d: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8043e5f: db 0xb8, 0xff, 0xff, 0xff, 0xff  ;; mov eax,0xffffffff
-..@0x8043e64: db 0x0f, 0x48, 0xf8  ;; cmovs edi,eax
+..@0x8043e64: db 0x0f, 0x48, 0xf8  ;; cmovs edi,eax  ; This needs CPU >= 686 (P6).
 ..@0x8043e67: call B.code+__pthread_return_void
 ..@0x8043e6c: db 0xc7, 0x04, 0x24, 0x70, 0xcf, 0x05, 0x08  ;; mov dword [esp],_stdio_openlist_del_lock
 ..@0x8043e73: call B.code+__pthread_return_0
@@ -5358,7 +5364,7 @@ __strtofpmax: equ $-B.code
 ..@0x8047491: db 0x01, 0xef  ;; add edi,ebp
 ..@0x8047493: db 0xd9, 0xee  ;; fldz
 ..@0x8047495: db 0xd9, 0xc9  ;; fxch st1
-..@0x8047497: db 0xdb, 0xe9  ;; fucomi st1
+..@0x8047497: db 0xdb, 0xe9  ;; fucomi st1  ; This needs CPU >= 686 (P6).
 ..@0x8047499: db 0xdd, 0xd9  ;; fstp st1
 ..@0x804749b: db 0x7a, 0x02  ;; jpe 0x804749f
 ..@0x804749d: db 0x74, 0x51  ;; jz 0x80474f0
