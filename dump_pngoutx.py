@@ -30,7 +30,7 @@ def main(argv):
       Part('P.ucdata',    'PROGBITS', 0x805cf40, 0x19f40,  +0x0026c),
       Part('P.gap7',      'PROGBITS', 0x805d1ac, 0x1a1ac,  +0x00018),
       Part('P.data',      'PROGBITS', 0x805d1c4, 0x1a1c4,  +0x0002c),
-      Part('P.bss',       'NOBITS',   0x805d200, 0x1a1f0,  +0x181f840 + 0x023e0),
+      Part('P.bss',       'NOBITS',   0x805d200, 0x1a1f0,  +0x181f850 + 0x023e0),
       # Part('P.ucbss', ...) is included in .bss.
   )
   labels = (

@@ -44,7 +44,7 @@ def main(argv):
       Part('P.got',               'PROGBITS',    0x805d0fc,  0x00140fc,  0x0000004),
       Part('P.got.plt',           'PROGBITS',    0x805d100,  0x0014100,  0x00000a4),
       Part('P.data',              'PROGBITS',    0x805d1a4,  0x00141a4,  0x000024c),
-      Part('P.bss',               'NOBITS',      0x805d400,  0x00143f0,  0x181f840),
+      Part('P.bss',               'NOBITS',      0x805d400,  0x00143f0,  0x181f850),
   )
   labels = (
   )

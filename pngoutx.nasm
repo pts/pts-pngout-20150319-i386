@@ -50,8 +50,8 @@
 ;   .gap7      0x1a1ac..0x1a1c4  +0x00018    @0x805d1ac...0x805d1c4
 ;   .data      0x1a1c4..0x1a1f0  +0x0002c    @0x805d1c4...0x805d1f0  file_size=end_off=0x1a1f0=106992 (previous is 122880 bytes)
 ;   .gap8      ---               +0x35       @0x805d1f0...0x805d225
-;   .bss       ---               +0x181f81b  @0x805d225...0x987ca40
-;   .ucbss     ---               +0x023e0    @0x987ca40...0x987ee20
+;   .bss       ---               +0x181f82b  @0x805d225...0x987ca50
+;   .ucbss     ---               +0x023e0    @0x987ca50...0x987ee20
 ;
 ;   LOAD       0x00000..0x19a20  +0x19a20    @0x8042000...0x805ba20  r-x
 ;   LOAD       0x19f40..0x1a1f0  +0x002b0    @0x805cf40...0x987ee20  rw-  memsize=+0x1821ee0
@@ -60,11 +60,11 @@
 ;   .textgap4  0x09570..0x09660  +0x000f0    @0x804b570...0x804b660  filled with nop
 ;   .textgap5  0x096b0..0x0978e  +0x000de    @0x804b6b0...0x804b78e  filled with nop
 ;
-; Commands generating the pngout_libc executable (with FAKE_main only):
+; Commands generating the pngout_libc executable (with FAKE_main only) (may not work for copy-pasting now, it used to have the incorrect -Tbss=0x987ca50):
 ;
 ;   # ld.bin (GNU gold) doesn't fully respect -Ttext=0x8043ae0 (it puts it 4 bytes earlier)
 ;   # `qq ld' is Ubuntu 18.04 i386 GNU ld 2.24.
-;   $ qq ld -nostdlib -m elf_i386 -static -o pngoutx_libc -z noexecstack -Ttext=0x8043ae0 --section-start .rodata=0x80424c0 -Tdata=0x805cf40 -Tbss=0x987ca40 xlib/start.o true.o xlib/libcu.o
+;   $ qq ld -nostdlib -m elf_i386 -static -o pngoutx_libc -z noexecstack -Ttext=0x8043ae0 --section-start .rodata=0x80424c0 -Tdata=0x805cf40 -Tbss=0x987ca50 xlib/start.o true.o xlib/libcu.o
 ;   $ objdump -x pngoutx_libc | head -40
 ;   $ objdump -x pngoutx_libc >pngoutx_libc.lst0
 ;
