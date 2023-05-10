@@ -25,7 +25,7 @@
   B.code equ -0x8048000
   B.data equ B.code-0x1000
 %elifidn TARGET, d  ; dynamically linked for macOS >=10.5 i386 against /usr/lib/libSystem.B.dylib
-  ; !! add stripped macOS target
+  ; TODO(pts): Add stripped macOS target. It's probably not worth it, it saves only 644 bytes.
   B.code equ -0x8048000
   B.data equ B.code
 %elifidn TARGET, ls  ; dynamically linked for Linux i386 against glibc, section headers stripped
@@ -152,8 +152,6 @@ X.ELF_phdr.end:
 X.gap1:      ;0x00094..0x004c0  +0x0042c    ---
 times +0x0042c db 0
 
-; !! TODO(pts): Use symbolic uClibc labels defined in .ucrodata, .uctext,
-;    .ucdata and .ucbss in code and data (`dd').
 X.ucrodata:  ;0x004c0..0x01adc  +0x0161c    @0x80424c0...0x8043adc
 times -($-$$+0x8042000)+0x80424c0 times 0 nop  ; Assert.
 times +($-$$+0x8042000)-0x80424c0 times 0 nop  ; Assert.
@@ -8493,7 +8491,6 @@ D.MachO_hdr:  ; addr=0x8048000 off=0x0
 ..@0x8048d00: db 0xf0, 0xd1, 0x05, 0x08, 0xb8, 0x25, 0xd2, 0x05, 0x08, 0xb8, 0x50, 0xca, 0x87, 0x09, 0x90, 0x90
 
 ; Darwin (macOS) libc function addresses within Mach-O .plt.
-; !! Add main code with fdopen.
 exit          equ $$+0x805bd1e
 fclose        equ $$+0x805bd24
 fdopen        equ $$+0x805bd2a
