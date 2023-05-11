@@ -62,16 +62,16 @@ A.code equ 0
 
 ; libc functions used.
 ;extern log
-;extern read
-;extern printf  ; Not used anymore in pngoutl and pngoutx. !! Remove from uClibc, possibly reuse some code bytes. Relink pngout with a shorter .plt etc.
+;extern read  ; Linux syscall.
+;extern printf  ; Not used anymore in pngoutl and pngoutx. !! Remove from uClibc, possibly reuse some code bytes. Relink pngoutl with a shorter .plt etc.
 ;extern fflush
 ;extern memmove
 ;extern free
 ;extern memcpy
-;extern fgets
+;extern fgets  ; needs read buffering, only used from stdin.
 ;extern fclose
-;extern time
-;extern gettimeofday
+;extern time  ; Linux syscall.
+;extern gettimeofday  ; Linux syscall.
 ;extern stpcpy
 ;extern fseek
 ;extern fwrite
@@ -80,8 +80,8 @@ A.code equ 0
 ;extern strcpy
 ;extern realloc
 ;extern malloc
-;extern puts  ; Not used anymore in pngoutl and pngoutx. !! Remove from uClibc, possibly reuse some code bytes. Relink pngout with a shorter .plt etc.
-;extern exit
+;extern puts  ; Not used anymore in pngoutl and pngoutx. !! Remove from uClibc, possibly reuse some code bytes. Relink pngoutl with a shorter .plt etc.
+;extern exit  ; There is a corresponding Linux syscall _exit.
 ;extern srand
 ;extern strchr
 ;extern strlen
@@ -91,12 +91,13 @@ A.code equ 0
 ;extern memset
 ;extern fileno
 ;extern strtod
-;extern fgetc
+;extern fgetc  ; Needs read buffering, not from stdin.
 ;extern strncasecmp
 ;extern rand
 ;extern strtok
 ;extern vfprintf
 ;extern strtol
+;extern fputc  ; Only for TARGET==x, called by vfprintf(...).
 
 %ifidn TARGET, x
 X.ELF_ehdr:  ;0x00000..0x00034  +0x00034    ---
