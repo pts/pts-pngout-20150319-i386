@@ -5922,23 +5922,24 @@ code_ptr_e_entry: equ $+0x8048000
 ehdr.size	equ $-ehdr
 
 L.ELF_phdr:  ; addr=0x8048034 off=0x34
+_elf_phdr: equ $-B.code
 phdr0:					; Elf32_Phdr
 		dd PT.PHDR		;   p_type.  ; TODO(pts): Get rid of this, it's optional.
-		dd 0x34			;   p_offset
-		dd 0x8048034		;   p_vaddr
-		dd 0x8048034		;   p_paddr
-		dd +0x100		;   p_filesz
-		dd +0x100		;   p_memsz
+		dd _elf_phdr+B.code	;   p_offset
+		dd _elf_phdr		;   p_vaddr
+		dd _elf_phdr		;   p_paddr
+		dd _elf_phdr.end-_elf_phdr  ;   p_filesz
+		dd _elf_phdr.end-_elf_phdr  ;   p_memsz
 		dd 5			;   p_flags: r-x: read and execute, no write
 		dd 4			;   p_align
 .size		equ $-phdr0
 phdr1:					; Elf32_Phdr
 		dd PT.INTERP		;   p_type == PT_LOAD.
-		dd 0x134		;   p_offset
-		dd 0x8048134		;   p_vaddr
-		dd 0x8048134		;   p_paddr
-		dd +0x13		;   p_filesz
-		dd +0x13		;   p_memsz
+		dd _elf_interp+B.code	;   p_offset
+		dd _elf_interp		;   p_vaddr
+		dd _elf_interp		;   p_paddr
+		dd _elf_interp.end-_elf_interp  ;   p_filesz
+		dd _elf_interp.end-_elf_interp  ;   p_memsz
 		dd 4			;   p_flags: r--: read, no write, no execute
 		dd 1			;   p_align
 phdr2:					; Elf32_Phdr
@@ -5961,29 +5962,29 @@ phdr3:					; Elf32_Phdr
 		dd 0x1000		;   p_align
 phdr4:					; Elf32_Phdr
 		dd PT.DYNAMIC		;   p_type
-		dd 0x1400c		;   p_offset
-		dd 0x805d00c		;   p_vaddr
-		dd 0x805d00c		;   p_paddr
-		dd +0xf0		;   p_filesz
-		dd +0xf0		;   p_memsz
+		dd _elf_dynamic+B.data	;   p_offset
+		dd _elf_dynamic		;   p_vaddr
+		dd _elf_dynamic		;   p_paddr
+		dd _elf_dynamic.end-_elf_dynamic  ;   p_filesz
+		dd _elf_dynamic.end-_elf_dynamic  ;   p_memsz
 		dd 6			;   p_flags: rw-: read and write, no execute
 		dd 4			;   p_align
 phdr5:					; Elf32_Phdr
 		dd PT.NOTE		;   p_type  ; TODO(pts): Get rid of this, it's optional.
-		dd 0x148		;   p_offset
-		dd 0x8048148		;   p_vaddr
-		dd 0x8048148		;   p_paddr
-		dd +0x20		;   p_filesz
-		dd +0x20		;   p_memsz
+		dd _elf_note+B.code	;   p_offset
+		dd _elf_note		;   p_vaddr
+		dd _elf_note		;   p_paddr
+		dd _elf_note.end-_elf_note  ;   p_filesz
+		dd _elf_note.end-_elf_note  ;   p_memsz
 		dd 4			;   p_flags: r--: read, no write, no execute
 		dd 4			;   p_align
 phdr6:					; Elf32_Phdr
 		dd PT.GNU_EH_FRAME	;   p_type  ; TODO(pts): Get rid of this, it's optional.
-		dd 0x13a20		;   p_offset
-		dd 0x805ba20		;   p_vaddr
-		dd 0x805ba20		;   p_paddr
-		dd +0x24		;   p_filesz
-		dd +0x24		;   p_memsz
+		dd _elf_eh_frame_hdr+B.code  ;   p_offset
+		dd _elf_eh_frame_hdr	;   p_vaddr
+		dd _elf_eh_frame_hdr	;   p_paddr
+		dd _elf_eh_frame_hdr.end-_elf_eh_frame_hdr  ;   p_filesz
+		dd _elf_eh_frame_hdr.end-_elf_eh_frame_hdr  ;   p_memsz
 		dd 4			;   p_flags: r--: read, no write, no execute
 		dd 4			;   p_align
 phdr7:					; Elf32_Phdr
@@ -5995,13 +5996,14 @@ phdr7:					; Elf32_Phdr
 		dd +0			;   p_memsz
 		dd 7			;   p_flags: rwx: read and write and execute;  !! TODO(pts): Improve security by not allowing execution.
 		dd 0x10			;   p_align
+_elf_phdr.end: equ $-B.code
 L.ELF_phdr.end:
 
 L.interp:  ; addr=0x8048134 off=0x134
 _elf_interp: equ $-B.code
 ..@0x8048134: db '/lib/ld-linux.so.2', 0
-..@0x8048147: db 0
 _elf_interp.end: equ $-B.code
+..@0x8048147: times 1 db 0  ; Alignment padding.
 ;..@0x8048148:
 
 L.note.ABI_tag:  ; addr=0x8048148 off=0x148
@@ -6594,23 +6596,24 @@ code_ptr_e_entry: equ $+0x8048000
 ehdr.size	equ $-ehdr
 
 LS.ELF_phdr:  ; addr=0x8048034 off=0x34
+_elf_phdr: equ $-B.code
 phdr0:					; Elf32_Phdr
 		dd PT.PHDR		;   p_type.  ; TODO(pts): Get rid of this, it's optional.
-		dd 0x34			;   p_offset
-		dd 0x8048034		;   p_vaddr
-		dd 0x8048034		;   p_paddr
-		dd +0x100		;   p_filesz
-		dd +0x100		;   p_memsz
+		dd _elf_phdr+B.code	;   p_offset
+		dd _elf_phdr		;   p_vaddr
+		dd _elf_phdr		;   p_paddr
+		dd _elf_phdr.end-_elf_phdr  ;   p_filesz
+		dd _elf_phdr.end-_elf_phdr  ;   p_memsz
 		dd 5			;   p_flags: r-x: read and execute, no write
 		dd 4			;   p_align
 .size		equ $-phdr0
 phdr1:					; Elf32_Phdr
 		dd PT.INTERP		;   p_type == PT_LOAD.
-		dd 0x134		;   p_offset
-		dd 0x8048134		;   p_vaddr
-		dd 0x8048134		;   p_paddr
-		dd +0x13		;   p_filesz
-		dd +0x13		;   p_memsz
+		dd _elf_interp+B.code	;   p_offset
+		dd _elf_interp		;   p_vaddr
+		dd _elf_interp		;   p_paddr
+		dd _elf_interp.end-_elf_interp  ;   p_filesz
+		dd _elf_interp.end-_elf_interp  ;   p_memsz
 		dd 4			;   p_flags: r--: read, no write, no execute
 		dd 1			;   p_align
 phdr2:					; Elf32_Phdr
@@ -6633,29 +6636,29 @@ phdr3:					; Elf32_Phdr
 		dd 0x1000		;   p_align
 phdr4:					; Elf32_Phdr
 		dd PT.DYNAMIC		;   p_type
-		dd 0x1500c		;   p_offset
-		dd 0x805d00c		;   p_vaddr
-		dd 0x805d00c		;   p_paddr
-		dd +0xf8		;   p_filesz
-		dd +0xf8		;   p_memsz
+		dd _elf_dynamic+B.data	;   p_offset
+		dd _elf_dynamic		;   p_vaddr
+		dd _elf_dynamic		;   p_paddr
+		dd _elf_dynamic.end-_elf_dynamic  ;   p_filesz
+		dd _elf_dynamic.end-_elf_dynamic  ;   p_memsz
 		dd 6			;   p_flags: rw-: read and write, no execute
 		dd 4			;   p_align
 phdr5:					; Elf32_Phdr
-		dd PT.NOTE		;   p_type  ; TODO(pts): Get rid of this, it's optional.
-		dd 0x148		;   p_offset
-		dd 0x8048148		;   p_vaddr
-		dd 0x8048148		;   p_paddr
-		dd +0x44		;   p_filesz
-		dd +0x44		;   p_memsz
+		dd PT.NOTE		;   p_type
+		dd _elf_note+B.code	;   p_offset
+		dd _elf_note		;   p_vaddr
+		dd _elf_note		;   p_paddr
+		dd _elf_note.end-_elf_note  ;   p_filesz
+		dd _elf_note.end-_elf_note  ;   p_memsz
 		dd 4			;   p_flags: r--: read, no write, no execute
 		dd 4			;   p_align
 phdr6:					; Elf32_Phdr
-		dd PT.GNU_EH_FRAME	;   p_type  ; TODO(pts): Get rid of this, it's optional.
-		dd 0x13a20		;   p_offset
-		dd 0x805ba20		;   p_vaddr
-		dd 0x805ba20		;   p_paddr
-		dd +0x20c		;   p_filesz
-		dd +0x20c		;   p_memsz
+		dd PT.GNU_EH_FRAME	;   p_type
+		dd _elf_eh_frame_hdr+B.code  ;   p_offset
+		dd _elf_eh_frame_hdr	;   p_vaddr
+		dd _elf_eh_frame_hdr	;   p_paddr
+		dd _elf_eh_frame_hdr.end-_elf_eh_frame_hdr  ;   p_filesz
+		dd _elf_eh_frame_hdr.end-_elf_eh_frame_hdr  ;   p_memsz
 		dd 4			;   p_flags: r--: read, no write, no execute
 		dd 4			;   p_align
 phdr7:					; Elf32_Phdr
@@ -6667,13 +6670,14 @@ phdr7:					; Elf32_Phdr
 		dd +0			;   p_memsz
 		dd 6			;   p_flags: rw-: read and write, no execute
 		dd 4			;   p_align
+_elf_phdr.end: equ $-B.code
 LS.ELF_phdr.end:
 
 LS.interp:  ; addr=0x8048134 off=0x134
 _elf_interp: equ $-B.code
 ..@0x8048134: db '/lib/ld-linux.so.2', 0
-..@0x8048147: db 0
 _elf_interp.end: equ $-B.code
+..@0x8048147: times 1 db 0  ; Alignment padding.
 ;..@0x8048148:
 
 LS.note.ABI_tag:  ; addr=0x8048148 off=0x148
@@ -6686,7 +6690,7 @@ LS.note.gnu.build_id:  ; addr=0x8048168 off=0x168
 ..@0x8048168: db 0x04, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00
 ..@0x8048170: db 0x03, 0x00, 0x00, 0x00, 0x47, 0x4e, 0x55, 0x00, 0x02, 0xb3, 0xa3, 0x1c, 0x47, 0x25, 0xf5, 0xed
 ..@0x8048180: db 0x02, 0x35, 0x67, 0x7f, 0x0e, 0x46, 0x30, 0x66, 0xe5, 0xb6, 0x54, 0x51
-_elf_note_end: equ $-B.code
+_elf_note.end: equ $-B.code
 
 LS.hash:  ; addr=0x804818c off=0x18c
 ..@0x804818c: db 0x25, 0x00, 0x00, 0x00
