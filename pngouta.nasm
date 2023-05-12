@@ -96,7 +96,7 @@ A.code equ 0
 ;extern rand  ; Reimplemented.
 ;extern strtok
 ;extern vfprintf  ; Reimplemented.
-;extern strtol
+;extern strtol  ; Reimplemented.
 ;extern fputc  ; Only for TARGET==x, called by vfprintf(...).
 
 %ifidn TARGET, x
@@ -4657,124 +4657,133 @@ abort: equ $-B.code
 ..@0x8046df9: db 0xeb, 0xfd  ;; jmp short 0x8046df8
 unused_rand: equ $-B.code
 ..@0x8046dfb: times 0x804717b-0x8046dfb hlt
-strtol: equ $-B.code
-..@0x804717b: db 0x83, 0xec, 0x0c  ;; sub esp,byte +0xc
-..@0x804717e: push strict byte +0x1
-..@0x8047180: db 0xff, 0x74, 0x24, 0x1c  ;; push dword [esp+0x1c]
-..@0x8047184: db 0xff, 0x74, 0x24, 0x1c  ;; push dword [esp+0x1c]
-..@0x8047188: db 0xff, 0x74, 0x24, 0x1c  ;; push dword [esp+0x1c]
-..@0x804718c: call B.code+_stdlib_strto_l
-..@0x8047191: db 0x83, 0xc4, 0x1c  ;; add esp,byte +0x1c
-..@0x8047194: ret
-_stdlib_strto_l: equ $-B.code
-..@0x8047195: push ebp
-..@0x8047196: push edi
-..@0x8047197: push esi
-..@0x8047198: push ebx
-..@0x8047199: db 0x83, 0xec, 0x0c  ;; sub esp,byte +0xc
-..@0x804719c: db 0x8b, 0x4c, 0x24, 0x20  ;; mov ecx,[esp+0x20]
-..@0x80471a0: db 0x8b, 0x74, 0x24, 0x28  ;; mov esi,[esp+0x28]
-..@0x80471a4: db 0x8b, 0x15, 0xa0, 0xd1, 0x05, 0x08  ;; mov edx,[__ctype_b]
-..@0x80471aa: db 0x89, 0xcb  ;; mov ebx,ecx
-..@0x80471ac: db 0xeb, 0x01  ;; jmp short 0x80471af
-..@0x80471ae: inc ebx
-..@0x80471af: db 0x0f, 0xbe, 0x03  ;; movsx eax,byte [ebx]
-..@0x80471b2: db 0xf6, 0x04, 0x42, 0x20  ;; test byte [edx+eax*2],0x20
-..@0x80471b6: db 0x75, 0xf6  ;; jnz 0x80471ae
-..@0x80471b8: db 0x83, 0xf8, 0x2b  ;; cmp eax,byte +0x2b
-..@0x80471bb: db 0x74, 0x11  ;; jz 0x80471ce
-..@0x80471bd: db 0x83, 0xf8, 0x2d  ;; cmp eax,byte +0x2d
-..@0x80471c0: db 0xc6, 0x44, 0x24, 0x0a, 0x00  ;; mov byte [esp+0xa],0x0
-..@0x80471c5: db 0x75, 0x0d  ;; jnz 0x80471d4
-..@0x80471c7: db 0xc6, 0x44, 0x24, 0x0a, 0x01  ;; mov byte [esp+0xa],0x1
-..@0x80471cc: db 0xeb, 0x05  ;; jmp short 0x80471d3
-..@0x80471ce: db 0xc6, 0x44, 0x24, 0x0a, 0x00  ;; mov byte [esp+0xa],0x0
-..@0x80471d3: inc ebx
-..@0x80471d4: db 0xf7, 0xc6, 0xef, 0xff, 0xff, 0xff  ;; test esi,0xffffffef
-..@0x80471da: db 0x89, 0xcf  ;; mov edi,ecx
-..@0x80471dc: db 0x75, 0x24  ;; jnz 0x8047202
-..@0x80471de: db 0x83, 0xc6, 0x0a  ;; add esi,byte +0xa
-..@0x80471e1: db 0x80, 0x3b, 0x30  ;; cmp byte [ebx],0x30
-..@0x80471e4: db 0x75, 0x11  ;; jnz 0x80471f7
-..@0x80471e6: inc ebx
-..@0x80471e7: db 0x83, 0xee, 0x02  ;; sub esi,byte +0x2
-..@0x80471ea: db 0x8a, 0x03  ;; mov al,[ebx]
-..@0x80471ec: db 0x89, 0xdf  ;; mov edi,ebx
-..@0x80471ee: db 0x0c, 0x20  ;; or al,0x20
-..@0x80471f0: db 0x3c, 0x78  ;; cmp al,0x78
-..@0x80471f2: db 0x75, 0x03  ;; jnz 0x80471f7
-..@0x80471f4: db 0x01, 0xf6  ;; add esi,esi
-..@0x80471f6: inc ebx
-..@0x80471f7: db 0x83, 0xfe, 0x11  ;; cmp esi,byte +0x11
-..@0x80471fa: db 0xb8, 0x10, 0x00, 0x00, 0x00  ;; mov eax,0x10
-..@0x80471ff: db 0x0f, 0x4d, 0xf0  ;; cmovnl esi,eax
-..@0x8047202: db 0x8d, 0x46, 0xfe  ;; lea eax,[esi-0x2]
-..@0x8047205: db 0x31, 0xd2  ;; xor edx,edx
-..@0x8047207: db 0x83, 0xf8, 0x22  ;; cmp eax,byte +0x22
-..@0x804720a: db 0x77, 0x62  ;; ja 0x804726e
-..@0x804720c: db 0x83, 0xc8, 0xff  ;; or eax,byte -0x1
-..@0x804720f: db 0x31, 0xd2  ;; xor edx,edx
-..@0x8047211: db 0xf7, 0xf6  ;; div esi
-..@0x8047213: db 0x88, 0x54, 0x24, 0x0b  ;; mov [esp+0xb],dl
-..@0x8047217: db 0x89, 0xc5  ;; mov ebp,eax
-..@0x8047219: db 0x31, 0xd2  ;; xor edx,edx
-..@0x804721b: db 0xeb, 0x02  ;; jmp short 0x804721f
-..@0x804721d: db 0x89, 0xdf  ;; mov edi,ebx
-..@0x804721f: db 0x8a, 0x03  ;; mov al,[ebx]
-..@0x8047221: db 0x88, 0xc1  ;; mov cl,al
-..@0x8047223: db 0x80, 0xe9, 0x30  ;; sub cl,0x30
-..@0x8047226: db 0x80, 0xf9, 0x09  ;; cmp cl,0x9
-..@0x8047229: db 0x76, 0x0d  ;; jna 0x8047238
-..@0x804722b: db 0x0c, 0x20  ;; or al,0x20
-..@0x804722d: db 0xb1, 0x28  ;; mov cl,0x28
-..@0x804722f: db 0x3c, 0x60  ;; cmp al,0x60
-..@0x8047231: db 0x76, 0x05  ;; jna 0x8047238
-..@0x8047233: db 0x88, 0xc1  ;; mov cl,al
-..@0x8047235: db 0x80, 0xe9, 0x57  ;; sub cl,0x57
-..@0x8047238: db 0x0f, 0xb6, 0xc1  ;; movzx eax,cl
-..@0x804723b: db 0x39, 0xf0  ;; cmp eax,esi
-..@0x804723d: db 0x7d, 0x2f  ;; jnl 0x804726e
-..@0x804723f: inc ebx
-..@0x8047240: db 0x39, 0xea  ;; cmp edx,ebp
-..@0x8047242: db 0x77, 0x08  ;; ja 0x804724c
-..@0x8047244: db 0x75, 0x1e  ;; jnz 0x8047264
-..@0x8047246: db 0x3a, 0x4c, 0x24, 0x0b  ;; cmp cl,[esp+0xb]
-..@0x804724a: db 0x76, 0x18  ;; jna 0x8047264
-..@0x804724c: db 0x8a, 0x44, 0x24, 0x2c  ;; mov al,[esp+0x2c]
-..@0x8047250: db 0x20, 0x44, 0x24, 0x0a  ;; and [esp+0xa],al
-..@0x8047254: call B.code+__errno_location
-..@0x8047259: db 0x83, 0xca, 0xff  ;; or edx,byte -0x1
-..@0x804725c: db 0xc7, 0x00, 0x22, 0x00, 0x00, 0x00  ;; mov dword [eax],0x22
-..@0x8047262: db 0xeb, 0xb9  ;; jmp short 0x804721d
-..@0x8047264: db 0x0f, 0xaf, 0xd6  ;; imul edx,esi
-..@0x8047267: db 0x0f, 0xb6, 0xc1  ;; movzx eax,cl
-..@0x804726a: db 0x01, 0xc2  ;; add edx,eax
-..@0x804726c: db 0xeb, 0xaf  ;; jmp short 0x804721d
-..@0x804726e: db 0x83, 0x7c, 0x24, 0x24, 0x00  ;; cmp dword [esp+0x24],byte +0x0
-..@0x8047273: db 0x74, 0x06  ;; jz 0x804727b
-..@0x8047275: db 0x8b, 0x44, 0x24, 0x24  ;; mov eax,[esp+0x24]
-..@0x8047279: db 0x89, 0x38  ;; mov [eax],edi
-..@0x804727b: db 0x80, 0x7c, 0x24, 0x0a, 0x01  ;; cmp byte [esp+0xa],0x1
-..@0x8047280: db 0x19, 0xdb  ;; sbb ebx,ebx
-..@0x8047282: db 0x81, 0xeb, 0x00, 0x00, 0x00, 0x80  ;; sub ebx,0x80000000
-..@0x8047288: db 0x83, 0x7c, 0x24, 0x2c, 0x00  ;; cmp dword [esp+0x2c],byte +0x0
-..@0x804728d: db 0x74, 0x11  ;; jz 0x80472a0
-..@0x804728f: db 0x39, 0xda  ;; cmp edx,ebx
-..@0x8047291: db 0x76, 0x0d  ;; jna 0x80472a0
-..@0x8047293: call B.code+__errno_location
-..@0x8047298: db 0x89, 0xda  ;; mov edx,ebx
-..@0x804729a: db 0xc7, 0x00, 0x22, 0x00, 0x00, 0x00  ;; mov dword [eax],0x22
-..@0x80472a0: db 0x89, 0xd0  ;; mov eax,edx
-..@0x80472a2: db 0xf7, 0xd8  ;; neg eax
-..@0x80472a4: db 0x80, 0x7c, 0x24, 0x0a, 0x00  ;; cmp byte [esp+0xa],0x0
-..@0x80472a9: db 0x0f, 0x45, 0xd0  ;; cmovnz edx,eax
-..@0x80472ac: db 0x83, 0xc4, 0x0c  ;; add esp,byte +0xc
-..@0x80472af: pop ebx
-..@0x80472b0: db 0x89, 0xd0  ;; mov eax,edx
-..@0x80472b2: pop esi
-..@0x80472b3: pop edi
-..@0x80472b4: pop ebp
-..@0x80472b5: ret
+strtol: equ $-B.code  ; long strtol(const char *nptr, char **endptr, int base);
+; Register allocation:
+;
+; EAX: Scratch for input bytes (`byte [esi]') and digits. After the main loop (.after_loop), it's the (return) value.
+; EBX: Usually var_base variable, initial value coming from ARG_BASE. Near the beginning and near the end, scratch for [ARG_ENDPTR].
+; ECX: CH is [var_overflow] (0 or 1), CL is a bitfield (var_minus=1, var_at_least_one_digit=2). Other bits are 0.
+; EDX: Before the main loop: stratch. During the main loop: the (return) value. After the main loop: scratch.
+; ESI: var_p (pointer starting at nptr).
+; EDI: var_overflow_limit. After initialization, its value is 0xffffffff / var_base.
+; EBP: Unused.
+; ESP: Stack pointer. Stack at ESP: (0)saved_EDI (4)saved_ESI (8)saved_EBX (0xc)return_address (0x10)ARG_NPTR (0x14)ARG_ENDPTR (0x18)ARG_BASE.
+;
+; We dn't make ARG_* ebp+... (rather than esp+...), because the size saving
+; (1 byte per use in an effective address) is 0 (push ebp ++ mov ebp, esp ++
+; pop ebp == 4 bytes).
+%define ARG_NPTR esp+0x10
+%define ARG_ENDPTR ARG_NPTR+4
+%define ARG_BASE ARG_ENDPTR+4
+		push ebx
+		push esi
+		push edi
+		mov esi, [ARG_NPTR]
+		mov ebx, [ARG_ENDPTR]
+		test ebx, ebx
+		jz .endptr_null_1
+		mov [ebx], esi
+.endptr_null_1:	
+.isspace_next:	lodsb
+		sub al, 9  ; ASCII 9 is the smallest allowed whitespace.
+		cmp al, ' '-9  ; ASCII 32 (space).
+		je .isspace_next
+		cmp al, 13-9  ; ASCII 9+4 == 13 is the largest allowed non-space whitespace.
+		jna .isspace_next
+		dec esi
+		xor ecx, ecx  ; CH (var_overflow) := 0; CL (var_minus) := 0.
+		lodsb
+		cmp al, '-'
+		jne .not_minus
+		inc ecx  ; CL (var_minus) := 1.
+		jmp short .after_sign
+.not_minus:	cmp al, '+'
+		je .after_sign
+		dec esi
+.after_sign:	mov ebx, [ARG_BASE]
+		cmp ebx, byte 16
+		je .maybe_base_16
+		test ebx, ebx
+		jnz .base_nonzero
+.maybe_base_16: cmp byte [esi], '0'
+		jne .maybe_base_8
+		mov al, [esi+1]
+		or al, 0x20
+		cmp al, 'x'
+		jne .maybe_base_8
+		inc esi
+		inc esi
+		mov bl, 16  ; EBX (var_base) := 16.
+		jmp short .base_nonzero
+.maybe_base_8:	test ebx, ebx
+		jnz .base_nonzero
+		cmp byte [esi], '0'
+		mov bl, 8  ; [var_base] := 8.
+		je .base_nonzero
+		mov bl, 10  ; [var_base] := 10.
+.base_nonzero:  lea eax, [ebx-2]
+		cmp eax, byte 36-2
+		jbe .base_valid
+		xor eax, eax  ; [var_value] := 0, indicating EDOM/EINVAL error.
+		jmp short .done
+.base_valid:	xor edx, edx
+		or eax, byte 0xffffffff  ; EAX := 0xfffffff.
+		div ebx  ; EAX := 0xffffffff / EBX (var_base); EDX := junk (remainder).
+		xchg eax, edi  ; [var_overflow_limit] := 0xfffffff / [var_base]; EAX := junk.
+		xor eax, eax  ; Clear higher bits, AL will contain a single byte below, from [var_p].
+		xor edx, edx  ; [var_value] := 0.
+.next_digit:	mov al, [esi]  ; Main loop body starts here.
+		sub al, '0'
+		cmp al, 9
+		jbe .good_digit
+		add al, '0'
+		or al, 0x20  ; Convert to lowercase.
+		sub al, 'a'
+		cmp al, 26
+		jnc short .after_loop  ; Bad digit.
+		add al, 10
+.good_digit:	cmp eax, ebx
+		jnb short .after_loop  ; Jump iff [var_digit] >= [var_base].
+.below_digit:	inc esi
+		or cl, 2
+		cmp edx, edi
+		jna .no_overflow_1
+		mov ch, 1
+.no_overflow_1:	imul edx, ebx  ; [var_value] *= [var_base].
+		add edx, eax
+		jnc .no_overflow_2
+		mov ch, 1
+.no_overflow_2: jmp .next_digit
+.after_loop:	test cl, 2
+		jz .endptr_null_2
+		mov ebx, [ARG_ENDPTR]
+		test ebx, ebx
+		jz .endptr_null_2
+		mov [ebx], esi
+.endptr_null_2:	xchg eax, edx  ; EAX := value; EDX := junk. From now on we use EAX as value and EDX as scratch.
+		test ch, ch
+		jnz .has_overflow
+		mov edx, 0x80000000
+		cmp eax, edx
+		jb .no_overflow
+		jne .has_overflow
+		test cl, 1
+		jnz .no_overflow
+.has_overflow:	; Overflow would be indicated by setting errno := ERANGE, but we don't set it, because this libc doesn't support errno.
+		xchg eax, edx  ; EAX := 0x80000000; EDX := junk.
+		test cl, 1
+		jnz .done
+		dec eax
+		jmp short .done
+.no_overflow:	test cl, 1
+		jz .done
+		neg eax
+.done:		pop edi
+		pop esi
+		pop ebx
+		ret
+;
+		times $$+0x80472b6-$+B.code hlt  ; Padding.
 strtod: equ $-B.code
 ..@0x80472b6: db 0x83, 0xec, 0x20  ;; sub esp,byte +0x20
 ..@0x80472b9: push strict byte +0x0
