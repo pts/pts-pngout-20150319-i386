@@ -15499,9 +15499,9 @@ print_help: equ $-B.code
 ..@0x8051125: db 0x8b, 0x54, 0x24, 0x78  ;; mov edx,[esp+0x78]
 ..@0x8051129: db 0x2b, 0x44, 0x24, 0x6c  ;; sub eax,[esp+0x6c]
 ..@0x805112d: db 0x2b, 0x54, 0x24, 0x70  ;; sub edx,[esp+0x70]
+%ifidn TARGET, ls
 ..@0x8051131: db 0x79, 0x09  ;; jns A.code+0x805113c
 ..@0x8051133: db 0x81, 0xc2, 0x40, 0x42, 0x0f, 0x00  ;; add edx, 1000000
-%ifidn TARGET, ls
 ..@0x8051139: db 0x83, 0xe8, 0x01  ;; sub eax,byte +0x1
               ; Now the to-be-displayed time difference is in EAX (seconds) + EDX (microseconds).
 ..@0x805113c: db 0x89, 0x44, 0x24, 0x4c  ;; mov [esp+0x4c],eax
@@ -15516,15 +15516,17 @@ print_help: equ $-B.code
 ..@0x805115f: db 0xdd, 0x5c, 0x24, 0x04  ;; fstp qword [esp+0x4]  ; Store double-precision float (64-bit) to printf value argument.
 ..@0x8051163: call [funcptr_printf]
 %else  ; TARGET, ls
-..@0x8051139: dec eax
-              ; Now the to-be-displayed time difference is in EAX (seconds) + EDX (microseconds).
-..@0x8051140: db 0xc7, 0x04, 0x24
+..@0x8051131: jns .1
+              add edx, 1000000
+              dec eax
+.1:              ; Now the to-be-displayed time difference is in EAX (seconds) + EDX (microseconds).
+              db 0xc7, 0x04, 0x24
                 dd str_fmt_took_time  ;; mov dword [esp],str_fmt_took_time. Push to the stack for *funcptr_printf.
               test eax, eax
-              jns .1
+              jns .2
               xor eax, eax  ; Convert a negative number to 0.
               xor edx, edx
-.1:           mov [esp+4], eax  ; Seconds. Push to the stack for *funcptr_printf.
+.2:           mov [esp+4], eax  ; Seconds. Push to the stack for *funcptr_printf.
               ; Now we divide EDX by 1000, to convert from microseconds to
               ; milliseconds. We use EAX as a scratch register.
               ; Multiplication is faster than division, so we do it like
