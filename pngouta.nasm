@@ -5994,7 +5994,7 @@ phdr4:					; Elf32_Phdr
 		dd 0			;   p_paddr
 		dd +0			;   p_filesz
 		dd +0			;   p_memsz
-		dd 7			;   p_flags: rwx: read and write and execute;  !! TODO(pts): Improve security by not allowing execution.
+		dd 5			;   p_flags: rw-: read and write, no execute
 		dd 0x10			;   p_align
 _elf_phdr.end: equ $-B.code
 L.ELF_phdr.end:
