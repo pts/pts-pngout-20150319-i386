@@ -6007,7 +6007,25 @@ _elf_interp.end: equ $-B.code
 ;..@0x80480e8:
 
 L.gap13:  ; addr=0x8048148 off=0x148
-..@0x8048148: times 0x8048198-0x80480e8 db 0  ; Padding.
+..@0x8048148: times 0x8048168-0x80480e8 db 0  ; Padding.
+
+L.gnu.hash:  ; addr=0x8048168 off=0x168
+_dynamic_gnu_hash: equ $-B.code
+; https://blogs.oracle.com/solaris/post/gnu-hash-elf-sections
+..@0x8048168: dd (_hash_buckets.end-_hash_buckets)>>2  ; nbuckets.
+..@0x804816c: dd ((_hashed_dynsyms-_dynamic_symtab)>>4)  ; symndx.
+..@0x8048170: dd (_bloom_filter.end-_bloom_filter)>>2  ; maskwords.
+..@0x8048174: dd 5  ; shift2: Bloom filter hash shift.
+_bloom_filter: equ $-B.code
+..@0x8048178: dd 0x22022b80
+_bloom_filter.end: equ $-B.code
+_hash_buckets: equ $-B.code
+..@0x804817c: dd 0x2a, 0x2b, 0
+_hash_buckets.end: equ $-B.code
+_hash_chain: equ $-B.code  ; Same number of dwords as number of hashed symbols.
+..@0x8048188: dd 0x1c8c1d29, 0x1c8bf238, 0xc0e34bac, 0x10615567
+_hash_chain.end: equ $-B.code
+;..@0x8048198:
 
 L.dynsym:  ; addr=0x8048198 off=0x198
 _dynamic_symtab: equ $-B.code
@@ -26542,6 +26560,7 @@ _elf_dynamic: equ $-B.data
 ; Linux glibc with $DT.GNU_HASH (and $DT.HASH) even if it's missing.
 ..@0x805d00c: dd $DT.NEEDED,       dynstr_libm_so_6-_dynamic_strtab  ; Seems to be required.
               dd $DT.NEEDED,       dynstr_libc_so_6-_dynamic_strtab  ; Seems to be required.
+              dd $DT.GNU_HASH,     _dynamic_gnu_hash  ; Optional, but we keep it, because without it libc.so.6 won't autoswitch stdout to line-buffered (on a TTY). Having _IO_stdin_used doesn't matter though.
               dd $DT.STRTAB,       _dynamic_strtab  ; Seems to be required.
               dd $DT.SYMTAB,       _dynamic_symtab  ; Seems to be required. How do we get the number of symbols.
               dd $DT.STRSZ,        _dynamic_strtab.end-_dynamic_strtab  ; Seems to be required.
@@ -26558,7 +26577,7 @@ _elf_dynamic: equ $-B.data
               dd $DT.VERSYM,       _dynamic_versym  ; Seems to be required.
               dd $DT.NULL,         0  ; Required. Terminates the list. Value is always 0.
 _elf_dynamic.end: equ $-B.data
-              times 0x6c db 0  ; Padding.
+              times 0x64 db 0  ; Padding.
 
 L.got.plt:  ; addr=0x805d100 off=0x14100
 _dynamic_pltgot: equ $-B.data
