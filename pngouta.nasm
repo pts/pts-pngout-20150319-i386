@@ -5951,16 +5951,6 @@ ehdr.size	equ $-ehdr
 L.ELF_phdr:  ; addr=0x8048034 off=0x34
 _elf_phdr: equ $-B.code
 phdr0:					; Elf32_Phdr
-		dd PT.PHDR		;   p_type.  ; !! TODO(pts): Get rid of this, it's optional.
-		dd _elf_phdr+B.code	;   p_offset
-		dd _elf_phdr		;   p_vaddr
-		dd _elf_phdr		;   p_paddr
-		dd _elf_phdr.end-_elf_phdr  ;   p_filesz
-		dd _elf_phdr.end-_elf_phdr  ;   p_memsz
-		dd 5			;   p_flags: r-x: read and execute, no write
-		dd 4			;   p_align
-.size		equ $-phdr0
-phdr1:					; Elf32_Phdr
 		dd PT.INTERP		;   p_type == PT_LOAD.
 		dd _elf_interp+B.code	;   p_offset
 		dd _elf_interp		;   p_vaddr
@@ -5969,7 +5959,8 @@ phdr1:					; Elf32_Phdr
 		dd _elf_interp.end-_elf_interp  ;   p_memsz
 		dd 4			;   p_flags: r--: read, no write, no execute
 		dd 1			;   p_align
-phdr2:					; Elf32_Phdr
+.size		equ $-phdr0
+phdr1:					; Elf32_Phdr
 		dd PT.LOAD		;   p_type == PT_GNU_STACK.
 		dd 0			;   p_offset
 		dd 0x8048000		;   p_vaddr
@@ -5978,7 +5969,7 @@ phdr2:					; Elf32_Phdr
 		dd +0x13ad4		;   p_memsz
 		dd 5			;   p_flags: r-x: read and execute, no write
 		dd 0x1000		;   p_align
-phdr3:					; Elf32_Phdr
+phdr2:					; Elf32_Phdr
 		dd PT.LOAD		;   p_type
 		dd 0x14000		;   p_offset
 		dd 0x805d000		;   p_vaddr
@@ -5987,7 +5978,7 @@ phdr3:					; Elf32_Phdr
 		dd +0x181fa50		;   p_memsz
 		dd 6			;   p_flags: rw-: read and write, no execute
 		dd 0x1000		;   p_align
-phdr4:					; Elf32_Phdr
+phdr3:					; Elf32_Phdr
 		dd PT.DYNAMIC		;   p_type
 		dd _elf_dynamic+B.data	;   p_offset
 		dd _elf_dynamic		;   p_vaddr
@@ -5996,7 +5987,7 @@ phdr4:					; Elf32_Phdr
 		dd _elf_dynamic.end-_elf_dynamic  ;   p_memsz
 		dd 6			;   p_flags: rw-: read and write, no execute
 		dd 4			;   p_align
-phdr5:					; Elf32_Phdr
+phdr4:					; Elf32_Phdr
 		dd PT.GNU_STACK		;   p_type. It's optional but useful for security.
 		dd 0			;   p_offset
 		dd 0			;   p_vaddr
@@ -6007,7 +5998,7 @@ phdr5:					; Elf32_Phdr
 		dd 0x10			;   p_align
 _elf_phdr.end: equ $-B.code
 L.ELF_phdr.end:
-		times 0x40 db 0  ; Padding to compensate for removed phdrs.
+		times 0x60 db 0  ; Padding to compensate for removed phdrs.
 
 L.interp:  ; addr=0x8048134 off=0x134
 _elf_interp: equ $-B.code
