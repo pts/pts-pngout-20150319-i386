@@ -373,18 +373,18 @@ X.uctext:    ;0x01ae0..0x06d09  +0x05229    @0x8043ae0...0x8048d09
 times -($-$$+0x8042000)+0x8043ae0 times 0 nop  ; Assert.
 times +($-$$+0x8042000)-0x8043ae0 times 0 nop  ; Assert.
 __pthread_initialize_minimal equ $$+0
-_init_and_fini: equ $-B.code
+dummy_init_and_fini: equ $-B.code
 ..@0x8043ae0: ret
 _start: equ $-B.code
-..@0x8043ae1: mov ebp, _init_and_fini
+..@0x8043ae1: mov ebp, dummy_init_and_fini
 ..@0x8043ae6: pop esi
 ..@0x8043ae7: db 0x89, 0xe1  ; mov ecx, esp
 ..@0x8043ae9: and esp, strict byte -0x10
 ..@0x8043aec: push eax
 ..@0x8043aed: push esp
 ..@0x8043aee: push edx
-..@0x8043aef: push ebp
-..@0x8043af0: push ebp
+..@0x8043aef: push ebp  ; No-op __libc_csu_fini, pointing to dummy_init_and_fini.
+..@0x8043af0: push ebp  ; No-op __libc_csu_init, pointing to dummy_init_and_fini.
 ..@0x8043af1: push ecx
 ..@0x8043af2: push esi
 ..@0x8043af3: push strict dword main
@@ -6490,117 +6490,25 @@ strtol: equ $-B.code
 
 L.glibc.text:  ; addr=0x8048bb0 off=0xbb0
 ; From crt1.o, section .text:
+dummy_init_and_fini: equ $-B.code
+..@0x8048bb0: ret
 _start: equ $-B.code
-..@0x8048bb0: db 0x31, 0xed  ;; xor ebp,ebp
-..@0x8048bb2: pop esi
-..@0x8048bb3: db 0x89, 0xe1  ;; mov ecx,esp
-..@0x8048bb5: db 0x83, 0xe4, 0xf0  ;; and esp,byte -0x10
-..@0x8048bb8: push eax
-..@0x8048bb9: push esp
-..@0x8048bba: push edx
-..@0x8048bbb: push strict dword __libc_csu_fini
-..@0x8048bc0: push strict dword __libc_csu_init
-..@0x8048bc5: push ecx
-..@0x8048bc6: push esi
-..@0x8048bc7: push strict dword main
-..@0x8048bcc: call B.code+__libc_start_main
-..@0x8048bd1: hlt
-; End from crt1.o.
-..@0x8048bd2: times 7 dw 0x9066  ;; o16 nop  ; Alignment padding.
-; From crti.o, section .gnu.linkonce.t.__x86.get_pc_thunk.bx:
-__x86.get_pc_thunk.bx: equ $-B.code
-..@0x8048be0: mov ebx, [esp]
-..@0x8048be3: ret
-; End from crti.o.
-..@0x8048be4: times 6 dw 0x9066  ;; o16 nop  ; Alignment padding.
-; From crtbegin.o, section .text:
-deregister_tm_clones: equ $-B.code
-_ITM_registerTMCloneTable equ 0
-_ITM_deregisterTMCloneTable equ 0
-..@0x8048bf0: mov eax, __TMC_END__+3
-..@0x8048bf5: db 0x2d, 0xf0, 0xd1, 0x05, 0x08  ;; sub eax, __TMC_LIST__
-..@0x8048bfa: db 0x83, 0xf8, 0x06  ;; cmp eax,byte +0x6
-..@0x8048bfd: db 0x77, 0x01  ;; ja 0x8048c00
-..@0x8048bff: ret
-..@0x8048c00: mov eax, _ITM_deregisterTMCloneTable
-..@0x8048c05: db 0x85, 0xc0  ;; test eax,eax
-..@0x8048c07: db 0x74, 0xf6  ;; jz 0x8048bff
-..@0x8048c09: push ebp
-..@0x8048c0a: db 0x89, 0xe5  ;; mov ebp,esp
-..@0x8048c0c: db 0x83, 0xec, 0x18  ;; sub esp,byte +0x18
-..@0x8048c0f: db 0xc7, 0x04, 0x24
-                dd __TMC_LIST__  ;; mov dword [esp], __TMC_LIST__
-..@0x8048c16: call eax
-..@0x8048c18: leave
-..@0x8048c19: ret
-..@0x8048c1a: db 0x8d, 0xb6, 0x00, 0x00, 0x00, 0x00  ;; lea esi,[esi+0x0]  ; Alignment padding.
-register_tm_clones: equ $-B.code
-..@0x8048c20: mov eax, __TMC_END__
-..@0x8048c25: db 0x2d, 0xf0, 0xd1, 0x05, 0x08  ;; sub eax, __TMC_LIST__
-..@0x8048c2a: db 0xc1, 0xf8, 0x02  ;; sar eax,0x2
-..@0x8048c2d: db 0x89, 0xc2  ;; mov edx,eax
-..@0x8048c2f: db 0xc1, 0xea, 0x1f  ;; shr edx,0x1f
-..@0x8048c32: db 0x01, 0xd0  ;; add eax,edx
-..@0x8048c34: db 0xd1, 0xf8  ;; sar eax,1
-..@0x8048c36: db 0x75, 0x01  ;; jnz 0x8048c39
-..@0x8048c38: ret
-..@0x8048c39: mov edx, _ITM_registerTMCloneTable
-..@0x8048c3e: db 0x85, 0xd2  ;; test edx,edx
-..@0x8048c40: db 0x74, 0xf6  ;; jz 0x8048c38
-..@0x8048c42: push ebp
-..@0x8048c43: db 0x89, 0xe5  ;; mov ebp,esp
-..@0x8048c45: db 0x83, 0xec, 0x18  ;; sub esp,byte +0x18
-..@0x8048c48: db 0x89, 0x44, 0x24, 0x04  ;; mov [esp+0x4],eax
-..@0x8048c4c: db 0xc7, 0x04, 0x24
-                dd __TMC_LIST__  ;; mov dword [esp], __TMC_LIST__
-..@0x8048c53: call edx
-..@0x8048c55: leave
-..@0x8048c56: ret
-..@0x8048c57: db 0x89, 0xf6  ;; mov esi,esi
-..@0x8048c59: db 0x8d, 0xbc, 0x27, 0x00, 0x00, 0x00, 0x00  ;; lea edi,[edi+0x0]
-__do_global_dtors_aux: equ $-B.code
-..@0x8048c60: db 0x80, 0x3d, 0x24, 0xd2, 0x05, 0x08, 0x00  ;; cmp byte [completed.6600],0x0
-..@0x8048c67: db 0x75, 0x13  ;; jnz 0x8048c7c
-..@0x8048c69: push ebp
-..@0x8048c6a: db 0x89, 0xe5  ;; mov ebp,esp
-..@0x8048c6c: db 0x83, 0xec, 0x08  ;; sub esp,byte +0x8
-..@0x8048c6f: call B.code+deregister_tm_clones
-..@0x8048c74: db 0xc6, 0x05, 0x24, 0xd2, 0x05, 0x08, 0x01  ;; mov byte [completed.6600],0x1
-..@0x8048c7b: leave
-..@0x8048c7c: db 0xf3, 0xc3  ;; rep ret
-..@0x8048c7e: dw 0x9066  ;; o16 nop
-frame_dummy: equ $-B.code
-_Jv_RegisterClasses equ 0
-..@0x8048c80: xor eax, eax  ; [__JCR_LIST__]
-                  times 3 nop  ; Padding within the code.
-..@0x8048c85: db 0x85, 0xc0  ;; test eax,eax
-..@0x8048c87: db 0x74, 0x1f  ;; jz 0x8048ca8
-..@0x8048c89: mov eax, _Jv_RegisterClasses
-..@0x8048c8e: db 0x85, 0xc0  ;; test eax,eax
-..@0x8048c90: db 0x74, 0x16  ;; jz 0x8048ca8
-..@0x8048c92: push ebp
-..@0x8048c93: db 0x89, 0xe5  ;; mov ebp,esp
-..@0x8048c95: db 0x83, 0xec, 0x18  ;; sub esp,byte +0x18
-..@0x8048c98: times 7 hlt  ;; Unreached. mov dword [esp], __JCR_LIST__
-..@0x8048c9f: call eax
-..@0x8048ca1: leave
-..@0x8048ca2: jmp strict near B.code+register_tm_clones
-..@0x8048ca7: nop
-..@0x8048ca8: jmp strict near B.code+register_tm_clones
-; End from crtbegin.o.
-
-L.before.text:  ; addr=0x8048cad off=0xcad
-_before_text: equ $-B.code  ; This is not from glibc, it was added manually for pngoutl debugging.
-..@0x8048cad: daa
-..@0x8048cae: mov eax, P.text-B.code    ; Debug. For addr debugging.
-..@0x8048cb3: mov eax, P.rodata-B.code  ; Debug. For addr debugging.
-..@0x8048cb8: mov eax, P.data-B.data    ; Debug. For addr debugging.
-..@0x8048cbd: mov eax, P.bss-B.data     ; Deubg. For addr debugging.
-; 8048cae:       b8 10 8d 04 08          mov    $0x8048d10,%eax
-; 8048cb3:       b8 40 a7 05 08          mov    $0x805a76c,%eax
-; 8048cb8:       b8 c4 d1 05 08          mov    $0x805d1c4,%eax
-; 8048cbd:       b8 25 d2 05 08          mov    $0x805d225,%eax
-..@0x8048cc2: times 0x63-5*4-1 daa  ; Magic value to put unknown_func to addr 0x8048d10.
+..@0x8048bb1: mov ebp, dummy_init_and_fini
+..@0x8048bb6: pop esi
+..@0x8048bb7: db 0x89, 0xe1  ; mov ecx, esp
+..@0x8048bb9: and esp, strict byte -0x10
+..@0x8048bbc: push eax
+..@0x8048bbd: push esp
+..@0x8048bbe: push edx
+..@0x8048bbf: push ebp  ; No-op __libc_csu_fini, pointing to dummy_init_and_fini.
+..@0x8048bc0: push ebp  ; No-op __libc_csu_init, pointing to dummy_init_and_fini.
+..@0x8048bc1: push ecx
+..@0x8048bc2: push esi
+..@0x8048bc3: push strict dword main
+..@0x8048bc8: db 0x31, 0xed  ; xor ebp, ebp
+..@0x8048bca: call B.code+__libc_start_main
+..@0x8048bcf: hlt
+..@0x8048bd0: times 0x8048d10-0x8048bd0 hlt  ; Padding.
 %endif  ; TARGET, l
 
 %ifidn TARGET, d
@@ -7452,6 +7360,7 @@ opendir: equ $-B.code
 P.text:      ;0x06d10..0x18698  +0x11988    @0x8048d10...0x805a698
 times -(P.text-B.code-$$)+0x8048d10 times 0 nop  ; Assert.
 times +(P.text-B.code-$$)-0x8048d10 times 0 nop  ; Assert.
+_text: equ $-B.code
 %ifidn TARGET, ls
 %define maybe_prog_printf printf  ; Use glibc.
 %else
@@ -25775,21 +25684,8 @@ times +0x000d4 db 0
 %endif  ; TARGET, x
 
 %ifidn TARGET, l
-L.after_text_padding:  ; addr=0x805a698 off=0x12698
-..@0x805a698: times 4 dw 0x9066  ;; o16 nop  ; Alignment padding.
-
-L.glibc.after_text:  ; addr=0x805a6a0 off=0x126a0
-; From elf-init.oS in libc_nonshared.a (source: csu/elf-init.c?), section .text:
-__libc_csu_init: equ $-B.code
-..@0x805a6a0: ret
-..@0x805a6a1: times 0x805a710-0x805a6a1 hlt  ; Padding.
-__libc_csu_fini: equ $-B.code
-..@0x805a710: db 0xf3, 0xc3  ;; rep ret
-; End from crti.o.
-..@0x805a712: times 2 db 0  ; Alignment padding.
-
-L.gap16:  ; addr=0x805a714 off=0x12714
-..@0x805a714: times 0x805a728-0x805a714 hlt  ; Padding.
+L.gap16:  ; addr=0x805a698 off=0x12698
+..@0x805a698: times 0x805a728-0x805a698 hlt  ; Padding.
 
 L.glibc.rodata:  ; addr=0x805a728 off=0x12728
 ; From crt1.o, section .rodata:
