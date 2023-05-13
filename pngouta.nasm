@@ -26638,7 +26638,6 @@ _elf_dynamic: equ $-B.data
               dd $DT.SYMTAB,       _dynamic_symtab  ; Seems to be required. How do we get the number of symbols.
               dd $DT.STRSZ,        _dynamic_strtab.end-_dynamic_strtab  ; Seems to be required.
               dd $DT.SYMENT,       0x10  ; Seems to be required. Size of a $DT.SYMTAB entry. The number of symbols seems to be te same as the number of strings at $DT.STRTAB (except for the first, empty string).
-              dd $DT.DEBUG,        0  ; Optional (?).
               dd $DT.PLTGOT,       _dynamic_pltgot  ; Seems to be required.
               dd $DT.PLTRELSZ,     _dynamic_jmprel.end-_dynamic_jmprel  ; Seems to be required.
               dd $DT.PLTREL,       $DT.REL  ; Seems to be required.
@@ -26651,7 +26650,7 @@ _elf_dynamic: equ $-B.data
               dd $DT.VERSYM,       _dynamic_versym  ; Seems to be required.
               dd $DT.NULL,         0  ; Required. Terminates the list. Value is always 0.
 _elf_dynamic.end: equ $-B.data
-              times 0x30 db 0  ; Padding.
+              times 0x38 db 0  ; Padding.
 
 L.got:  ; addr=0x805d0fc off=0x140fc
 ; From crti.o, implicit section .got:
