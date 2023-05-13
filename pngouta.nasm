@@ -6310,24 +6310,9 @@ _dynamic_jmprel.end: equ $-B.code
 
 L.init:  ; addr=0x8048814 off=0x814
 _dynamic_init: equ $-B.code
-; From crti.o, section .init:
 _init: equ $-B.code
-..@0x8048814: db 0x53  ;; push ebx
-..@0x8048815: db 0x83, 0xec, 0x08  ;; sub esp,byte +0x8
-..@0x8048818: call B.code+__x86.get_pc_thunk.bx
-..@0x804881d: add ebx, strict dword B.code+_GLOBAL_OFFSET_TABLE_-$  ; EBX := _GLOBAL_OFFSET_TABLE_ (in a position-independent way).
-..@0x8048823: xor eax, eax  ; EAX := [__gmon_start__@weak] (always 0)
-                times 4 nop  ; Padding within the function.
-..@0x8048829: db 0x85, 0xc0  ;; test eax,eax
-..@0x804882b: db 0x74, 0x05  ;; jz 0x8048832
-..@0x804882d: call B.code+__gmon_start__
-; End from crti.o.
-; From crtn.o, section .init:
-..@0x8048832: db 0x83, 0xc4, 0x08  ;; add esp,byte +0x8
-..@0x8048835: db 0x5b  ;; pop ebx
-..@0x8048836: db 0xc3  ;; ret
-; End from crtn.o.
-..@0x8048837: times 9 db 0  ; Padding.
+..@0x8048814: ret
+..@0x8048815: times 0x8048840-0x8048815 hlt  ; Padding.
 
 L.plt:  ; addr=0x8048840 off=0x840
 _plt_code0: equ $-B.code
@@ -6571,7 +6556,8 @@ __do_global_dtors_aux: equ $-B.code
 ..@0x8048c7e: dw 0x9066  ;; o16 nop
 frame_dummy: equ $-B.code
 _Jv_RegisterClasses equ 0
-..@0x8048c80: mov eax, [__JCR_LIST__]
+..@0x8048c80: xor eax, eax  ; [__JCR_LIST__]
+                  times 3 nop  ; Padding within the code.
 ..@0x8048c85: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8048c87: db 0x74, 0x1f  ;; jz 0x8048ca8
 ..@0x8048c89: mov eax, _Jv_RegisterClasses
@@ -6580,8 +6566,7 @@ _Jv_RegisterClasses equ 0
 ..@0x8048c92: push ebp
 ..@0x8048c93: db 0x89, 0xe5  ;; mov ebp,esp
 ..@0x8048c95: db 0x83, 0xec, 0x18  ;; sub esp,byte +0x18
-..@0x8048c98: db 0xc7, 0x04, 0x24
-                dd __JCR_LIST__  ;; mov dword [esp], __JCR_LIST__
+..@0x8048c98: times 7 hlt  ;; Unreached. mov dword [esp], __JCR_LIST__
 ..@0x8048c9f: call eax
 ..@0x8048ca1: leave
 ..@0x8048ca2: jmp strict near B.code+register_tm_clones
@@ -25781,43 +25766,8 @@ L.after_text_padding:  ; addr=0x805a698 off=0x12698
 L.glibc.after_text:  ; addr=0x805a6a0 off=0x126a0
 ; From elf-init.oS in libc_nonshared.a (source: csu/elf-init.c?), section .text:
 __libc_csu_init: equ $-B.code
-..@0x805a6a0: push ebp
-..@0x805a6a1: push edi
-..@0x805a6a2: db 0x31, 0xff  ;; xor edi,edi
-..@0x805a6a4: push esi
-..@0x805a6a5: push ebx
-..@0x805a6a6: call B.code+__x86.get_pc_thunk.bx
-..@0x805a6ab: add ebx, strict dword B.code+_GLOBAL_OFFSET_TABLE_-$  ; EBX := _GLOBAL_OFFSET_TABLE_ (in a position-independent way).
-..@0x805a6b1: sub esp, strict byte 0x1c
-..@0x805a6b4: db 0x8b, 0x6c, 0x24, 0x30  ;; mov ebp,[esp+0x30]
-..@0x805a6b8: db 0x8d, 0xb3
-                dd _dynamic_init_array.end-_GLOBAL_OFFSET_TABLE_  ;; lea esi, [ebx+_dynamic_init_array.end-_GLOBAL_OFFSET_TABLE_]  ; ESI := _dynamic_init_array.end (in a position-independent way).
-..@0x805a6be: call B.code+_init
-..@0x805a6c3: db 0x8d, 0x83
-                dd _dynamic_init_array-_GLOBAL_OFFSET_TABLE_  ;; lea eax, [ebx+_dynamic_init_array-_GLOBAL_OFFSET_TABLE_]  ; EAX := _dynamic_init_array (in a position-independent way).
-..@0x805a6c9: db 0x29, 0xc6  ;; sub esi,eax
-..@0x805a6cb: db 0xc1, 0xfe, 0x02  ;; sar esi,0x2
-..@0x805a6ce: db 0x85, 0xf6  ;; test esi,esi
-..@0x805a6d0: db 0x74, 0x27  ;; jz 0x805a6f9
-..@0x805a6d2: db 0x8d, 0xb6, 0x00, 0x00, 0x00, 0x00  ;; lea esi,[esi+0x0]  ; Alignment padding.
-..@0x805a6d8: db 0x8b, 0x44, 0x24, 0x38  ;; mov eax,[esp+0x38]
-..@0x805a6dc: db 0x89, 0x2c, 0x24  ;; mov [esp],ebp
-..@0x805a6df: db 0x89, 0x44, 0x24, 0x08  ;; mov [esp+0x8],eax
-..@0x805a6e3: db 0x8b, 0x44, 0x24, 0x34  ;; mov eax,[esp+0x34]
-..@0x805a6e7: db 0x89, 0x44, 0x24, 0x04  ;; mov [esp+0x4],eax
-..@0x805a6eb: call [ebx+edi*4+_dynamic_init_array-_GLOBAL_OFFSET_TABLE_]  ; call [edi*4+_dynamic_init_array] (in a position-independent way).
-..@0x805a6f2: db 0x83, 0xc7, 0x01  ;; add edi,byte +0x1
-..@0x805a6f5: db 0x39, 0xf7  ;; cmp edi,esi
-..@0x805a6f7: db 0x75, 0xdf  ;; jnz 0x805a6d8
-..@0x805a6f9: db 0x83, 0xc4, 0x1c  ;; add esp,byte +0x1c
-..@0x805a6fc: pop ebx
-..@0x805a6fd: pop esi
-..@0x805a6fe: pop edi
-..@0x805a6ff: pop ebp
-..@0x805a700: ret
-unused_libc_csu_fini_jmp: equ $-B.code  ; This is a weird, why would a C compiler produce this jump?
-..@0x805a701: jmp strict short B.code+__libc_csu_fini
-..@0x805a703: times 0xd nop  ; Alignment padding.
+..@0x805a6a0: ret
+..@0x805a6a1: times 0x805a710-0x805a6a1 hlt  ; Padding.
 __libc_csu_fini: equ $-B.code
 ..@0x805a710: db 0xf3, 0xc3  ;; rep ret
 ; End from crti.o.
@@ -26592,31 +26542,10 @@ $DT:  ; Symbolic constants for ELF DT_... (dynamic type).
 
 %ifidn TARGET, l
 L.gap11:  ; addr=0x805ba20 off=0x13a20 base=B.code
-..@0x805ba20: times 0x805c000-0x805ba20 db 0
+..@0x805ba20: times 0x805c000-0x805ba20 db 0  ; Padding.
 
-L.init_array:  ; addr=0x805d000 off=0x14000 base=B.data
-_dynamic_init_array: equ $-B.data
-; Also label: __init_array_start.
-; From crtbegin.o, section .init_array:
-..@0x805d000: dd frame_dummy
-; End from crtbegin.o.
-; Also label: __init_array_end.
-_dynamic_init_array.end: equ $-B.data
-
-L.fini_array:  ; addr=0x805d004 off=0x14004
-; From crtbegin.o, section .init_array:
-_dynamic_fini_array: equ $-B.data
-..@0x805d004: dd __do_global_dtors_aux
-; End from crtbegin.o.
-_dynamic_fini_array.end: equ $-B.data
-
-L.jcr:  ; addr=0x805d008 off=0x14008
-; From crtbegin.o, section .jcr:
-__JCR_LIST__: equ $-B.data
-; End from crtbegin.o.
-; From crtend.o, section .jcr:
-..@0x805d008: dd 0
-; End from crtend.o.
+L.gap12:  ; addr=0x805d000 off=0x14000 base=B.data
+..@0x805d000: times 0x805d00c-0x805d000 db 0  ; Padding.
 
 L.dynamic:  ; addr=0x805d00c off=0x1400c
 _elf_dynamic: equ $-B.data
@@ -26629,10 +26558,6 @@ _elf_dynamic: equ $-B.data
               dd $DT.NEEDED,       dynstr_libc_so_6-_dynamic_strtab  ; Seems to be required.
               dd $DT.INIT,         _dynamic_init  ; Optional.
               dd $DT.FINI,         _dynamic_fini  ; Optional.
-              dd $DT.INIT_ARRAY,   _dynamic_init_array  ; Optional.
-              dd $DT.INIT_ARRAYSZ, _dynamic_init_array.end-_dynamic_init_array  ; Optional.
-              dd $DT.FINI_ARRAY,   _dynamic_fini_array  ; Optional.
-              dd $DT.FINI_ARRAYSZ, _dynamic_fini_array.end-_dynamic_fini_array  ; Optional.
               dd $DT.STRTAB,       _dynamic_strtab  ; Seems to be required.
               dd $DT.SYMTAB,       _dynamic_symtab  ; Seems to be required. How do we get the number of symbols.
               dd $DT.STRSZ,        _dynamic_strtab.end-_dynamic_strtab  ; Seems to be required.
@@ -26649,7 +26574,7 @@ _elf_dynamic: equ $-B.data
               dd $DT.VERSYM,       _dynamic_versym  ; Seems to be required.
               dd $DT.NULL,         0  ; Required. Terminates the list. Value is always 0.
 _elf_dynamic.end: equ $-B.data
-              times 0x3c db 0  ; Padding.
+              times 0x5c db 0  ; Padding.
 
 L.got.plt:  ; addr=0x805d100 off=0x14100
 _dynamic_pltgot: equ $-B.data
