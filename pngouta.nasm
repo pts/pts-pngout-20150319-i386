@@ -25688,7 +25688,7 @@ L.gap16:  ; addr=0x805a698 off=0x12698
 ..@0x805a698: times 0x805a728-0x805a698 hlt  ; Padding.
 
 L.glibc.rodata:  ; addr=0x805a728 off=0x12728
-; From crt1.o, section .rodata:
+; From crt1.o, section .rodata:  !! Also remove these.
 _fp_hw: equ $-B.code
 ..@0x805a728: dd 3
 ; End from crt1.o.
@@ -26564,7 +26564,7 @@ strtol@GLIBC_2.0@got: equ $-B.data
 ..@0x805d1a0: dd strtol+6
 
 L.glibc.data:  ; addr=0x805d1a4 off=0x141a4
-; From crt1.o, section .data:
+; From crt1.o, section .data:  !! Overwrite this with other values, see if they work.
 data_start: equ $-B.data
 __data_start: equ $-B.data
 ..@0x805d1a4: dd 0  ; What is this used for?
