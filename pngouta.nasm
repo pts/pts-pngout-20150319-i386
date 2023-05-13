@@ -6308,11 +6308,8 @@ _dynamic_jmprel: equ $-B.code  ; Relocations in plt.
 ..@0x804880c: dd strtol@GLIBC_2.0@got,            7 | (dynsym_strtol-_dynamic_symtab)>>4<<8
 _dynamic_jmprel.end: equ $-B.code
 
-L.init:  ; addr=0x8048814 off=0x814
-_dynamic_init: equ $-B.code
-_init: equ $-B.code
-..@0x8048814: ret
-..@0x8048815: times 0x8048840-0x8048815 hlt  ; Padding.
+L.gap14:  ; addr=0x8048814 off=0x814
+..@0x8048815: times 0x8048840-0x8048814 hlt  ; Padding.
 
 L.plt:  ; addr=0x8048840 off=0x840
 _plt_code0: equ $-B.code
@@ -25773,19 +25770,8 @@ __libc_csu_fini: equ $-B.code
 ; End from crti.o.
 ..@0x805a712: times 2 db 0  ; Alignment padding.
 
-L.fini:  ; addr=0x805a714 off=0x12714
-_dynamic_fini: equ $-B.code
-; From crti.o, section .fini:
-..@0x805a714: push ebx
-..@0x805a715: sub esp, strict byte 8
-..@0x805a718: call B.code+__x86.get_pc_thunk.bx
-..@0x805a71d: add ebx, strict dword B.code+_GLOBAL_OFFSET_TABLE_-$  ; EBX := _GLOBAL_OFFSET_TABLE_ (in a position-independent way).
-; End from crti.o.
-; From crtn.o, section .fini:
-..@0x805a723: add esp, strict byte 8
-..@0x805a726: pop ebx
-..@0x805a727: ret
-; End from crtn.o.
+L.gap16:  ; addr=0x805a714 off=0x12714
+..@0x805a714: times 0x805a728-0x805a714 hlt  ; Padding.
 
 L.glibc.rodata:  ; addr=0x805a728 off=0x12728
 ; From crt1.o, section .rodata:
@@ -26556,8 +26542,6 @@ _elf_dynamic: equ $-B.data
 ; Linux glibc with $DT.GNU_HASH (and $DT.HASH) even if it's missing.
 ..@0x805d00c: dd $DT.NEEDED,       dynstr_libm_so_6-_dynamic_strtab  ; Seems to be required.
               dd $DT.NEEDED,       dynstr_libc_so_6-_dynamic_strtab  ; Seems to be required.
-              dd $DT.INIT,         _dynamic_init  ; Optional.
-              dd $DT.FINI,         _dynamic_fini  ; Optional.
               dd $DT.STRTAB,       _dynamic_strtab  ; Seems to be required.
               dd $DT.SYMTAB,       _dynamic_symtab  ; Seems to be required. How do we get the number of symbols.
               dd $DT.STRSZ,        _dynamic_strtab.end-_dynamic_strtab  ; Seems to be required.
@@ -26574,7 +26558,7 @@ _elf_dynamic: equ $-B.data
               dd $DT.VERSYM,       _dynamic_versym  ; Seems to be required.
               dd $DT.NULL,         0  ; Required. Terminates the list. Value is always 0.
 _elf_dynamic.end: equ $-B.data
-              times 0x5c db 0  ; Padding.
+              times 0x6c db 0  ; Padding.
 
 L.got.plt:  ; addr=0x805d100 off=0x14100
 _dynamic_pltgot: equ $-B.data
