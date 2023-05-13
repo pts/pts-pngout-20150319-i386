@@ -5998,17 +5998,16 @@ phdr4:					; Elf32_Phdr
 		dd 0x10			;   p_align
 _elf_phdr.end: equ $-B.code
 L.ELF_phdr.end:
-		times 0x60 db 0  ; Padding to compensate for removed phdrs.
 
 L.interp:  ; addr=0x8048134 off=0x134
 _elf_interp: equ $-B.code
-..@0x8048134: db '/lib/ld-linux.so.2', 0
+..@0x80480d4: db '/lib/ld-linux.so.2', 0
 _elf_interp.end: equ $-B.code
-..@0x8048147: times 1 db 0  ; Alignment padding.
-;..@0x8048148:
+..@0x80480e7: times 1 db 0  ; Alignment padding.
+;..@0x80480e8:
 
 L.gap13:  ; addr=0x8048148 off=0x148
-..@0x8048148: times 0x8048198-0x8048148 db 0  ; Padding.
+..@0x8048148: times 0x8048198-0x80480e8 db 0  ; Padding.
 
 L.dynsym:  ; addr=0x8048198 off=0x198
 _dynamic_symtab: equ $-B.code
