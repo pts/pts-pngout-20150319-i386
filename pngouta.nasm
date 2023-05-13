@@ -6176,277 +6176,284 @@ _dynamic_jmprel.end: equ $-B.code
 
 L.init:  ; addr=0x8048814 off=0x814
 _dynamic_init: equ $-B.code
+; From crti.o, section .init:
 ..@0x8048814: db 0x53  ;; push ebx
 ..@0x8048815: db 0x83, 0xec, 0x08  ;; sub esp,byte +0x8
-..@0x8048818: call R.code+0x8048be0
-..@0x804881d: db 0x81, 0xc3, 0xe3, 0x48, 0x01, 0x00  ;; add ebx,0x148e3
-..@0x8048823: db 0x8b, 0x83, 0xfc, 0xff, 0xff, 0xff  ;; mov eax,[ebx+0xfffffffc]
+..@0x8048818: call B.code+__x86.get_pc_thunk.bx
+..@0x804881d: add ebx, B.code+_GLOBAL_OFFSET_TABLE_-$  ; EBX := _GLOBAL_OFFSET_TABLE_ (in a position-independent way).
+..@0x8048823: db 0x8b, 0x83  ; Why is there a separate __gmon_start__@realgot in addition to __gmon_start__@got?
+                dd __gmon_start__@realgot-_GLOBAL_OFFSET_TABLE_  ;; mov eax,[ebx+__gmon_start__@realgot-_GLOBAL_OFFSET_TABLE_]  ; EAX := [__gmon_start__@realgot]
 ..@0x8048829: db 0x85, 0xc0  ;; test eax,eax
 ..@0x804882b: db 0x74, 0x05  ;; jz 0x8048832
-..@0x804882d: call R.code+0x8048990
+..@0x804882d: call B.code+__gmon_start__
+; End from crti.o.
+; From crtn.o, section .init:
 ..@0x8048832: db 0x83, 0xc4, 0x08  ;; add esp,byte +0x8
 ..@0x8048835: db 0x5b  ;; pop ebx
 ..@0x8048836: db 0xc3  ;; ret
-..@0x8048837: db 0x00, 0x00  ;; add [eax],al
-..@0x8048839: db 0x00, 0x00  ;; add [eax],al
-..@0x804883b: db 0x00, 0x00  ;; add [eax],al
-..@0x804883d: db 0x00, 0x00  ;; add [eax],al
-..@0x804883f: db 0x00  ;; db 0x00
+; End from crtn.o.
+..@0x8048837: times 9 db 0  ; Padding.
 
 L.plt:  ; addr=0x8048840 off=0x840
-..@0x8048840: db 0xff, 0x35, 0x04, 0xd1, 0x05, 0x08  ;; push dword [0x805d104]
-..@0x8048846: db 0xff, 0x25, 0x08, 0xd1, 0x05, 0x08  ;; jmp near [0x805d108]
-..@0x804884c: db 0x00, 0x00  ;; add [eax],al
-..@0x804884e: db 0x00, 0x00  ;; add [eax],al
+_plt_code0: equ $-B.code
+..@0x8048840: push dword [_GLOBAL_OFFSET_TABLE_special1]
+..@0x8048846: jmp [_GLOBAL_OFFSET_TABLE_special2@got]
+..@0x804884c: times 4 db 0  ; Alignment padding.
 log: equ $-B.code
-..@0x8048850: db 0xff, 0x25, 0x0c, 0xd1, 0x05, 0x08  ;; jmp near [0x805d10c]  log@GLIBC_2.0
-..@0x8048856: push strict dword 0x0
-..@0x804885b: jmp strict near R.code+0x8048840
+..@0x8048850: jmp [log@GLIBC_2.0@got]
+..@0x8048856: push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 0.
+..@0x804885b: jmp strict near B.code+_plt_code0
 read: equ $-B.code
-..@0x8048860: db 0xff, 0x25, 0x10, 0xd1, 0x05, 0x08  ;; jmp near [0x805d110]  read@GLIBC_2.0
-..@0x8048866: push strict dword 0x8
-..@0x804886b: jmp strict near R.code+0x8048840
+..@0x8048860: jmp [read@GLIBC_2.0@got]
+..@0x8048866: push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 8.
+..@0x804886b: jmp strict near B.code+_plt_code0
 printf: equ $-B.code
-..@0x8048870: db 0xff, 0x25, 0x14, 0xd1, 0x05, 0x08  ;; jmp near [0x805d114]  printf@GLIBC_2.0
-..@0x8048876: push strict dword 0x10
-..@0x804887b: jmp strict near R.code+0x8048840
+..@0x8048870: jmp [printf@GLIBC_2.0@got]
+..@0x8048876: push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 0x10.
+..@0x804887b: jmp strict near B.code+_plt_code0
 fflush: equ $-B.code
-..@0x8048880: db 0xff, 0x25, 0x18, 0xd1, 0x05, 0x08  ;; jmp near [0x805d118]  fflush@GLIBC_2.0
-..@0x8048886: push strict dword 0x18
-..@0x804888b: jmp strict near R.code+0x8048840
+..@0x8048880: jmp [fflush@GLIBC_2.0@got]
+..@0x8048886: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804888b: jmp strict near B.code+_plt_code0
 memmove: equ $-B.code
-..@0x8048890: db 0xff, 0x25, 0x1c, 0xd1, 0x05, 0x08  ;; jmp near [0x805d11c]  memmove@GLIBC_2.0
-..@0x8048896: push strict dword 0x20
-..@0x804889b: jmp strict near R.code+0x8048840
+..@0x8048890: jmp [memmove@GLIBC_2.0@got]
+..@0x8048896: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804889b: jmp strict near B.code+_plt_code0
 free: equ $-B.code
-..@0x80488a0: db 0xff, 0x25, 0x20, 0xd1, 0x05, 0x08  ;; jmp near [0x805d120]  free@GLIBC_2.0
-..@0x80488a6: push strict dword 0x28
-..@0x80488ab: jmp strict near R.code+0x8048840
+..@0x80488a0: jmp [free@GLIBC_2.0@got]
+..@0x80488a6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80488ab: jmp strict near B.code+_plt_code0
 memcpy: equ $-B.code
-..@0x80488b0: db 0xff, 0x25, 0x24, 0xd1, 0x05, 0x08  ;; jmp near [0x805d124]  memcpy@GLIBC_2.0
-..@0x80488b6: push strict dword 0x30
-..@0x80488bb: jmp strict near R.code+0x8048840
+..@0x80488b0: jmp [memcpy@GLIBC_2.0@got]
+..@0x80488b6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80488bb: jmp strict near B.code+_plt_code0
 fgets: equ $-B.code
-..@0x80488c0: db 0xff, 0x25, 0x28, 0xd1, 0x05, 0x08  ;; jmp near [0x805d128]  fgets@GLIBC_2.0
-..@0x80488c6: push strict dword 0x38
-..@0x80488cb: jmp strict near R.code+0x8048840
+..@0x80488c0: jmp [fgets@GLIBC_2.0@got]
+..@0x80488c6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80488cb: jmp strict near B.code+_plt_code0
 fclose: equ $-B.code
-..@0x80488d0: db 0xff, 0x25, 0x2c, 0xd1, 0x05, 0x08  ;; jmp near [0x805d12c]  fclose@GLIBC_2.1
-..@0x80488d6: push strict dword 0x40
-..@0x80488db: jmp strict near R.code+0x8048840
+..@0x80488d0: jmp [fclose@GLIBC_2.1@got]
+..@0x80488d6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80488db: jmp strict near B.code+_plt_code0
 time: equ $-B.code
-..@0x80488e0: db 0xff, 0x25, 0x30, 0xd1, 0x05, 0x08  ;; jmp near [0x805d130]  time@GLIBC_2.0
-..@0x80488e6: push strict dword 0x48
-..@0x80488eb: jmp strict near R.code+0x8048840
+..@0x80488e0: jmp [time@GLIBC_2.0@got]
+..@0x80488e6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80488eb: jmp strict near B.code+_plt_code0
 gettimeofday: equ $-B.code
-..@0x80488f0: db 0xff, 0x25, 0x34, 0xd1, 0x05, 0x08  ;; jmp near [0x805d134]  gettimeofday@GLIBC_2.0
-..@0x80488f6: push strict dword 0x50
-..@0x80488fb: jmp strict near R.code+0x8048840
+..@0x80488f0: jmp [gettimeofday@GLIBC_2.0@got]
+..@0x80488f6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80488fb: jmp strict near B.code+_plt_code0
 stpcpy: equ $-B.code
-..@0x8048900: db 0xff, 0x25, 0x38, 0xd1, 0x05, 0x08  ;; jmp near [0x805d138]  stpcpy@GLIBC_2.0
-..@0x8048906: push strict dword 0x58
-..@0x804890b: jmp strict near R.code+0x8048840
+..@0x8048900: jmp [stpcpy@GLIBC_2.0@got]
+..@0x8048906: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804890b: jmp strict near B.code+_plt_code0
 fseek: equ $-B.code
-..@0x8048910: db 0xff, 0x25, 0x3c, 0xd1, 0x05, 0x08  ;; jmp near [0x805d13c]  fseek@GLIBC_2.0
-..@0x8048916: push strict dword 0x60
-..@0x804891b: jmp strict near R.code+0x8048840
+..@0x8048910: jmp [fseek@GLIBC_2.0@got]
+..@0x8048916: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804891b: jmp strict near B.code+_plt_code0
 fwrite: equ $-B.code
-..@0x8048920: db 0xff, 0x25, 0x40, 0xd1, 0x05, 0x08  ;; jmp near [0x805d140]  fwrite@GLIBC_2.0
-..@0x8048926: push strict dword 0x68
-..@0x804892b: jmp strict near R.code+0x8048840
+..@0x8048920: jmp [fwrite@GLIBC_2.0@got]
+..@0x8048926: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804892b: jmp strict near B.code+_plt_code0
 strcat: equ $-B.code
-..@0x8048930: db 0xff, 0x25, 0x44, 0xd1, 0x05, 0x08  ;; jmp near [0x805d144]  strcat@GLIBC_2.0
-..@0x8048936: push strict dword 0x70
-..@0x804893b: jmp strict near R.code+0x8048840
+..@0x8048930: jmp [strcat@GLIBC_2.0@got]
+..@0x8048936: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804893b: jmp strict near B.code+_plt_code0
 fread: equ $-B.code
-..@0x8048940: db 0xff, 0x25, 0x48, 0xd1, 0x05, 0x08  ;; jmp near [0x805d148]  fread@GLIBC_2.0
-..@0x8048946: push strict dword 0x78
-..@0x804894b: jmp strict near R.code+0x8048840
+..@0x8048940: jmp [fread@GLIBC_2.0@got]
+..@0x8048946: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804894b: jmp strict near B.code+_plt_code0
 strcpy: equ $-B.code
-..@0x8048950: db 0xff, 0x25, 0x4c, 0xd1, 0x05, 0x08  ;; jmp near [0x805d14c]  strcpy@GLIBC_2.0
-..@0x8048956: push strict dword 0x80
-..@0x804895b: jmp strict near R.code+0x8048840
+..@0x8048950: jmp [strcpy@GLIBC_2.0@got]
+..@0x8048956: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804895b: jmp strict near B.code+_plt_code0
 realloc: equ $-B.code
-..@0x8048960: db 0xff, 0x25, 0x50, 0xd1, 0x05, 0x08  ;; jmp near [0x805d150]  realloc@GLIBC_2.0
-..@0x8048966: push strict dword 0x88
-..@0x804896b: jmp strict near R.code+0x8048840
+..@0x8048960: jmp [realloc@GLIBC_2.0@got]
+..@0x8048966: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804896b: jmp strict near B.code+_plt_code0
 malloc: equ $-B.code
-..@0x8048970: db 0xff, 0x25, 0x54, 0xd1, 0x05, 0x08  ;; jmp near [0x805d154]  malloc@GLIBC_2.0
-..@0x8048976: push strict dword 0x90
-..@0x804897b: jmp strict near R.code+0x8048840
+..@0x8048970: jmp [malloc@GLIBC_2.0@got]
+..@0x8048976: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804897b: jmp strict near B.code+_plt_code0
 puts: equ $-B.code
-..@0x8048980: db 0xff, 0x25, 0x58, 0xd1, 0x05, 0x08  ;; jmp near [0x805d158]  puts@GLIBC_2.0
-..@0x8048986: push strict dword 0x98
-..@0x804898b: jmp strict near R.code+0x8048840
-..@0x8048990: db 0xff, 0x25, 0x5c, 0xd1, 0x05, 0x08  ;; jmp near [0x805d15c]  __gmon_start__
-..@0x8048996: push strict dword 0xa0
-..@0x804899b: jmp strict near R.code+0x8048840
+..@0x8048980: jmp [puts@GLIBC_2.0@got]
+..@0x8048986: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804898b: jmp strict near B.code+_plt_code0
+__gmon_start__: equ $-B.code
+..@0x8048990: jmp [__gmon_start__@got]
+..@0x8048996: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x804899b: jmp strict near B.code+_plt_code0
 exit: equ $-B.code
-..@0x80489a0: db 0xff, 0x25, 0x60, 0xd1, 0x05, 0x08  ;; jmp near [0x805d160]  exit@GLIBC_2.0
-..@0x80489a6: push strict dword 0xa8
-..@0x80489ab: jmp strict near R.code+0x8048840
+..@0x80489a0: jmp [exit@GLIBC_2.0@got]
+..@0x80489a6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80489ab: jmp strict near B.code+_plt_code0
 srand: equ $-B.code
-..@0x80489b0: db 0xff, 0x25, 0x64, 0xd1, 0x05, 0x08  ;; jmp near [0x805d164]  srand@GLIBC_2.0
-..@0x80489b6: push strict dword 0xb0
-..@0x80489bb: jmp strict near R.code+0x8048840
+..@0x80489b0: jmp [srand@GLIBC_2.0@got]
+..@0x80489b6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80489bb: jmp strict near B.code+_plt_code0
 strchr: equ $-B.code
-..@0x80489c0: db 0xff, 0x25, 0x68, 0xd1, 0x05, 0x08  ;; jmp near [0x805d168]  strchr@GLIBC_2.0
-..@0x80489c6: push strict dword 0xb8
-..@0x80489cb: jmp strict near R.code+0x8048840
+..@0x80489c0: jmp [strchr@GLIBC_2.0@got]
+..@0x80489c6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80489cb: jmp strict near B.code+_plt_code0
 strlen: equ $-B.code
-..@0x80489d0: db 0xff, 0x25, 0x6c, 0xd1, 0x05, 0x08  ;; jmp near [0x805d16c]  strlen@GLIBC_2.0
-..@0x80489d6: push strict dword 0xc0
-..@0x80489db: jmp strict near R.code+0x8048840
+..@0x80489d0: jmp [strlen@GLIBC_2.0@got]
+..@0x80489d6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80489db: jmp strict near B.code+_plt_code0
 __libc_start_main: equ $-B.code
-..@0x80489e0: db 0xff, 0x25, 0x70, 0xd1, 0x05, 0x08  ;; jmp near [0x805d170]  __libc_start_main@GLIBC_2.0
-..@0x80489e6: push strict dword 0xc8
-..@0x80489eb: jmp strict near R.code+0x8048840
+..@0x80489e0: jmp [__libc_start_main@GLIBC_2.0@got]
+..@0x80489e6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80489eb: jmp strict near B.code+_plt_code0
 strcasecmp: equ $-B.code
-..@0x80489f0: db 0xff, 0x25, 0x74, 0xd1, 0x05, 0x08  ;; jmp near [0x805d174]  strcasecmp@GLIBC_2.0
-..@0x80489f6: push strict dword 0xd0
-..@0x80489fb: jmp strict near R.code+0x8048840
+..@0x80489f0: jmp [strcasecmp@GLIBC_2.0@got]
+..@0x80489f6: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x80489fb: jmp strict near B.code+_plt_code0
 ftell: equ $-B.code
-..@0x8048a00: db 0xff, 0x25, 0x78, 0xd1, 0x05, 0x08  ;; jmp near [0x805d178]  ftell@GLIBC_2.0
-..@0x8048a06: push strict dword 0xd8
-..@0x8048a0b: jmp strict near R.code+0x8048840
+..@0x8048a00: jmp [ftell@GLIBC_2.0@got]
+..@0x8048a06: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x8048a0b: jmp strict near B.code+_plt_code0
 fopen: equ $-B.code
-..@0x8048a10: db 0xff, 0x25, 0x7c, 0xd1, 0x05, 0x08  ;; jmp near [0x805d17c]  fopen@GLIBC_2.1
-..@0x8048a16: push strict dword 0xe0
-..@0x8048a1b: jmp strict near R.code+0x8048840
+..@0x8048a10: jmp [fopen@GLIBC_2.1@got]
+..@0x8048a16: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x8048a1b: jmp strict near B.code+_plt_code0
 memset: equ $-B.code
-..@0x8048a20: db 0xff, 0x25, 0x80, 0xd1, 0x05, 0x08  ;; jmp near [0x805d180]  memset@GLIBC_2.0
-..@0x8048a26: push strict dword 0xe8
-..@0x8048a2b: jmp strict near R.code+0x8048840
+..@0x8048a20: jmp [memset@GLIBC_2.0@got]
+..@0x8048a26: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x8048a2b: jmp strict near B.code+_plt_code0
 fileno: equ $-B.code
-..@0x8048a30: db 0xff, 0x25, 0x84, 0xd1, 0x05, 0x08  ;; jmp near [0x805d184]  fileno@GLIBC_2.0
-..@0x8048a36: push strict dword 0xf0
-..@0x8048a3b: jmp strict near R.code+0x8048840
+..@0x8048a30: jmp [fileno@GLIBC_2.0@got]
+..@0x8048a36: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x8048a3b: jmp strict near B.code+_plt_code0
 strtod: equ $-B.code
-..@0x8048a40: db 0xff, 0x25, 0x88, 0xd1, 0x05, 0x08  ;; jmp near [0x805d188]  strtod@GLIBC_2.0
-..@0x8048a46: push strict dword 0xf8
-..@0x8048a4b: jmp strict near R.code+0x8048840
+..@0x8048a40: jmp [strtod@GLIBC_2.0@got]
+..@0x8048a46: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x8048a4b: jmp strict near B.code+_plt_code0
 fgetc: equ $-B.code
-..@0x8048a50: db 0xff, 0x25, 0x8c, 0xd1, 0x05, 0x08  ;; jmp near [0x805d18c]  fgetc@GLIBC_2.0
-..@0x8048a56: push strict dword 0x100
-..@0x8048a5b: jmp strict near R.code+0x8048840
+..@0x8048a50: jmp [fgetc@GLIBC_2.0@got]
+..@0x8048a56: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x8048a5b: jmp strict near B.code+_plt_code0
 strncasecmp: equ $-B.code
-..@0x8048a60: db 0xff, 0x25, 0x90, 0xd1, 0x05, 0x08  ;; jmp near [0x805d190]  strncasecmp@GLIBC_2.0
-..@0x8048a66: push strict dword 0x108
-..@0x8048a6b: jmp strict near R.code+0x8048840
+..@0x8048a60: jmp [strncasecmp@GLIBC_2.0@got]
+..@0x8048a66: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x8048a6b: jmp strict near B.code+_plt_code0
 rand: equ $-B.code
-..@0x8048a70: db 0xff, 0x25, 0x94, 0xd1, 0x05, 0x08  ;; jmp near [0x805d194]  rand@GLIBC_2.0
-..@0x8048a76: push strict dword 0x110
-..@0x8048a7b: jmp strict near R.code+0x8048840
+..@0x8048a70: jmp [rand@GLIBC_2.0@got]
+..@0x8048a76: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x8048a7b: jmp strict near B.code+_plt_code0
 strtok: equ $-B.code
-..@0x8048a80: db 0xff, 0x25, 0x98, 0xd1, 0x05, 0x08  ;; jmp near [0x805d198]  strtok@GLIBC_2.0
-..@0x8048a86: push strict dword 0x118
-..@0x8048a8b: jmp strict near R.code+0x8048840
+..@0x8048a80: jmp [strtok@GLIBC_2.0@got]
+..@0x8048a86: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x8048a8b: jmp strict near B.code+_plt_code0
 vfprintf: equ $-B.code
-..@0x8048a90: db 0xff, 0x25, 0x9c, 0xd1, 0x05, 0x08  ;; jmp near [0x805d19c]  vfprintf@GLIBC_2.0
-..@0x8048a96: push strict dword 0x120
-..@0x8048a9b: jmp strict near R.code+0x8048840
+..@0x8048a90: jmp [vfprintf@GLIBC_2.0@got]
+..@0x8048a96: push strict dword ($-B.code-_plt_code0-0x16)>>1
+..@0x8048a9b: jmp strict near B.code+_plt_code0
 strtol: equ $-B.code
-..@0x8048aa0: db 0xff, 0x25, 0xa0, 0xd1, 0x05, 0x08  ;; jmp near [0x805d1a0]  strtol@GLIBC_2.0
-..@0x8048aa6: push strict dword 0x128
-..@0x8048aab: jmp strict near R.code+0x8048840
+..@0x8048aa0: jmp [strtol@GLIBC_2.0@got]
+..@0x8048aa6: push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 0x128.
+..@0x8048aab: jmp strict near B.code+_plt_code0
 ..@0x8048ab0: times 0x8048bb0-0x8048ab0 db 0
 
 L.libc.text:  ; addr=0x8048bb0 off=0xbb0
 _glibc_text: equ $-B.code
+; From crt1.o, section .text:
 _start: equ $-B.code
 ..@0x8048bb0: db 0x31, 0xed  ;; xor ebp,ebp
-..@0x8048bb2: db 0x5e  ;; pop esi
+..@0x8048bb2: pop esi
 ..@0x8048bb3: db 0x89, 0xe1  ;; mov ecx,esp
 ..@0x8048bb5: db 0x83, 0xe4, 0xf0  ;; and esp,byte -0x10
-..@0x8048bb8: db 0x50  ;; push eax
-..@0x8048bb9: db 0x54  ;; push esp
-..@0x8048bba: db 0x52  ;; push edx
-..@0x8048bbb: push strict dword _fini
-..@0x8048bc0: push strict dword _init
-..@0x8048bc5: db 0x51  ;; push ecx
-..@0x8048bc6: db 0x56  ;; push esi
+..@0x8048bb8: push eax
+..@0x8048bb9: push esp
+..@0x8048bba: push edx
+..@0x8048bbb: push strict dword __libc_csu_fini
+..@0x8048bc0: push strict dword __libc_csu_init
+..@0x8048bc5: push ecx
+..@0x8048bc6: push esi
 ..@0x8048bc7: push strict dword main
 ..@0x8048bcc: call B.code+__libc_start_main
 ..@0x8048bd1: hlt
-..@0x8048bd2: dw 0x9066  ;; o16 nop
-..@0x8048bd4: dw 0x9066  ;; o16 nop
-..@0x8048bd6: dw 0x9066  ;; o16 nop
-..@0x8048bd8: dw 0x9066  ;; o16 nop
-..@0x8048bda: dw 0x9066  ;; o16 nop
-..@0x8048bdc: dw 0x9066  ;; o16 nop
-..@0x8048bde: dw 0x9066  ;; o16 nop
+; End from crt1.o.
+..@0x8048bd2: times 7 dw 0x9066  ;; o16 nop  ; Alignment padding.
+; From crti.o, section .gnu.linkonce.t.__x86.get_pc_thunk.bx:
+__x86.get_pc_thunk.bx: equ $-B.code
 ..@0x8048be0: db 0x8b, 0x1c, 0x24  ;; mov ebx,[esp]
-..@0x8048be3: db 0xc3  ;; ret
-..@0x8048be4: dw 0x9066  ;; o16 nop
-..@0x8048be6: dw 0x9066  ;; o16 nop
-..@0x8048be8: dw 0x9066  ;; o16 nop
-..@0x8048bea: dw 0x9066  ;; o16 nop
-..@0x8048bec: dw 0x9066  ;; o16 nop
-..@0x8048bee: dw 0x9066  ;; o16 nop
-..@0x8048bf0: db 0xb8, 0xf3, 0xd1, 0x05, 0x08  ;; mov eax,0x805d1f3
-..@0x8048bf5: db 0x2d, 0xf0, 0xd1, 0x05, 0x08  ;; sub eax,0x805d1f0
+..@0x8048be3: ret
+; End from crti.o.
+..@0x8048be4: times 6 dw 0x9066  ;; o16 nop  ; Alignment padding.
+; From crtbegin.o, section .text:
+deregister_tm_clones: equ $-B.code
+_ITM_registerTMCloneTable equ 0
+_ITM_deregisterTMCloneTable equ 0
+..@0x8048bf0: mov eax, __TMC_END__+3
+..@0x8048bf5: db 0x2d, 0xf0, 0xd1, 0x05, 0x08  ;; sub eax, __TMC_LIST__
 ..@0x8048bfa: db 0x83, 0xf8, 0x06  ;; cmp eax,byte +0x6
 ..@0x8048bfd: db 0x77, 0x01  ;; ja 0x8048c00
-..@0x8048bff: db 0xc3  ;; ret
-..@0x8048c00: db 0xb8, 0x00, 0x00, 0x00, 0x00  ;; mov eax,0x0
+..@0x8048bff: ret
+..@0x8048c00: mov eax, _ITM_deregisterTMCloneTable
 ..@0x8048c05: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8048c07: db 0x74, 0xf6  ;; jz 0x8048bff
-..@0x8048c09: db 0x55  ;; push ebp
+..@0x8048c09: push ebp
 ..@0x8048c0a: db 0x89, 0xe5  ;; mov ebp,esp
 ..@0x8048c0c: db 0x83, 0xec, 0x18  ;; sub esp,byte +0x18
 ..@0x8048c0f: db 0xc7, 0x04, 0x24, 0xf0, 0xd1, 0x05, 0x08  ;; mov dword [esp],0x805d1f0
 ..@0x8048c16: db 0xff, 0xd0  ;; call eax
-..@0x8048c18: db 0xc9  ;; leave
-..@0x8048c19: db 0xc3  ;; ret
+..@0x8048c18: leave
+..@0x8048c19: ret
 ..@0x8048c1a: db 0x8d, 0xb6, 0x00, 0x00, 0x00, 0x00  ;; lea esi,[esi+0x0]
-..@0x8048c20: db 0xb8, 0xf0, 0xd1, 0x05, 0x08  ;; mov eax,0x805d1f0
-..@0x8048c25: db 0x2d, 0xf0, 0xd1, 0x05, 0x08  ;; sub eax,0x805d1f0
+register_tm_clones: equ $-B.code
+..@0x8048c20: mov eax, __TMC_END__
+..@0x8048c25: db 0x2d, 0xf0, 0xd1, 0x05, 0x08  ;; sub eax, __TMC_LIST__
 ..@0x8048c2a: db 0xc1, 0xf8, 0x02  ;; sar eax,0x2
 ..@0x8048c2d: db 0x89, 0xc2  ;; mov edx,eax
 ..@0x8048c2f: db 0xc1, 0xea, 0x1f  ;; shr edx,0x1f
 ..@0x8048c32: db 0x01, 0xd0  ;; add eax,edx
 ..@0x8048c34: db 0xd1, 0xf8  ;; sar eax,1
 ..@0x8048c36: db 0x75, 0x01  ;; jnz 0x8048c39
-..@0x8048c38: db 0xc3  ;; ret
-..@0x8048c39: db 0xba, 0x00, 0x00, 0x00, 0x00  ;; mov edx,0x0
+..@0x8048c38: ret
+..@0x8048c39: mov edx, _ITM_registerTMCloneTable
 ..@0x8048c3e: db 0x85, 0xd2  ;; test edx,edx
 ..@0x8048c40: db 0x74, 0xf6  ;; jz 0x8048c38
-..@0x8048c42: db 0x55  ;; push ebp
+..@0x8048c42: push ebp
 ..@0x8048c43: db 0x89, 0xe5  ;; mov ebp,esp
 ..@0x8048c45: db 0x83, 0xec, 0x18  ;; sub esp,byte +0x18
 ..@0x8048c48: db 0x89, 0x44, 0x24, 0x04  ;; mov [esp+0x4],eax
-..@0x8048c4c: db 0xc7, 0x04, 0x24, 0xf0, 0xd1, 0x05, 0x08  ;; mov dword [esp],0x805d1f0
+..@0x8048c4c: db 0xc7, 0x04, 0x24
+                dd __TMC_LIST__  ;; mov dword [esp],0x805d1f0
 ..@0x8048c53: db 0xff, 0xd2  ;; call edx
-..@0x8048c55: db 0xc9  ;; leave
-..@0x8048c56: db 0xc3  ;; ret
+..@0x8048c55: leave
+..@0x8048c56: ret
 ..@0x8048c57: db 0x89, 0xf6  ;; mov esi,esi
 ..@0x8048c59: db 0x8d, 0xbc, 0x27, 0x00, 0x00, 0x00, 0x00  ;; lea edi,[edi+0x0]
-..@0x8048c60: db 0x80, 0x3d, 0x24, 0xd2, 0x05, 0x08, 0x00  ;; cmp byte [0x805d224],0x0
+__do_global_dtors_aux: equ $-B.code
+..@0x8048c60: db 0x80, 0x3d, 0x24, 0xd2, 0x05, 0x08, 0x00  ;; cmp byte [completed.6600],0x0
 ..@0x8048c67: db 0x75, 0x13  ;; jnz 0x8048c7c
-..@0x8048c69: db 0x55  ;; push ebp
+..@0x8048c69: push ebp
 ..@0x8048c6a: db 0x89, 0xe5  ;; mov ebp,esp
 ..@0x8048c6c: db 0x83, 0xec, 0x08  ;; sub esp,byte +0x8
-..@0x8048c6f: call R.code+0x8048bf0
-..@0x8048c74: db 0xc6, 0x05, 0x24, 0xd2, 0x05, 0x08, 0x01  ;; mov byte [0x805d224],0x1
-..@0x8048c7b: db 0xc9  ;; leave
+..@0x8048c6f: call B.code+deregister_tm_clones
+..@0x8048c74: db 0xc6, 0x05, 0x24, 0xd2, 0x05, 0x08, 0x01  ;; mov byte [completed.6600],0x1
+..@0x8048c7b: leave
 ..@0x8048c7c: db 0xf3, 0xc3  ;; rep ret
 ..@0x8048c7e: dw 0x9066  ;; o16 nop
-..@0x8048c80: db 0xa1, 0x08, 0xd0, 0x05, 0x08  ;; mov eax,[0x805d008]
+frame_dummy: equ $-B.code
+_Jv_RegisterClasses equ 0
+..@0x8048c80: mov eax, [__JCR_LIST__]
 ..@0x8048c85: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8048c87: db 0x74, 0x1f  ;; jz 0x8048ca8
-..@0x8048c89: db 0xb8, 0x00, 0x00, 0x00, 0x00  ;; mov eax,0x0
+..@0x8048c89: mov eax, _Jv_RegisterClasses
 ..@0x8048c8e: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8048c90: db 0x74, 0x16  ;; jz 0x8048ca8
-..@0x8048c92: db 0x55  ;; push ebp
+..@0x8048c92: push ebp
 ..@0x8048c93: db 0x89, 0xe5  ;; mov ebp,esp
 ..@0x8048c95: db 0x83, 0xec, 0x18  ;; sub esp,byte +0x18
-..@0x8048c98: db 0xc7, 0x04, 0x24, 0x08, 0xd0, 0x05, 0x08  ;; mov dword [esp],0x805d008
-..@0x8048c9f: db 0xff, 0xd0  ;; call eax
-..@0x8048ca1: db 0xc9  ;; leave
+..@0x8048c98: db 0xc7, 0x04, 0x24
+                dd __JCR_LIST__  ;; mov dword [esp], __JCR_LIST__
+..@0x8048c9f: call eax
+..@0x8048ca1: leave
 ..@0x8048ca2: jmp strict near R.code+0x8048c20
-..@0x8048ca7: db 0x90  ;; nop
+..@0x8048ca7: nop
 ..@0x8048ca8: jmp strict near R.code+0x8048c20
-_before_text: equ $-B.code
+; End from crtbegin.o.
+_before_text: equ $-B.code  ; This is not from glibc, it was added manually for pngoutl debugging.
 ..@0x8048cad: daa
 ..@0x8048cae: mov eax, P.text-B.code    ; Debug. For addr debugging.
 ..@0x8048cb3: mov eax, P.rodata-B.code  ; Debug. For addr debugging.
@@ -25432,7 +25439,7 @@ times +0x000d4 db 0
 L.libc.after_text:  ; addr=0x805a698 off=0x12698
 _glibc_after_text: equ $-B.code
 ..@0x805a698: times 4 dw 0x9066  ;; o16 nop
-_init: equ $-B.code
+__libc_csu_init: equ $-B.code
 ..@0x805a6a0: db 0x55  ;; push ebp
 ..@0x805a6a1: db 0x57  ;; push edi
 ..@0x805a6a2: db 0x31, 0xff  ;; xor edi,edi
@@ -25465,25 +25472,37 @@ _init: equ $-B.code
 ..@0x805a6fe: db 0x5f  ;; pop edi
 ..@0x805a6ff: db 0x5d  ;; pop ebp
 ..@0x805a700: db 0xc3  ;; ret
+_crt_func8: equ $-B.code
 ..@0x805a701: db 0xeb, 0x0d  ;; jmp short 0x805a710
 ..@0x805a703: times 13 nop
-_fini: equ $-B.code
+__libc_csu_fini: equ $-B.code
 ..@0x805a710: db 0xf3, 0xc3  ;; rep ret
 ..@0x805a712: times 2 db 0
 
 L.fini:  ; addr=0x805a714 off=0x12714
 _dynamic_fini: equ $-B.code
+; From crti.o, section .fini:
 ..@0x805a714: db 0x53  ;; push ebx
 ..@0x805a715: db 0x83, 0xec, 0x08  ;; sub esp,byte +0x8
 ..@0x805a718: call R.code+0x8048be0
 ..@0x805a71d: db 0x81, 0xc3, 0xe3, 0x29, 0x00, 0x00  ;; add ebx,0x29e3
+; End from crti.o.
+; From crtn.o, section .fini:
 ..@0x805a723: db 0x83, 0xc4, 0x08  ;; add esp,byte +0x8
 ..@0x805a726: db 0x5b  ;; pop ebx
 ..@0x805a727: db 0xc3  ;; ret
+; End from crtn.o.
 
 L.libc.rodata:  ; addr=0x805a728 off=0x12728
 _glibc_rodata: equ $-B.code
-..@0x805a728: db 0x03, 0x00, 0x00, 0x00, 0x01, 0x00, 0x02, 0x00
+; From crt1.o, section .rodata:
+_fp_hw: equ $-B.code
+..@0x805a728: dd 3
+; End from crt1.o.
+; From crt1.o, section .rodata.cst4:
+_IO_stdin_used: equ $-B.code
+..@0x805a72c: dd 0x20001  ; https://sourceware.org/git/?p=glibc.git;a=blob;f=csu/init.c;h=c2f978f3da565590bcab355fefa3d81cf211cb36;hb=63fb8f9aa9d19f85599afe4b849b567aefd70a36
+; End from crt1.o.
 _before_before_rodata: equ $-B.code
 ..@0x805a730: times 0x10 daa  ; Padding for _rodata.
 _before_rodata: equ $-B.code
@@ -26208,16 +26227,25 @@ L.eh_frame:  ; addr=0x805ba44 off=0x13a44
 
 L.init_array:  ; addr=0x805d000 off=0x14000
 _dynamic_init_array: equ $-B.data
-..@0x805d000: dd 0x8048c80
+; From crtbegin.o, section .init_array:
+..@0x805d000: dd frame_dummy
+; End from crtbegin.o.
 _dynamic_init_array.end: equ $-B.data
 
 L.fini_array:  ; addr=0x805d004 off=0x14004
+; From crtbegin.o, section .init_array:
 _dynamic_fini_array: equ $-B.data
-..@0x805d004: dd 0x8048c60
+..@0x805d004: dd __do_global_dtors_aux
+; End from crtbegin.o.
 _dynamic_fini_array.end: equ $-B.data
 
 L.jcr:  ; addr=0x805d008 off=0x14008
+; From crtbegin.o, section .jcr:
+__JCR_LIST__: equ $-B.data
+; End from crtbegin.o.
+; From crtend.o, section .jcr:
 ..@0x805d008: dd 0
+; End from crtend.o.
 
 $DT:  ; Symbolic constants for ELF DT_... (dynamic type).
 .NULL equ 0
@@ -26279,25 +26307,108 @@ _elf_dynamic.end: equ $-B.data
               times 0x805d0fc-0x805d0fc db 0
 
 L.got:  ; addr=0x805d0fc off=0x140fc
-..@0x805d0fc: dd 0
+__gmon_start__@realgot: equ $-B.data
+..@0x805d0fc: dd 0  ; NULL function pointer.
 
 L.got.plt:  ; addr=0x805d100 off=0x14100
 _dynamic_pltgot: equ $-B.data
-..@0x805d100: db 0x0c, 0xd0, 0x05, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x56, 0x88, 0x04, 0x08
-..@0x805d110: db 0x66, 0x88, 0x04, 0x08, 0x76, 0x88, 0x04, 0x08, 0x86, 0x88, 0x04, 0x08, 0x96, 0x88, 0x04, 0x08
-..@0x805d120: db 0xa6, 0x88, 0x04, 0x08, 0xb6, 0x88, 0x04, 0x08, 0xc6, 0x88, 0x04, 0x08, 0xd6, 0x88, 0x04, 0x08
-..@0x805d130: db 0xe6, 0x88, 0x04, 0x08, 0xf6, 0x88, 0x04, 0x08, 0x06, 0x89, 0x04, 0x08, 0x16, 0x89, 0x04, 0x08
-..@0x805d140: db 0x26, 0x89, 0x04, 0x08, 0x36, 0x89, 0x04, 0x08, 0x46, 0x89, 0x04, 0x08, 0x56, 0x89, 0x04, 0x08
-..@0x805d150: db 0x66, 0x89, 0x04, 0x08, 0x76, 0x89, 0x04, 0x08, 0x86, 0x89, 0x04, 0x08, 0x96, 0x89, 0x04, 0x08
-..@0x805d160: db 0xa6, 0x89, 0x04, 0x08, 0xb6, 0x89, 0x04, 0x08, 0xc6, 0x89, 0x04, 0x08, 0xd6, 0x89, 0x04, 0x08
-..@0x805d170: db 0xe6, 0x89, 0x04, 0x08, 0xf6, 0x89, 0x04, 0x08, 0x06, 0x8a, 0x04, 0x08, 0x16, 0x8a, 0x04, 0x08
-..@0x805d180: db 0x26, 0x8a, 0x04, 0x08, 0x36, 0x8a, 0x04, 0x08, 0x46, 0x8a, 0x04, 0x08, 0x56, 0x8a, 0x04, 0x08
-..@0x805d190: db 0x66, 0x8a, 0x04, 0x08, 0x76, 0x8a, 0x04, 0x08, 0x86, 0x8a, 0x04, 0x08, 0x96, 0x8a, 0x04, 0x08
-..@0x805d1a0: db 0xa6, 0x8a, 0x04, 0x08
+_GLOBAL_OFFSET_TABLE_: equ $-B.data
+; Values below will be overwritten at load time by the dynamic linker /lib/ld-linux.so.2.
+_GLOBAL_OFFSET_TABLE_special0: equ $-B.data
+..@0x805d100: dd _elf_dynamic  ; Special entry 0.
+_GLOBAL_OFFSET_TABLE_special1: equ $-B.data
+..@0x805d104: dd 0  ; Special entry 1.
+_GLOBAL_OFFSET_TABLE_special2@got: equ $-B.data
+..@0x805d108: dd 0  ; Special entry 2.
+; Functions below correspond to L.plt, they are in the same order.
+log@GLIBC_2.0@got: equ $-B.data
+..@0x805d10c: dd log+6
+read@GLIBC_2.0@got: equ $-B.data
+..@0x805d110: dd read+6
+printf@GLIBC_2.0@got: equ $-B.data
+..@0x805d114: dd printf+6
+fflush@GLIBC_2.0@got: equ $-B.data
+..@0x805d118: dd fflush+6
+memmove@GLIBC_2.0@got: equ $-B.data
+..@0x805d11c: dd memmove+6
+free@GLIBC_2.0@got: equ $-B.data
+..@0x805d120: dd free+6
+memcpy@GLIBC_2.0@got: equ $-B.data
+..@0x805d124: dd memcpy+6
+fgets@GLIBC_2.0@got: equ $-B.data
+..@0x805d128: dd fgets+6
+fclose@GLIBC_2.1@got: equ $-B.data
+..@0x805d12c: dd fclose+6
+time@GLIBC_2.0@got: equ $-B.data
+..@0x805d130: dd time+6
+gettimeofday@GLIBC_2.0@got: equ $-B.data
+..@0x805d134: dd gettimeofday+6
+stpcpy@GLIBC_2.0@got: equ $-B.data
+..@0x805d138: dd stpcpy+6
+fseek@GLIBC_2.0@got: equ $-B.data
+..@0x805d13c: dd fseek+6
+fwrite@GLIBC_2.0@got: equ $-B.data
+..@0x805d140: dd fwrite+6
+strcat@GLIBC_2.0@got: equ $-B.data
+..@0x805d144: dd strcat+6
+fread@GLIBC_2.0@got: equ $-B.data
+..@0x805d148: dd fread+6
+strcpy@GLIBC_2.0@got: equ $-B.data
+..@0x805d14c: dd strcpy+6
+realloc@GLIBC_2.0@got: equ $-B.data
+..@0x805d150: dd realloc+6
+malloc@GLIBC_2.0@got: equ $-B.data
+..@0x805d154: dd malloc+6
+puts@GLIBC_2.0@got: equ $-B.data
+..@0x805d158: dd puts+6
+__gmon_start__@got: equ $-B.data
+..@0x805d15c: dd __gmon_start__+6
+exit@GLIBC_2.0@got: equ $-B.data
+..@0x805d160: dd exit+6
+srand@GLIBC_2.0@got: equ $-B.data
+..@0x805d164: dd srand+6
+strchr@GLIBC_2.0@got: equ $-B.data
+..@0x805d168: dd strchr+6
+strlen@GLIBC_2.0@got: equ $-B.data
+..@0x805d16c: dd strlen+6
+__libc_start_main@GLIBC_2.0@got: equ $-B.data
+..@0x805d170: dd __libc_start_main+6
+strcasecmp@GLIBC_2.0@got: equ $-B.data
+..@0x805d174: dd strcasecmp+6
+ftell@GLIBC_2.0@got: equ $-B.data
+..@0x805d178: dd ftell+6
+fopen@GLIBC_2.1@got: equ $-B.data
+..@0x805d17c: dd fopen+6
+memset@GLIBC_2.0@got: equ $-B.data
+..@0x805d180: dd memset+6
+fileno@GLIBC_2.0@got: equ $-B.data
+..@0x805d184: dd fileno+6
+strtod@GLIBC_2.0@got: equ $-B.data
+..@0x805d188: dd strtod+6
+fgetc@GLIBC_2.0@got: equ $-B.data
+..@0x805d18c: dd fgetc+6
+strncasecmp@GLIBC_2.0@got: equ $-B.data
+..@0x805d190: dd strncasecmp+6
+rand@GLIBC_2.0@got: equ $-B.data
+..@0x805d194: dd rand+6
+strtok@GLIBC_2.0@got: equ $-B.data
+..@0x805d198: dd strtok+6
+vfprintf@GLIBC_2.0@got: equ $-B.data
+..@0x805d19c: dd vfprintf+6
+strtol@GLIBC_2.0@got: equ $-B.data
+..@0x805d1a0: dd strtol+6
 
 L.libc.data:  ; addr=0x805d1a4 off=0x141a4
 _glibc_data: equ $-B.data
-..@0x805d1a4: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+; From crt1.o, section .data:
+data_start: equ $-B.data
+__data_start: equ $-B.data
+..@0x805d1a4: dd 0  ; What is this used for?
+; End from crt1.o.
+; From crtbegin.o, section .data:
+__dso_handle: equ $-B.data  ; What is this used for? https://stackoverflow.com/questions/34308720/where-is-dso-handle-defined
+..@0x805d1a8: dd 0
+; End from crtbegin.o.
 _before_data: equ $-B.data
 ..@0x805d1ac: times 0x805d1c4-0x805d0c0+8+12-0x100 daa
 %endif  ; TARGET, ;
@@ -27115,15 +27226,25 @@ times (-($-$$)+0x141f0) times 0 nop  ; Assert on file size.
 L.libc.bss:  ; addr=0x805d1f0 off=0x141f0
 absolute $
 _before_bss: equ $-B.data
-..@0x805d1f0: resb 0x805d200-0x805d1f0
-_glibc_bss:
+; From crtbegin.o, section .tm_clone_table:
+__TMC_LIST__: equ $-B.data
+; End from crtbegin.o.
+; From crtend.o, section .tm_clone_table:
+__TMC_END__: equ $-B.data
+; End from crtend.o.
+..@0x805d1f0: resb 0x805d200-0x805d1f0  ; Why this padding?
+; These seem to be generated by the linker, relocation type is R_386_COPY.
 stderr: equ $-B.data
 ..@0x805d200: resb 0x4
 stdin: equ $-B.data
 ..@0x805d204: resb 0x1c
 stdout: equ $-B.data
 ..@0x805d220: resb 0x4
+; From crtbegin.o, section .bss:
+completed.6600: equ $-B.data
+crtbegin.bss: equ $-B.data
 ..@0x805d224: resb 1
+; End from crtbegin.o.
 %endif  ; TARGET, l
 
 %ifidn TARGET, d
