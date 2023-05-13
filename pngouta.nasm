@@ -17,6 +17,8 @@
 ; Uses: %ifdef TARGET; %ifdn TARGET, ...
 ; Uses: %ifdef MDEBUG (for malloc debugging)
 ;
+; !! when did stdin buffering start breaking? this broke it: 6404759 removed L.gnu.hash from pngoutl
+;
 
 %ifndef TARGET
 %define TARGET x  ; statically linked for Linux i386 using uClibc 0.9.30.1 (2009-03-02).
@@ -6307,7 +6309,7 @@ _vernaux2: equ $-B.code
 
 L.rel.dyn:  ; addr=0x80486c4 off=0x6c4
 _dynamic_rel: equ $-B.code  ; Relocations.
-..@0x80486c4: dd 0x805d0fc, 0x00001606  ;; !! __gmon_start__@weak
+..@0x80486c4: dd __gmon_start__@weak, 6 | (dynsym___gmon_start__-_dynamic_symtab)>>4<<8
 ..@0x80486cc: dd stderr, 5 | (dynsym_stderr-_dynamic_symtab)>>4<<8
 ..@0x80486d4: dd stdin,  5 | (dynsym_stdin -_dynamic_symtab)>>4<<8
 ..@0x80486dc: dd stdout, 5 | (dynsym_stdout-_dynamic_symtab)>>4<<8
