@@ -5997,15 +5997,6 @@ phdr4:					; Elf32_Phdr
 		dd 6			;   p_flags: rw-: read and write, no execute
 		dd 4			;   p_align
 phdr5:					; Elf32_Phdr
-		dd PT.NOTE		;   p_type  ; !! TODO(pts): Get rid of this, it's optional.
-		dd _elf_note+B.code	;   p_offset
-		dd _elf_note		;   p_vaddr
-		dd _elf_note		;   p_paddr
-		dd _elf_note.end-_elf_note  ;   p_filesz
-		dd _elf_note.end-_elf_note  ;   p_memsz
-		dd 4			;   p_flags: r--: read, no write, no execute
-		dd 4			;   p_align
-phdr6:					; Elf32_Phdr
 		dd PT.GNU_STACK		;   p_type. It's optional but useful for security.
 		dd 0			;   p_offset
 		dd 0			;   p_vaddr
@@ -6016,7 +6007,7 @@ phdr6:					; Elf32_Phdr
 		dd 0x10			;   p_align
 _elf_phdr.end: equ $-B.code
 L.ELF_phdr.end:
-		times 0x20 db 0  ; Padding to compensate for removed phdrs.
+		times 0x40 db 0  ; Padding to compensate for removed phdrs.
 
 L.interp:  ; addr=0x8048134 off=0x134
 _elf_interp: equ $-B.code
@@ -6025,12 +6016,8 @@ _elf_interp.end: equ $-B.code
 ..@0x8048147: times 1 db 0  ; Alignment padding.
 ;..@0x8048148:
 
-L.note.ABI_tag:  ; addr=0x8048148 off=0x148
-_elf_note: equ $-B.code
-..@0x8048148: db 0x04, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00
-..@0x8048150: db 0x01, 0x00, 0x00, 0x00, 'GNU', 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00
-..@0x8048160: db 0x06, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00
-_elf_note.end: equ $-B.code
+L.gap12:  ; addr=0x8048148 off=0x148
+..@0x8048148: times 0x20 db 0  ; Padding.
 
 L.gnu.hash:  ; addr=0x8048168 off=0x168
 _dynamic_gnu_hash: equ $-B.code
