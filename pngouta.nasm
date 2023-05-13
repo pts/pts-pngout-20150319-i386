@@ -6317,8 +6317,8 @@ _init: equ $-B.code
 ..@0x8048815: db 0x83, 0xec, 0x08  ;; sub esp,byte +0x8
 ..@0x8048818: call B.code+__x86.get_pc_thunk.bx
 ..@0x804881d: add ebx, strict dword B.code+_GLOBAL_OFFSET_TABLE_-$  ; EBX := _GLOBAL_OFFSET_TABLE_ (in a position-independent way).
-..@0x8048823: db 0x8b, 0x83
-                dd __gmon_start__@weak-_GLOBAL_OFFSET_TABLE_  ;; mov eax, [ebx+__gmon_start__@weak-_GLOBAL_OFFSET_TABLE_]  ; EAX := [__gmon_start__@weak]
+..@0x8048823: xor eax, eax  ; EAX := [__gmon_start__@weak] (always 0)
+                times 4 nop  ; Padding within the function.
 ..@0x8048829: db 0x85, 0xc0  ;; test eax,eax
 ..@0x804882b: db 0x74, 0x05  ;; jz 0x8048832
 ..@0x804882d: call B.code+__gmon_start__
@@ -26650,13 +26650,7 @@ _elf_dynamic: equ $-B.data
               dd $DT.VERSYM,       _dynamic_versym  ; Seems to be required.
               dd $DT.NULL,         0  ; Required. Terminates the list. Value is always 0.
 _elf_dynamic.end: equ $-B.data
-              times 0x38 db 0  ; Padding.
-
-L.got:  ; addr=0x805d0fc off=0x140fc
-; From crti.o, implicit section .got:
-__gmon_start__@weak: equ $-B.data
-; End from crti.o.
-..@0x805d0fc: dd 0  ; NULL function pointer.
+              times 0x3c db 0  ; Padding.
 
 L.got.plt:  ; addr=0x805d100 off=0x14100
 _dynamic_pltgot: equ $-B.data
