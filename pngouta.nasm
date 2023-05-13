@@ -6812,9 +6812,21 @@ _dynamic_hash: equ $-B.code
 
 LS.gnu.hash:  ; addr=0x80482f0 off=0x2f0
 _dynamic_gnu_hash: equ $-B.code
-..@0x80482f0: db 0x03, 0x00, 0x00, 0x00, 0x2e, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00
-..@0x8048300: db 0x80, 0x2b, 0x02, 0x22, 0x2e, 0x00, 0x00, 0x00, 0x2f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-..@0x8048310: db 0x29, 0x1d, 0x8c, 0x1c, 0x38, 0xf2, 0x8b, 0x1c, 0xac, 0x4b, 0xe3, 0xc0, 0x67, 0x55, 0x61, 0x10
+; https://blogs.oracle.com/solaris/post/gnu-hash-elf-sections
+..@0x80482f0: dd (_hash_buckets.end-_hash_buckets)>>2  ; nbuckets.
+..@0x80482f4: dd ((_hashed_dynsyms-_dynamic_symtab)>>4)  ; symndx.
+..@0x80482f8: dd (_bloom_filter.end-_bloom_filter)>>2  ; maskwords.
+..@0x80482fc: dd 5  ; shift2: Bloom filter hash shift.
+_bloom_filter: equ $-B.code
+..@0x8048300: dd 0x22022b80
+_bloom_filter.end: equ $-B.code
+_hash_buckets: equ $-B.code
+.@0x8048304: dd 0x02e, 0x2f, 0
+_hash_buckets.end: equ $-B.code
+_hash_chain: equ $-B.code  ; Same number of dwords as number of hashed symbols.
+..@0x8048310: dd 0x1c8c1d29, 0x1c8bf238, 0xc0e34bac, 0x10615567
+_hash_chain.end: equ $-B.code
+;..@0x8048320:
 
 LS.dynsym:  ; addr=0x8048320 off=0x320
 _dynamic_symtab: equ $-B.code
@@ -6865,10 +6877,14 @@ _dynamic_symtab: equ $-B.code
 ..@0x80485d0: dd 0x000000a7, 0, 0, 0x00000012
 ..@0x80485e0: dd 0x00000072, 0, 0, 0x00000012
 ..@0x80485f0: dd 0x00000108, 0, 0, 0x00000012
-..@0x8048600: dd 0x000000da, 0x805d220, 0x00000004, 0x001a0011
-..@0x8048610: dd 0x00000110, 0x805d200, 0x00000004, 0x001a0011
-..@0x8048620: dd 0x0000003c, 0x805a744, 0x00000004, 0x00100011
-..@0x8048630: dd dynstr_stdin-_dynamic_strtab, 0x805d204, 0x00000004, 0x001a0011
+_hashed_dynsyms: equ $-B.code
+..@0x8048600: dd dynstr_stdout-_dynamic_strtab, stdout, 4, 0x001a0011
+..@0x8048610: dd dynstr_stderr-_dynamic_strtab, stderr, 4, 0x001a0011
+..@0x8048620: dd dynstr__IO_stdin_used-_dynamic_strtab, _IO_stdin_used, 4, 0x00100011
+..@0x8048630: dd dynstr_stdin-_dynamic_strtab, stdin, 4, 0x001a0011
+_hashed_dynsyms.end: equ $-B.code
+times -((_hash_chain.end-_hash_chain)<<2)+(_hashed_dynsyms.end-_hashed_dynsyms) times 0 nop  ; Assert.
+times +((_hash_chain.end-_hash_chain)<<2)-(_hashed_dynsyms.end-_hashed_dynsyms) times 0 nop  ; Assert.
 
 LS.dynstr:  ; addr=0x8048640 off=0x640
 _dynamic_strtab: equ $-B.code
@@ -6881,6 +6897,7 @@ dynstr_log: equ $-B.code
 ..@0x804866e: db 'log', 0
 dynstr_libc_so_6: equ $-B.code
 ..@0x8048672: db 'libc.so.6', 0
+dynstr__IO_stdin_used: equ $-B.code
 ..@0x804867c: db '_IO_stdin_used', 0
 ..@0x804868b: db 'fflush', 0
 ..@0x8048692: db 'strcpy', 0
@@ -6904,6 +6921,7 @@ dynstr_stdin: equ $-B.code
 ..@0x8048701: db 'sigemptyset', 0
 ..@0x804870d: db 'memset', 0
 ..@0x8048714: db 'fseek', 0
+dynstr_stdout: equ $-B.code
 ..@0x804871a: db 'stdout', 0
 ..@0x8048721: db 'memcpy', 0
 ..@0x8048728: db 'fclose', 0
@@ -6911,6 +6929,7 @@ dynstr_stdin: equ $-B.code
 ..@0x8048736: db 'strcat', 0
 ..@0x804873d: db 'strcasecmp', 0
 ..@0x8048748: db 'opendir', 0
+dynstr_stderr: equ $-B.code
 ..@0x8048750: db 'stderr', 0
 ..@0x8048757: db 'strncasecmp', 0
 ..@0x8048763: db '__fxstat', 0
