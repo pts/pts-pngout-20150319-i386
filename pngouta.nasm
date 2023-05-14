@@ -6278,11 +6278,11 @@ _vernaux2: equ $-B.code
 
 L.rel.dyn:  ; addr=0x80486c4 off=0x6c4
 _dynamic_rel: equ $-B.code  ; Relocations.
-..@0x80486c4: dd __gmon_start__@weak, 6 | (dynsym___gmon_start__-_dynamic_symtab)>>4<<8
 ..@0x80486cc: dd stderr, 5 | (dynsym_stderr-_dynamic_symtab)>>4<<8
 ..@0x80486d4: dd stdin,  5 | (dynsym_stdin -_dynamic_symtab)>>4<<8
 ..@0x80486dc: dd stdout, 5 | (dynsym_stdout-_dynamic_symtab)>>4<<8
 _dynamic_rel.end: equ $-B.code
+              times 1 dd 0, 0  ; Padding.
 
 L.rel.plt:  ; addr=0x80486e4 off=0x6e4
 _dynamic_jmprel: equ $-B.code  ; Relocations in plt.
