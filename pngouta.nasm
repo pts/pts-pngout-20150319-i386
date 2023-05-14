@@ -6010,22 +6010,26 @@ L.gap13:  ; addr=0x8048148 off=0x148
 ..@0x8048148: times 0x8048168-0x80480e8 db 0  ; Padding.
 
 L.gnu.hash:  ; addr=0x8048168 off=0x168
+; Without a $DT.GNU_HASH containing stdout, glibc (2.19 and 2.27) wouldn't
+; autoflush stdout before reading from stdin (e.g. with fgetc(3)). So we add
+; a minimal .gnu.hash, consisting of just `stdout' (and a single bucket).
 _dynamic_gnu_hash: equ $-B.code
 ; https://blogs.oracle.com/solaris/post/gnu-hash-elf-sections
 ..@0x8048168: dd (_hash_buckets.end-_hash_buckets)>>2  ; nbuckets.
 ..@0x804816c: dd ((_hashed_dynsyms-_dynamic_symtab)>>4)  ; symndx.
 ..@0x8048170: dd (_bloom_filter.end-_bloom_filter)>>2  ; maskwords.
-..@0x8048174: dd 5  ; shift2: Bloom filter hash shift.
+%define GNU_HASH_SHIFT2 5
+..@0x8048174: dd GNU_HASH_SHIFT2  ; shift2: Bloom filter hash shift.
 _bloom_filter: equ $-B.code
-..@0x8048178: dd 0x22022b80
+..@0x8048178: dd GNU_HASH_BLOOM_MASK(GNU.HASH.stdout, GNU_HASH_SHIFT2)
 _bloom_filter.end: equ $-B.code
 _hash_buckets: equ $-B.code
-..@0x804817c: dd 0x2a, 0x2b, 0
+..@0x804817c: dd (dynsym_stdout-_dynamic_symtab)>>4
 _hash_buckets.end: equ $-B.code
 _hash_chain: equ $-B.code  ; Same number of dwords as number of hashed symbols.
-..@0x8048188: dd 0x1c8c1d29, 0x1c8bf238, 0xc0e34bac, 0x10615567
+..@0x8048188: dd (GNU.HASH.stdout&~1)|1
 _hash_chain.end: equ $-B.code
-;..@0x8048198:
+              times 0x14 db 0  ; Padding.
 
 L.dynsym:  ; addr=0x8048198 off=0x198
 _dynamic_symtab: equ $-B.code
@@ -6113,15 +6117,15 @@ dynsym__ITM_registerTMCloneTable: equ $-B.code
 ..@0x8048418: dd 0x04a, 0, 0, 0x20
 dynsym_strtol: equ $-B.code  ; 0x29
 ..@0x8048428: dd dynstr_strtol-_dynamic_strtab, 0, 0, 0x12
-_hashed_dynsyms: equ $-B.code
-dynsym_stdout: equ $-B.code  ; 0x2a
-..@0x8048438: dd dynstr_stdout-_dynamic_strtab, stdout, 4, 0x00180011
-dynsym_stderr: equ $-B.code  ; 0x2b
-..@0x8048448: dd dynstr_stderr-_dynamic_strtab, stderr, 4, 0x00180011
-dynsym__IO_stdin_used: equ $-B.code  ; 0x2c
+dynsym__IO_stdin_used: equ $-B.code
 ..@0x8048458: dd dynstr__IO_stdin_used-_dynamic_strtab, _IO_stdin_used, 4, 0x000f0011
-dynsym_stdin: equ $-B.code  ; 0x2d
+dynsym_stderr: equ $-B.code
+..@0x8048448: dd dynstr_stderr-_dynamic_strtab, stderr, 4, 0x00180011
+dynsym_stdin: equ $-B.code
 ..@0x8048468: dd dynstr_stdin-_dynamic_strtab, stdin, 4, 0x00180011
+_hashed_dynsyms: equ $-B.code
+dynsym_stdout: equ $-B.code
+..@0x8048438: dd dynstr_stdout-_dynamic_strtab, stdout, 4, 0x00180011
 _dynamic_symtab.end: equ $-B.code
 times -((_hash_chain.end-_hash_chain)<<2)+(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
 times +((_hash_chain.end-_hash_chain)<<2)-(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
@@ -6236,8 +6240,8 @@ _dynamic_versym: equ $-B.code
 ..@0x8048630: dw 3, 3, 3, 3, 3, 3, 3, 3
 ..@0x8048640: dw 3, 3, 0, 3, 3, 3, 3, 3
 ..@0x8048650: dw 3, 3, 4, 3, 3, 3, 3, 3
-..@0x8048660: dw 3, 3, 3, 0, 0, 3, 3, 3
-..@0x8048670: dw 1, 3
+..@0x8048660: dw 3, 3, 3, 0, 0, 3, 1, 3
+..@0x8048670: dw 3, 3
 _dynamic_versym.end: equ $-B.code
 times -((_dynamic_versym.end-_dynamic_versym)<<3)+(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
 times +((_dynamic_versym.end-_dynamic_versym)<<3)-(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
