@@ -6038,215 +6038,189 @@ _dynamic_symtab: equ $-B.code
 ; Each Elf32_Sym entry is 16 bytes: dd st_name; dd st_value; dd st_size; db st_info; db st_other; dw st_shndx.
 ..@0x8048198: times 4 dd 0  ; First element is zero-filled.
 dynsym_log: equ $-B.code  ; 1
-..@0x80481a8: dd dynstr_log-_dynamic_strtab, 0, 0, 0x12  ; TODO(pts): Make the remaining st_name values symbolic.
+              dd dynstr_log-_dynamic_strtab, 0, 0, 0x12  ; TODO(pts): Make the remaining st_name values symbolic.
 dynsym_read: equ $-B.code  ; 2
-..@0x80481b8: dd dynstr_read-_dynamic_strtab, 0, 0, 0x12
-dynsym__ITM_deregisterTMCloneTable: equ $-B.code  ; 3
-..@0x80481c8: dd dynstr__ITM_deregisterTMCloneTable-_dynamic_strtab, 0, 0, 0x20
-dynsym_printf: equ $-B.code  ;  4 ; !! Remove this and others unused.
-..@0x80481d8: dd dynstr_printf-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_read-_dynamic_strtab, 0, 0, 0x12
 dynsym_fflush: equ $-B.code
-..@0x80481e8: dd dynstr_fflush-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_fflush-_dynamic_strtab, 0, 0, 0x12
 dynsym_memmove: equ $-B.code
-..@0x80481f8: dd dynstr_memmove-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_memmove-_dynamic_strtab, 0, 0, 0x12
 dynsym_free: equ $-B.code
-..@0x8048208: dd dynstr_free-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_free-_dynamic_strtab, 0, 0, 0x12
 dynsym_memcpy: equ $-B.code
-..@0x8048218: dd dynstr_memcpy-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_memcpy-_dynamic_strtab, 0, 0, 0x12
 dynsym_fgets: equ $-B.code
-..@0x8048228: dd dynstr_fgets-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_fgets-_dynamic_strtab, 0, 0, 0x12
 dynsym_fclose: equ $-B.code
-..@0x8048238: dd dynstr_fclose-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_fclose-_dynamic_strtab, 0, 0, 0x12
 dynsym_time: equ $-B.code
-..@0x8048248: dd dynstr_time-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_time-_dynamic_strtab, 0, 0, 0x12
 dynsym_gettimeofday: equ $-B.code
-..@0x8048258: dd dynstr_gettimeofday-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_gettimeofday-_dynamic_strtab, 0, 0, 0x12
 dynsym_stpcpy: equ $-B.code
-..@0x8048268: dd dynstr_stpcpy-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_stpcpy-_dynamic_strtab, 0, 0, 0x12
 dynsym_fseek: equ $-B.code
-..@0x8048278: dd dynstr_fseek-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_fseek-_dynamic_strtab, 0, 0, 0x12
 dynsym_fwrite: equ $-B.code
-..@0x8048288: dd dynstr_fwrite-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_fwrite-_dynamic_strtab, 0, 0, 0x12
 dynsym_strcat: equ $-B.code
-..@0x8048298: dd dynstr_strcat-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_strcat-_dynamic_strtab, 0, 0, 0x12
 dynsym_fread: equ $-B.code
-..@0x80482a8: dd dynstr_fread-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_fread-_dynamic_strtab, 0, 0, 0x12
 dynsym_strcpy: equ $-B.code
-..@0x80482b8: dd dynstr_strcpy-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_strcpy-_dynamic_strtab, 0, 0, 0x12
 dynsym_realloc: equ $-B.code
-..@0x80482c8: dd dynstr_realloc-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_realloc-_dynamic_strtab, 0, 0, 0x12
 dynsym_malloc: equ $-B.code
-..@0x80482d8: dd dynstr_malloc-_dynamic_strtab, 0, 0, 0x12
-dynsym_puts: equ $-B.code  ; 0x16
-..@0x80482e8: dd dynstr_puts-_dynamic_strtab, 0, 0, 0x12
-dynsym___gmon_start__: equ $-B.code  ; 0x16
-..@0x80482f8: dd dynstr___gmon_start__-_dynamic_strtab, 0, 0, 0x20
+              dd dynstr_malloc-_dynamic_strtab, 0, 0, 0x12
 dynsym_exit: equ $-B.code
-..@0x8048308: dd dynstr_exit-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_exit-_dynamic_strtab, 0, 0, 0x12
 dynsym_srand: equ $-B.code
-..@0x8048318: dd dynstr_srand-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_srand-_dynamic_strtab, 0, 0, 0x12
 dynsym_strchr: equ $-B.code
-..@0x8048328: dd dynstr_strchr-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_strchr-_dynamic_strtab, 0, 0, 0x12
 dynsym_strlen: equ $-B.code
-..@0x8048338: dd dynstr_strlen-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_strlen-_dynamic_strtab, 0, 0, 0x12
 dynsym___libc_start_main: equ $-B.code
-..@0x8048348: dd dynstr___libc_start_main-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr___libc_start_main-_dynamic_strtab, 0, 0, 0x12
 dynsym_strcasecmp: equ $-B.code
-..@0x8048358: dd dynstr_strcasecmp-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_strcasecmp-_dynamic_strtab, 0, 0, 0x12
 dynsym_ftell: equ $-B.code
-..@0x8048368: dd dynstr_ftell-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_ftell-_dynamic_strtab, 0, 0, 0x12
 dynsym_fopen: equ $-B.code
-..@0x8048378: dd dynstr_fopen-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_fopen-_dynamic_strtab, 0, 0, 0x12
 dynsym_memset: equ $-B.code
-..@0x8048388: dd dynstr_memset-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_memset-_dynamic_strtab, 0, 0, 0x12
 dynsym_fileno: equ $-B.code
-..@0x8048398: dd dynstr_fileno-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_fileno-_dynamic_strtab, 0, 0, 0x12
 dynsym_strtod: equ $-B.code
-..@0x80483a8: dd dynstr_strtod-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_strtod-_dynamic_strtab, 0, 0, 0x12
 dynsym_fgetc: equ $-B.code
-..@0x80483b8: dd dynstr_fgetc-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_fgetc-_dynamic_strtab, 0, 0, 0x12
 dynsym_strncasecmp: equ $-B.code
-..@0x80483c8: dd dynstr_strncasecmp-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_strncasecmp-_dynamic_strtab, 0, 0, 0x12
 dynsym_rand: equ $-B.code
-..@0x80483d8: dd dynstr_rand-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_rand-_dynamic_strtab, 0, 0, 0x12
 dynsym_strtok: equ $-B.code
-..@0x80483e8: dd dynstr_strtok-_dynamic_strtab, 0, 0, 0x12
-dynsym_vfprintf: equ $-B.code  ; 0x26
-..@0x80483f8: dd dynstr_vfprintf-_dynamic_strtab, 0, 0, 0x12
-dynsym__Jv_RegisterClasses: equ $-B.code
-..@0x8048408: dd 0x036, 0, 0, 0x20
-dynsym__ITM_registerTMCloneTable: equ $-B.code
-..@0x8048418: dd 0x04a, 0, 0, 0x20
-dynsym_strtol: equ $-B.code  ; 0x29
-..@0x8048428: dd dynstr_strtol-_dynamic_strtab, 0, 0, 0x12
+              dd dynstr_strtok-_dynamic_strtab, 0, 0, 0x12
+dynsym_vfprintf: equ $-B.code
+              dd dynstr_vfprintf-_dynamic_strtab, 0, 0, 0x12
+dynsym_strtol: equ $-B.code
+              dd dynstr_strtol-_dynamic_strtab, 0, 0, 0x12
 dynsym_stderr: equ $-B.code
-..@0x8048448: dd dynstr_stderr-_dynamic_strtab, stderr, 4, 0x00180011
+              dd dynstr_stderr-_dynamic_strtab, stderr, 4, 0x00180011
 dynsym_stdin: equ $-B.code
-..@0x8048468: dd dynstr_stdin-_dynamic_strtab, stdin, 4, 0x00180011
+              dd dynstr_stdin-_dynamic_strtab, stdin, 4, 0x00180011
 _hashed_dynsyms: equ $-B.code
 dynsym_stdout: equ $-B.code
-..@0x8048438: dd dynstr_stdout-_dynamic_strtab, stdout, 4, 0x00180011
+              dd dynstr_stdout-_dynamic_strtab, stdout, 4, 0x00180011
 _dynamic_symtab.end: equ $-B.code
 times -((_hash_chain.end-_hash_chain)<<2)+(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
 times +((_hash_chain.end-_hash_chain)<<2)-(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
-              times 1 dd 0, 0, 0, 0  ; Padding.
+              times $$+0x8048478-$+B.code db 0  ; Padding.
 
 L.dynstr:  ; addr=0x8048478 off=0x478
 _dynamic_strtab: equ $-B.code
-..@0x8048478: db 0
+..@0x8048478: db 0  ; It always starts with an empty string.
 dynstr_libm_so_6: equ $-B.code
-..@0x8048479: db 'libm.so.6', 0
-dynstr__ITM_deregisterTMCloneTable: equ $-B.code
-..@0x8048483: db '_ITM_deregisterTMCloneTable', 0  ; !! Remove this unused (also from versym).
-dynstr___gmon_start__: equ $-B.code
-..@0x804849f: db '__gmon_start__', 0  ; !! Remove this unused.
-dynstr__Jv_RegisterClasses: equ $-B.code
-..@0x80484ae: db '_Jv_RegisterClasses', 0  ; !! Remove this unused.
-dynstr__ITM_registerTMCloneTable: equ $-B.code
-..@0x80484c2: db '_ITM_registerTMCloneTable', 0  ; !! Remove this unused.
+              db 'libm.so.6', 0
 dynstr_log: equ $-B.code
-..@0x80484dc: db 'log', 0
+              db 'log', 0
 dynstr_libc_so_6: equ $-B.code
-..@0x80484e0: db 'libc.so.6', 0
-dynstr__IO_stdin_used: equ $-B.code
-..@0x80484ea: db '_IO_stdin_used', 0  ; !! Remove this unused.
+              db 'libc.so.6', 0
 dynstr_fflush: equ $-B.code
-..@0x80484f9: db 'fflush', 0
+              db 'fflush', 0
 dynstr_strcpy: equ $-B.code
-..@0x8048500: db 'strcpy', 0
+              db 'strcpy', 0
 dynstr_exit: equ $-B.code
-..@0x8048507: db 'exit', 0
+              db 'exit', 0
 dynstr_rand: equ $-B.code+1  ; 'rand' and 'srand' overlap.
 dynstr_srand: equ $-B.code
-..@0x804850c: db 'srand', 0
+              db 'srand', 0
 dynstr_fopen: equ $-B.code
-..@0x8048512: db 'fopen', 0
+              db 'fopen', 0
 dynstr_ftell: equ $-B.code
-..@0x8048518: db 'ftell', 0
-dynstr_puts: equ $-B.code
-..@0x804851e: db 'puts', 0  ; !! Remove this unused.
+              db 'ftell', 0
 dynstr_time: equ $-B.code
-..@0x8048523: db 'time', 0
+              db 'time', 0
 dynstr_realloc: equ $-B.code
-..@0x8048528: db 'realloc', 0
+              db 'realloc', 0
 dynstr_stdin: equ $-B.code
-..@0x8048530: db 'stdin', 0
+              db 'stdin', 0
 dynstr_strtod: equ $-B.code
-..@0x8048536: db 'strtod', 0
+              db 'strtod', 0
 dynstr_strtok: equ $-B.code
-..@0x804853d: db 'strtok', 0
+              db 'strtok', 0
 dynstr_strtol: equ $-B.code
-..@0x8048544: db 'strtol', 0
+              db 'strtol', 0
 dynstr_fgetc: equ $-B.code
-..@0x804854b: db 'fgetc', 0
+              db 'fgetc', 0
 dynstr_fgets: equ $-B.code
-..@0x8048551: db 'fgets', 0
+              db 'fgets', 0
 dynstr_strlen: equ $-B.code
-..@0x8048557: db 'strlen', 0
+              db 'strlen', 0
 dynstr_memset: equ $-B.code
-..@0x804855e: db 'memset', 0
+              db 'memset', 0
 dynstr_fseek: equ $-B.code
-..@0x8048565: db 'fseek', 0
+              db 'fseek', 0
 dynstr_stdout: equ $-B.code
-..@0x804856b: db 'stdout', 0
+              db 'stdout', 0
 dynstr_memcpy: equ $-B.code
-..@0x8048572: db 'memcpy', 0
+              db 'memcpy', 0
 dynstr_fclose: equ $-B.code
-..@0x8048579: db 'fclose', 0
+              db 'fclose', 0
 dynstr_malloc: equ $-B.code
-..@0x8048580: db 'malloc', 0
+              db 'malloc', 0
 dynstr_strcat: equ $-B.code
-..@0x8048587: db 'strcat', 0
+              db 'strcat', 0
 dynstr_strcasecmp: equ $-B.code
-..@0x804858e: db 'strcasecmp', 0
+              db 'strcasecmp', 0
 dynstr_stderr: equ $-B.code
-..@0x8048599: db 'stderr', 0
+              db 'stderr', 0
 dynstr_strncasecmp: equ $-B.code
-..@0x80485a0: db 'strncasecmp', 0
+              db 'strncasecmp', 0
 dynstr_fileno: equ $-B.code
-..@0x80485ac: db 'fileno', 0
+              db 'fileno', 0
 dynstr_fwrite: equ $-B.code
-..@0x80485b3: db 'fwrite', 0
+              db 'fwrite', 0
 dynstr_read: equ $-B.code+1  ; 'read' and 'fread' overlap.
 dynstr_fread: equ $-B.code
-..@0x80485ba: db 'fread', 0
+              db 'fread', 0
 dynstr_gettimeofday: equ $-B.code
-..@0x80485c0: db 'gettimeofday', 0
+              db 'gettimeofday', 0
 dynstr_strchr: equ $-B.code
-..@0x80485cd: db 'strchr', 0
+              db 'strchr', 0
 dynstr_memmove: equ $-B.code
-..@0x80485d4: db 'memmove', 0
+              db 'memmove', 0
 dynstr___libc_start_main: equ $-B.code
-..@0x80485dc: db '__libc_start_main', 0
+              db '__libc_start_main', 0
 dynstr_stpcpy: equ $-B.code
-..@0x80485ee: db 'stpcpy', 0
-dynstr_printf: equ $-B.code+2  ; 'printf' and 'vfprintf' overlap.
+              db 'stpcpy', 0
 dynstr_vfprintf: equ $-B.code
-..@0x80485f5: db 'vfprintf', 0
+              db 'vfprintf', 0
 dynstr_free: equ $-B.code
-..@0x80485fe: db 'free', 0
+              db 'free', 0
 dynstr_GLIBC_2.1: equ $-B.code
-..@0x8048603: db 'GLIBC_2.1', 0
+              db 'GLIBC_2.1', 0
 dynstr_GLIBC_2.0: equ $-B.code
-..@0x804860d: db 'GLIBC_2.0', 0
+              db 'GLIBC_2.0', 0
 _dynamic_strtab.end: equ $-B.code
-..@0x8048617: times 1 db 0  ; Alignment padding.
+              times $$+0x8048618-$+B.code db 0  ; Alignment and padding.
 
 L.gnu.version:  ; addr=0x8048618 off=0x618
 _dynamic_versym: equ $-B.code
 ; it has the same number of (16-byte) elements as _dynamic_symtab, in the same order.
 ; Value 0 means local, value 1 means global.
-..@0x8048618: dw 0, 2, 3, 0
-..@0x8048620: dw 3, 3, 3, 3, 3, 3, 4, 3
-..@0x8048630: dw 3, 3, 3, 3, 3, 3, 3, 3
-..@0x8048640: dw 3, 3, 0, 3, 3, 3, 3, 3
-..@0x8048650: dw 3, 3, 4, 3, 3, 3, 3, 3
-..@0x8048660: dw 3, 3, 3, 0, 0, 3, 3, 3
-..@0x8048670: dw 3
+..@0x8048618: dw 0, 2, 3
+              dw 3, 3, 3, 3, 3, 4, 3
+              dw 3, 3, 3, 3, 3, 3, 3, 3
+              dw 3, 3, 3, 3, 3, 3
+              dw 3, 3, 4, 3, 3, 3, 3, 3
+              dw 3, 3, 3, 3, 3, 3, 3
 _dynamic_versym.end: equ $-B.code
 times -((_dynamic_versym.end-_dynamic_versym)<<3)+(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
 times +((_dynamic_versym.end-_dynamic_versym)<<3)-(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
-              times 1 dw 0  ; Padding.
+              times 7 dw 0  ; Padding. It can be removed.
 
 L.gnu.version_r:  ; addr=0x8048674 off=0x674
 _dynamic_verneed: equ $-B.code
@@ -6292,50 +6266,56 @@ _dynamic_rel.end: equ $-B.code
 
 L.rel.plt:  ; addr=0x80486e4 off=0x6e4
 _dynamic_jmprel: equ $-B.code  ; Relocations in plt.
+dynsym___gmon_start__ equ dynsym_exit  ; !! Remove this.
+dynsym_printf equ dynsym_exit  ; !! Remove this.
+dynsym_puts equ dynsym_exit  ; !! Remove this.
+; The order of these entries must match L.plt, otherwise it would segfault at startup.
 ..@0x80486e4: dd log@GLIBC_2.0@got,               7 | (dynsym_log-_dynamic_symtab)>>4<<8
-..@0x80486ec: dd read@GLIBC_2.0@got,              7 | (dynsym_read-_dynamic_symtab)>>4<<8
-..@0x80486f4: dd printf@GLIBC_2.0@got,            7 | (dynsym_printf-_dynamic_symtab)>>4<<8
-..@0x80486fc: dd fflush@GLIBC_2.0@got,            7 | (dynsym_fflush-_dynamic_symtab)>>4<<8
-..@0x8048704: dd memmove@GLIBC_2.0@got,           7 | (dynsym_memmove-_dynamic_symtab)>>4<<8
-..@0x804870c: dd free@GLIBC_2.0@got,              7 | (dynsym_free-_dynamic_symtab)>>4<<8
-..@0x8048714: dd memcpy@GLIBC_2.0@got,            7 | (dynsym_memcpy-_dynamic_symtab)>>4<<8
-..@0x804871c: dd fgets@GLIBC_2.0@got,             7 | (dynsym_fgets-_dynamic_symtab)>>4<<8
-..@0x8048724: dd fclose@GLIBC_2.1@got,            7 | (dynsym_fclose-_dynamic_symtab)>>4<<8
-..@0x804872c: dd time@GLIBC_2.0@got,              7 | (dynsym_time-_dynamic_symtab)>>4<<8
-..@0x8048734: dd gettimeofday@GLIBC_2.0@got,      7 | (dynsym_gettimeofday-_dynamic_symtab)>>4<<8
-..@0x804873c: dd stpcpy@GLIBC_2.0@got,            7 | (dynsym_stpcpy-_dynamic_symtab)>>4<<8
-..@0x8048744: dd fseek@GLIBC_2.0@got,             7 | (dynsym_fseek-_dynamic_symtab)>>4<<8
-..@0x804874c: dd fwrite@GLIBC_2.0@got,            7 | (dynsym_fwrite-_dynamic_symtab)>>4<<8
-..@0x8048754: dd strcat@GLIBC_2.0@got,            7 | (dynsym_strcat-_dynamic_symtab)>>4<<8
-..@0x804875c: dd fread@GLIBC_2.0@got,             7 | (dynsym_fread-_dynamic_symtab)>>4<<8
-..@0x8048764: dd strcpy@GLIBC_2.0@got,            7 | (dynsym_strcpy-_dynamic_symtab)>>4<<8
-..@0x804876c: dd realloc@GLIBC_2.0@got,           7 | (dynsym_realloc-_dynamic_symtab)>>4<<8
-..@0x8048774: dd malloc@GLIBC_2.0@got,            7 | (dynsym_malloc-_dynamic_symtab)>>4<<8
-..@0x804877c: dd puts@GLIBC_2.0@got,              7 | (dynsym_puts-_dynamic_symtab)>>4<<8
-..@0x8048784: dd __gmon_start__@got,              7 | (dynsym___gmon_start__-_dynamic_symtab)>>4<<8
-..@0x804878c: dd exit@GLIBC_2.0@got,              7 | (dynsym_exit-_dynamic_symtab)>>4<<8
-..@0x8048794: dd srand@GLIBC_2.0@got,             7 | (dynsym_srand-_dynamic_symtab)>>4<<8
-..@0x804879c: dd strchr@GLIBC_2.0@got,            7 | (dynsym_strchr-_dynamic_symtab)>>4<<8
-..@0x80487a4: dd strlen@GLIBC_2.0@got,            7 | (dynsym_strlen-_dynamic_symtab)>>4<<8
-..@0x80487ac: dd __libc_start_main@GLIBC_2.0@got, 7 | (dynsym___libc_start_main-_dynamic_symtab)>>4<<8
-..@0x80487b4: dd strcasecmp@GLIBC_2.0@got,        7 | (dynsym_strcasecmp-_dynamic_symtab)>>4<<8
-..@0x80487bc: dd ftell@GLIBC_2.0@got,             7 | (dynsym_ftell-_dynamic_symtab)>>4<<8
-..@0x80487c4: dd fopen@GLIBC_2.1@got,             7 | (dynsym_fopen-_dynamic_symtab)>>4<<8
-..@0x80487cc: dd memset@GLIBC_2.0@got,            7 | (dynsym_memset-_dynamic_symtab)>>4<<8
-..@0x80487d4: dd fileno@GLIBC_2.0@got,            7 | (dynsym_fileno-_dynamic_symtab)>>4<<8
-..@0x80487dc: dd strtod@GLIBC_2.0@got,            7 | (dynsym_strtod-_dynamic_symtab)>>4<<8
-..@0x80487e4: dd fgetc@GLIBC_2.0@got,             7 | (dynsym_fgetc-_dynamic_symtab)>>4<<8
-..@0x80487ec: dd strncasecmp@GLIBC_2.0@got,       7 | (dynsym_strncasecmp-_dynamic_symtab)>>4<<8
-..@0x80487f4: dd rand@GLIBC_2.0@got,              7 | (dynsym_rand-_dynamic_symtab)>>4<<8
-..@0x80487fc: dd strtok@GLIBC_2.0@got,            7 | (dynsym_strtok-_dynamic_symtab)>>4<<8
-..@0x8048804: dd vfprintf@GLIBC_2.0@got,          7 | (dynsym_vfprintf-_dynamic_symtab)>>4<<8
-..@0x804880c: dd strtol@GLIBC_2.0@got,            7 | (dynsym_strtol-_dynamic_symtab)>>4<<8
+              dd read@GLIBC_2.0@got,              7 | (dynsym_read-_dynamic_symtab)>>4<<8
+              dd printf@GLIBC_2.0@got,            7 | (dynsym_printf-_dynamic_symtab)>>4<<8
+              dd fflush@GLIBC_2.0@got,            7 | (dynsym_fflush-_dynamic_symtab)>>4<<8
+              dd memmove@GLIBC_2.0@got,           7 | (dynsym_memmove-_dynamic_symtab)>>4<<8
+              dd free@GLIBC_2.0@got,              7 | (dynsym_free-_dynamic_symtab)>>4<<8
+              dd memcpy@GLIBC_2.0@got,            7 | (dynsym_memcpy-_dynamic_symtab)>>4<<8
+              dd fgets@GLIBC_2.0@got,             7 | (dynsym_fgets-_dynamic_symtab)>>4<<8
+              dd fclose@GLIBC_2.1@got,            7 | (dynsym_fclose-_dynamic_symtab)>>4<<8
+              dd time@GLIBC_2.0@got,              7 | (dynsym_time-_dynamic_symtab)>>4<<8
+              dd gettimeofday@GLIBC_2.0@got,      7 | (dynsym_gettimeofday-_dynamic_symtab)>>4<<8
+              dd stpcpy@GLIBC_2.0@got,            7 | (dynsym_stpcpy-_dynamic_symtab)>>4<<8
+              dd fseek@GLIBC_2.0@got,             7 | (dynsym_fseek-_dynamic_symtab)>>4<<8
+              dd fwrite@GLIBC_2.0@got,            7 | (dynsym_fwrite-_dynamic_symtab)>>4<<8
+              dd strcat@GLIBC_2.0@got,            7 | (dynsym_strcat-_dynamic_symtab)>>4<<8
+              dd fread@GLIBC_2.0@got,             7 | (dynsym_fread-_dynamic_symtab)>>4<<8
+              dd strcpy@GLIBC_2.0@got,            7 | (dynsym_strcpy-_dynamic_symtab)>>4<<8
+              dd realloc@GLIBC_2.0@got,           7 | (dynsym_realloc-_dynamic_symtab)>>4<<8
+              dd malloc@GLIBC_2.0@got,            7 | (dynsym_malloc-_dynamic_symtab)>>4<<8
+              dd puts@GLIBC_2.0@got,              7 | (dynsym_puts-_dynamic_symtab)>>4<<8
+              dd __gmon_start__@got,              7 | (dynsym___gmon_start__-_dynamic_symtab)>>4<<8
+              dd exit@GLIBC_2.0@got,              7 | (dynsym_exit-_dynamic_symtab)>>4<<8
+              dd srand@GLIBC_2.0@got,             7 | (dynsym_srand-_dynamic_symtab)>>4<<8
+              dd strchr@GLIBC_2.0@got,            7 | (dynsym_strchr-_dynamic_symtab)>>4<<8
+              dd strlen@GLIBC_2.0@got,            7 | (dynsym_strlen-_dynamic_symtab)>>4<<8
+              dd __libc_start_main@GLIBC_2.0@got, 7 | (dynsym___libc_start_main-_dynamic_symtab)>>4<<8
+              dd strcasecmp@GLIBC_2.0@got,        7 | (dynsym_strcasecmp-_dynamic_symtab)>>4<<8
+              dd ftell@GLIBC_2.0@got,             7 | (dynsym_ftell-_dynamic_symtab)>>4<<8
+              dd fopen@GLIBC_2.1@got,             7 | (dynsym_fopen-_dynamic_symtab)>>4<<8
+              dd memset@GLIBC_2.0@got,            7 | (dynsym_memset-_dynamic_symtab)>>4<<8
+              dd fileno@GLIBC_2.0@got,            7 | (dynsym_fileno-_dynamic_symtab)>>4<<8
+              dd strtod@GLIBC_2.0@got,            7 | (dynsym_strtod-_dynamic_symtab)>>4<<8
+              dd fgetc@GLIBC_2.0@got,             7 | (dynsym_fgetc-_dynamic_symtab)>>4<<8
+              dd strncasecmp@GLIBC_2.0@got,       7 | (dynsym_strncasecmp-_dynamic_symtab)>>4<<8
+              dd rand@GLIBC_2.0@got,              7 | (dynsym_rand-_dynamic_symtab)>>4<<8
+              dd strtok@GLIBC_2.0@got,            7 | (dynsym_strtok-_dynamic_symtab)>>4<<8
+              dd vfprintf@GLIBC_2.0@got,          7 | (dynsym_vfprintf-_dynamic_symtab)>>4<<8
+              dd strtol@GLIBC_2.0@got,            7 | (dynsym_strtol-_dynamic_symtab)>>4<<8
 _dynamic_jmprel.end: equ $-B.code
 
-L.gap14:  ; addr=0x8048814 off=0x814
-..@0x8048815: times 0x8048840-0x8048814 hlt  ; Padding.
+L.gap14:  ; addr=0x8048804 off=0x814
+..@0x804880c: times 0x8048840-0x8048814 hlt  ; Padding.
 
 L.plt:  ; addr=0x8048840 off=0x840
+times -(L.plt-B.code-$$)+0x8048840 times 0 nop  ; Assert.
+times +(L.plt-B.code-$$)-0x8048840 times 0 nop  ; Assert.
 _plt_code0: equ $-B.code
 ..@0x8048840: push dword [_GLOBAL_OFFSET_TABLE_special1]
 ..@0x8048846: jmp [_GLOBAL_OFFSET_TABLE_special2@got]
@@ -6420,7 +6400,7 @@ puts: equ $-B.code
 ..@0x8048980: jmp [puts@GLIBC_2.0@got]
 ..@0x8048986: push strict dword ($-B.code-_plt_code0-0x16)>>1
 ..@0x804898b: jmp strict near B.code+_plt_code0
-__gmon_start__: equ $-B.code
+__gmon_start__: equ $-B.code  ; !! Remove unused.
 ..@0x8048990: jmp [__gmon_start__@got]
 ..@0x8048996: push strict dword ($-B.code-_plt_code0-0x16)>>1
 ..@0x804899b: jmp strict near B.code+_plt_code0
@@ -6495,6 +6475,8 @@ strtol: equ $-B.code
 ..@0x8048ab0: times 0x8048bb0-0x8048ab0 db 0  ; !! TODO(pts): Why this 0x100 bytes of padding? Not for alignment. Remove it.
 
 L.start.text:  ; addr=0x8048bb0 off=0xbb0
+times -(L.start.text-B.code-$$)+0x8048bb0 times 0 nop  ; Assert.
+times +(L.start.text-B.code-$$)-0x8048bb0 times 0 nop  ; Assert.
 dummy_init_and_fini: equ $-B.code
 ..@0x8048bb0: ret
 _start: equ $-B.code
