@@ -6258,13 +6258,18 @@ _dynamic_strtab.end: equ $-B.code
 
 L.gnu.version:  ; addr=0x8048618 off=0x618
 _dynamic_versym: equ $-B.code
-..@0x8048618: dw 0x0000, 0x0002, 0x0003, 0x0000
-..@0x8048620: dw 0x0003, 0x0003, 0x0003, 0x0003, 0x0003, 0x0003, 0x0004, 0x0003
-..@0x8048630: dw 0x0003, 0x0003, 0x0003, 0x0003, 0x0003, 0x0003, 0x0003, 0x0003
-..@0x8048640: dw 0x0003, 0x0003, 0x0000, 0x0003, 0x0003, 0x0003, 0x0003, 0x0003
-..@0x8048650: dw 0x0003, 0x0003, 0x0004, 0x0003, 0x0003, 0x0003, 0x0003, 0x0003
-..@0x8048660: dw 0x0003, 0x0003, 0x0003, 0x0000, 0x0000, 0x0003, 0x0003, 0x0003
-..@0x8048670: dw 0x0001, 0x0003
+; it has the same number of (16-byte) elements as _dynamic_symtab, in the same order.
+; Value 0 means local, value 1 means global.
+..@0x8048618: dw 0, 2, 3, 0
+..@0x8048620: dw 3, 3, 3, 3, 3, 3, 4, 3
+..@0x8048630: dw 3, 3, 3, 3, 3, 3, 3, 3
+..@0x8048640: dw 3, 3, 0, 3, 3, 3, 3, 3
+..@0x8048650: dw 3, 3, 4, 3, 3, 3, 3, 3
+..@0x8048660: dw 3, 3, 3, 0, 0, 3, 3, 3
+..@0x8048670: dw 1, 3
+_dynamic_versym.end: equ $-B.code
+times -((_dynamic_versym.end-_dynamic_versym)<<3)+(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
+times +((_dynamic_versym.end-_dynamic_versym)<<3)-(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
 
 L.gnu.version_r:  ; addr=0x8048674 off=0x674
 _dynamic_verneed: equ $-B.code
