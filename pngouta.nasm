@@ -26397,7 +26397,7 @@ _elf_dynamic: equ $-B.data  ; PT.DYNAMIC must be at a read-write location, other
               dd $DT.GNU_HASH,     _dynamic_gnu_hash  ; Keep it because without it libc.so.6 won't autoswitch stdout to line-buffered (on a TTY). Having _IO_stdin_used doesn't matter though.
               dd $DT.STRTAB,       _dynamic_strtab  ; Required.
               dd $DT.SYMTAB,       _dynamic_symtab  ; Required. How do we get the number of symbols.
-              dd $DT.STRSZ,        _dynamic_strtab.end-_dynamic_strtab  ; It works without this.
+              ;dd $DT.STRSZ,        _dynamic_strtab.end-_dynamic_strtab  ; It works without this.
               dd $DT.SYMENT,       0x10  ; It works without this. Size of a $DT.SYMTAB entry. The number of symbols seems to be te same as the number of strings at $DT.STRTAB (except for the first, empty string).
               dd $DT.PLTGOT,       _dynamic_pltgot  ; Required. It segfaults without this.
               dd $DT.PLTRELSZ,     _dynamic_jmprel.end-_dynamic_jmprel  ; Required. It segfaults without this.
