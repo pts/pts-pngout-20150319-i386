@@ -17,8 +17,6 @@
 ; Uses: %ifdef TARGET; %ifdn TARGET, ...
 ; Uses: %ifdef MDEBUG (for malloc debugging)
 ;
-; !! when did stdin buffering start breaking? this broke it: 6404759 removed L.gnu.hash from pngoutl
-;
 
 %ifndef TARGET
 %define TARGET x  ; statically linked for Linux i386 using uClibc 0.9.30.1 (2009-03-02).
@@ -47,6 +45,10 @@
 %elifidn TARGET, ls  ; dynamically linked for Linux i386 against glibc, section headers stripped
   ; Compiled on Debian with gcc 4.4.7-2 and 4.7.2-5, with crt*.o from glibc
   ; other than 2.19.
+  ;
+  ; Significant libc/gcc difference from TARGET=l: This symbol table doesn't
+  ; contain symbols _ITM_deregisterTMCloneTable and
+  ; _ITM_registerTMCloneTable, even though they are used (as 0).
   B.code equ -0x8048000
   B.data equ B.code
   %ifndef TARGET_LS_WITH_ELF_SECTIONS
@@ -80,7 +82,7 @@ A.code equ 0
 ;extern memmove
 ;extern free
 ;extern memcpy
-;extern fgets  ; needs read buffering, only used from stdin.
+;extern fgets  ; Needs read buffering, only used from stdin.
 ;extern fclose
 ;extern time  ; Linux syscall.
 ;extern gettimeofday  ; Linux syscall.
@@ -26452,8 +26454,8 @@ L.gap12:  ; addr=0x805d000 off=0x14000 base=B.data
 ..@0x805d000: times 0x805d00c-0x805d000 db 0  ; Padding.
 
 L.dynamic:  ; addr=0x805d00c off=0x1400c
-_elf_dynamic: equ $-B.data
-; !! TODO(pts): Which of these is actually required in an executable?
+_elf_dynamic: equ $-B.data  ; PT.DYNAMIC must be at a read-write location, otherwise it will segfault.
+; !! TODO(pts): Which of these is actually required in an executable? Maybe only SYMENT and RELENT
 ;
 ; https://refspecs.linuxbase.org/elf/gabi4+/ch5.dynamic.html explains that
 ; some of these are not required in an executable, but it indeed works on
@@ -26480,7 +26482,7 @@ _elf_dynamic.end: equ $-B.data
               times 0x64 db 0  ; Padding.
 
 L.got.plt:  ; addr=0x805d100 off=0x14100
-_dynamic_pltgot: equ $-B.data
+_dynamic_pltgot: equ $-B.data  ; $DT.PLTGOT must be at a read-write location, otherwise it will segfault.
 _GLOBAL_OFFSET_TABLE_: equ $-B.data
 ; Values below will be overwritten at load time by the dynamic linker /lib/ld-linux.so.2.
 _GLOBAL_OFFSET_TABLE_special0: equ $-B.data
@@ -26932,7 +26934,7 @@ __JCR_LIST__: equ $-B.data
 ; End from crtend.o.
 
 LS.dynamic:  ; addr=0x805d00c off=0x1500c
-_elf_dynamic: equ $-B.data
+_elf_dynamic: equ $-B.data  ; PT.DYNAMIC must be at a read-write location, otherwise it will segfault.
 ; https://refspecs.linuxbase.org/elf/gabi4+/ch5.dynamic.html explains that
 ; some of these are not required in an executable, but it indeed works on
 ; Linux glibc with $DT.GNU_HASH (and $DT.HASH) even if it's missing.
@@ -26972,7 +26974,7 @@ __gmon_start__@weak: equ $-B.data
 ..@0x805d104: dd 0  ; NULL function pointer.
 
 LS.got.plt:  ; addr=0x805d108 off=0x15108
-_dynamic_pltgot: equ $-B.data
+_dynamic_pltgot: equ $-B.data  ; $DT.PLTGOT must be at a read-write location, otherwise it will segfault.
 times -(LS.got.plt-B.code-$$)+0x805d108 times 0 nop  ; Assert.
 times +(LS.got.plt-B.code-$$)-0x805d108 times 0 nop  ; Assert.
 _GLOBAL_OFFSET_TABLE_: equ $-B.data
@@ -27125,7 +27127,6 @@ completed.6600: equ $-B.data  ; A bool flag (0 or 1).
 %ifidn TARGET, d
 D.MachO_trail:  ; addr=0xa05d1f0 off=0x151f0
 absolute_for_bss equ $
-; !! Add `times'.
 ..@0xa05d1f0: times 0x1000-0x1f0 db 0  ; Padding.
 ..@0xa05e000: db 0xf4, 0x18, 0x40, 0x24, 0x0e, 0x2a
 ..@0xa05e006: db 0xb0, 0x19, 0xb0, 0x37  ; The 0xb0 byte changes if the darwin_main entry point changes. It's not reliable, there are cascading effects for big changes, also changes the file size.
@@ -27153,7 +27154,7 @@ absolute_for_bss equ $
 ..@0xa05e150: db 0x12, 0x00, 0x00, 0x00, 0x0f, 0x08, 0x00, 0x00, 0xfc, 0xd1, 0x05, 0x08, 0x1e, 0x00, 0x00, 0x00
 ..@0xa05e160: db 0x03, 0x01, 0x10, 0x00, 0x00, 0x80, 0x04, 0x08, 0x32, 0x00, 0x00, 0x00, 0x0f, 0x08, 0x00, 0x00
 ..@0xa05e170: db 0xf8, 0xd1, 0x05, 0x08, 0x3b, 0x00, 0x00, 0x00, 0x0f, 0x01, 0x00, 0x00
-..@0xa05e17c: dd darwin_main  ; Entry point.
+..@0xa05e17c: dd darwin_main  ; Entry point. (Is it enough to change only here?)
 ..@0xa05e180: db 0x41, 0x00, 0x00, 0x00, 0x0f, 0x01, 0x00, 0x00, 0x74, 0x8c, 0x04, 0x08, 0x47, 0x00, 0x00, 0x00
 ..@0xa05e190: db 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x4d, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01
 ..@0xa05e1a0: db 0x00, 0x00, 0x00, 0x00, 0x55, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00
