@@ -26407,7 +26407,7 @@ _elf_dynamic: equ $-B.data  ; PT.DYNAMIC must be at a read-write location, other
               dd $DT.RELSZ,        _dynamic_rel.end-_dynamic_rel  ; Required. It segfaults without this.
               dd $DT.RELENT,       8  ; Required. It segfaults without this. Size of a relocation ($DT.REL) entry.
               dd $DT.VERNEED,      _dynamic_verneed  ; Required. It segfaults without this.
-              dd $DT.VERNEEDNUM,   2  ; It works (and enforces versions) without this. Computing this is complicated, see https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA.junk/symversion.html
+              ;dd $DT.VERNEEDNUM,   2  ; It works (and enforces versions) without this. Computing this is complicated, see https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA.junk/symversion.html
               dd $DT.VERSYM,       _dynamic_versym  ; Required. It segfaults without this.
               dd $DT.NULL,         0  ; Required. Terminates the list. Value is always 0.
 _elf_dynamic.end: equ $-B.data
