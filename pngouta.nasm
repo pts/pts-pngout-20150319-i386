@@ -6163,9 +6163,13 @@ dynstr_stderr: equ $-B.code
 ..@0x80485d4: db 'memmove', 0
 ..@0x80485dc: db '__libc_start_main', 0
 ..@0x80485ee: db 'stpcpy', 0
+dynstr_printf: equ $-B.code+2  ; 'printf' and 'vfprintf'overlap.
+dynstr_vfprintf: equ $-B.code
 ..@0x80485f5: db 'vfprintf', 0
 ..@0x80485fe: db 'free', 0
+dynstr_GLIBC_2.1: equ $-B.code
 ..@0x8048603: db 'GLIBC_2.1', 0
+dynstr_GLIBC_2.0: equ $-B.code
 ..@0x804860d: db 'GLIBC_2.0', 0
 _dynamic_strtab.end: equ $-B.code
 ..@0x8048617: times 1 db 0  ; Alignment padding.
@@ -6832,66 +6836,117 @@ LS.dynsym:  ; addr=0x8048320 off=0x320
 _dynamic_symtab: equ $-B.code
 ; Each Elf32_Sym entry is 16 bytes: dd st_name; dd st_value; dd st_size; db st_info; db st_other; dw st_shndx.
 ..@0x8048320: times 4 dd 0  ; First element is zero-filled.
-..@0x8048330: dd dynstr_log-_dynamic_strtab, 0, 0, 0x00000012
-..@0x8048340: dd 0x0000013b, 0, 0, 0x00000012  ; TODO(pts): Make the remaining st_name values symbolic.
-..@0x8048350: dd 0x00000181, 0, 0, 0x00000012
-..@0x8048360: dd 0x0000004b, 0, 0, 0x00000012
-..@0x8048370: dd 0x0000015e, 0, 0, 0x00000012
-..@0x8048380: dd 0x00000188, 0, 0, 0x00000012
-..@0x8048390: dd 0x000000e1, 0, 0, 0x00000012
-..@0x80483a0: dd 0x000000b4, 0, 0, 0x00000012
-..@0x80483b0: dd 0x000000e8, 0, 0, 0x00000012
-..@0x80483c0: dd 0x00000086, 0, 0, 0x00000012
-..@0x80483d0: dd 0x00000140, 0, 0, 0x00000012
-..@0x80483e0: dd 0x00000178, 0, 0, 0x00000012
-..@0x80483f0: dd 0x000000d4, 0, 0, 0x00000012
-..@0x8048400: dd 0x00000133, 0, 0, 0x00000012
-..@0x8048410: dd 0x000000f6, 0, 0, 0x00000012
-..@0x8048420: dd 0x0000013a, 0, 0, 0x00000012
-..@0x8048430: dd 0x00000052, 0, 0, 0x00000012
-..@0x8048440: dd 0x0000008b, 0, 0, 0x00000012
-..@0x8048450: dd 0x000000ef, 0, 0, 0x00000012
-..@0x8048460: dd 0x00000081, 0, 0, 0x00000012
-..@0x8048470: dd 0x00000123, 0, 0, 0x00000012
-..@0x8048480: dd 0x0000000b, 0, 0, 0x00000020
-..@0x8048490: dd 0x00000059, 0, 0, 0x00000012
-..@0x80484a0: dd 0x00000066, 0, 0, 0x00000012
-..@0x80484b0: dd 0x00000157, 0, 0, 0x00000012
-..@0x80484c0: dd 0x000000ba, 0, 0, 0x00000012
-..@0x80484d0: dd 0x00000166, 0, 0, 0x00000012
-..@0x80484e0: dd 0x000000fd, 0, 0, 0x00000012
-..@0x80484f0: dd 0x0000007b, 0, 0, 0x00000012
-..@0x8048500: dd 0x0000006c, 0, 0, 0x00000012
-..@0x8048510: dd 0x000000cd, 0, 0, 0x00000012
-..@0x8048520: dd 0x0000012c, 0, 0, 0x00000012
-..@0x8048530: dd 0x00000099, 0, 0, 0x00000012
-..@0x8048540: dd 0x000000ae, 0, 0, 0x00000012
-..@0x8048550: dd 0x00000117, 0, 0, 0x00000012
-..@0x8048560: dd 0x00000067, 0, 0, 0x00000012
-..@0x8048570: dd 0x000000a0, 0, 0, 0x00000012
-..@0x8048580: dd 0x000000c1, 0, 0, 0x00000012
-..@0x8048590: dd 0x0000017f, 0, 0, 0x00000012
-..@0x80485a0: dd 0x0000005e, 0, 0, 0x00000012
-..@0x80485b0: dd 0x0000001a, 0, 0, 0x00000020
-..@0x80485c0: dd 0x0000014d, 0, 0, 0x00000012
-..@0x80485d0: dd 0x000000a7, 0, 0, 0x00000012
-..@0x80485e0: dd 0x00000072, 0, 0, 0x00000012
-..@0x80485f0: dd 0x00000108, 0, 0, 0x00000012
+dynsym_log: equ $-B.code  ; 1
+..@0x8048330: dd dynstr_log-_dynamic_strtab, 0, 0, 0x12
+dynsym_read: equ $-B.code  ; 2
+..@0x8048340: dd dynstr_read-_dynamic_strtab, 0, 0, 0x12
+dynsym_printf: equ $-B.code
+..@0x8048350: dd dynstr_printf-_dynamic_strtab, 0, 0, 0x12
+dynsym_fflush: equ $-B.code
+..@0x8048360: dd dynstr_fflush-_dynamic_strtab, 0, 0, 0x12
+dynsym_memmove: equ $-B.code
+..@0x8048370: dd dynstr_memmove-_dynamic_strtab, 0, 0, 0x12
+dynsym_free: equ $-B.code
+..@0x8048380: dd dynstr_free-_dynamic_strtab, 0, 0, 0x12
+dynsym_memcpy: equ $-B.code
+..@0x8048390: dd dynstr_memcpy-_dynamic_strtab, 0, 0, 0x12
+dynsym_fgets: equ $-B.code
+..@0x80483a0: dd dynstr_fgets-_dynamic_strtab, 0, 0, 0x12
+dynsym_fclose: equ $-B.code
+..@0x80483b0: dd dynstr_fclose-_dynamic_strtab, 0, 0, 0x12
+dynsym_time: equ $-B.code
+..@0x80483c0: dd dynstr_time-_dynamic_strtab, 0, 0, 0x12
+dynsym_gettimeofday: equ $-B.code
+..@0x80483d0: dd dynstr_gettimeofday-_dynamic_strtab, 0, 0, 0x12
+dynsym_stpcpy: equ $-B.code
+..@0x80483e0: dd dynstr_stpcpy-_dynamic_strtab, 0, 0, 0x12
+dynsym_fseek: equ $-B.code
+..@0x80483f0: dd dynstr_fseek-_dynamic_strtab, 0, 0, 0x12
+dynsym_fwrite: equ $-B.code
+..@0x8048400: dd dynstr_fwrite-_dynamic_strtab, 0, 0, 0x12
+dynsym_strcat: equ $-B.code
+..@0x8048410: dd dynstr_strcat-_dynamic_strtab, 0, 0, 0x12
+dynsym_fread: equ $-B.code
+..@0x8048420: dd dynstr_fread-_dynamic_strtab, 0, 0, 0x12
+dynsym_strcpy: equ $-B.code
+..@0x8048430: dd dynstr_strcpy-_dynamic_strtab, 0, 0, 0x12
+dynsym_realloc: equ $-B.code
+..@0x8048440: dd dynstr_realloc-_dynamic_strtab, 0, 0, 0x12
+dynsym_malloc: equ $-B.code
+..@0x8048450: dd dynstr_malloc-_dynamic_strtab, 0, 0, 0x12
+dynsym_puts: equ $-B.code
+..@0x8048460: dd dynstr_puts-_dynamic_strtab, 0, 0, 0x12
+dynsym___fxstat: equ $-B.code
+..@0x8048470: dd dynstr___fxstat-_dynamic_strtab, 0, 0, 0x12
+dynsym___gmon_start__: equ $-B.code  ; 0x16
+..@0x8048480: dd dynstr___gmon_start__-_dynamic_strtab, 0, 0, 0x20
+dynsym_exit: equ $-B.code
+..@0x8048490: dd dynstr_exit-_dynamic_strtab, 0, 0, 0x12
+dynsym_srand: equ $-B.code
+..@0x80484a0: dd dynstr_srand-_dynamic_strtab, 0, 0, 0x12
+dynsym_strchr: equ $-B.code
+..@0x80484b0: dd dynstr_strchr-_dynamic_strtab, 0, 0, 0x12
+dynsym_strlen: equ $-B.code
+..@0x80484c0: dd dynstr_strlen-_dynamic_strtab, 0, 0, 0x12
+dynsym___libc_start_main: equ $-B.code
+..@0x80484d0: dd dynstr___libc_start_main-_dynamic_strtab, 0, 0, 0x12
+dynsym_strcasecmp: equ $-B.code
+..@0x80484e0: dd dynstr_strcasecmp-_dynamic_strtab, 0, 0, 0x12
+dynsym_ftell: equ $-B.code
+..@0x80484f0: dd dynstr_ftell-_dynamic_strtab, 0, 0, 0x12
+dynsym_fopen: equ $-B.code
+..@0x8048500: dd dynstr_fopen-_dynamic_strtab, 0, 0, 0x12
+dynsym_memset: equ $-B.code
+..@0x8048510: dd dynstr_memset-_dynamic_strtab, 0, 0, 0x12
+dynsym_fileno: equ $-B.code
+..@0x8048520: dd dynstr_fileno-_dynamic_strtab, 0, 0, 0x12
+dynsym_strtod: equ $-B.code
+..@0x8048530: dd dynstr_strtod-_dynamic_strtab, 0, 0, 0x12
+dynsym_fgetc: equ $-B.code
+..@0x8048540: dd dynstr_fgetc-_dynamic_strtab, 0, 0, 0x12
+dynsym_strncasecmp: equ $-B.code
+..@0x8048550: dd dynstr_strncasecmp-_dynamic_strtab, 0, 0, 0x12
+dynsym_rand: equ $-B.code
+..@0x8048560: dd dynstr_rand-_dynamic_strtab, 0, 0, 0x12
+dynsym_strtok: equ $-B.code
+..@0x8048570: dd dynstr_strtok-_dynamic_strtab, 0, 0, 0x12
+dynsym_sigemptyset: equ $-B.code
+..@0x8048580: dd dynstr_sigemptyset-_dynamic_strtab, 0, 0, 0x12
+dynsym_vfprintf: equ $-B.code
+..@0x8048590: dd dynstr_vfprintf-_dynamic_strtab, 0, 0, 0x12
+dynsym_readdir: equ $-B.code
+..@0x80485a0: dd dynstr_readdir-_dynamic_strtab, 0, 0, 0x12
+dynsym__Jv_RegisterClasses: equ $-B.code
+..@0x80485b0: dd dynstr__Jv_RegisterClasses-_dynamic_strtab, 0, 0, 0x20
+dynsym_sigaction: equ $-B.code
+..@0x80485c0: dd dynstr_sigaction-_dynamic_strtab, 0, 0, 0x12
+dynsym_strtol: equ $-B.code
+..@0x80485d0: dd dynstr_strtol-_dynamic_strtab, 0, 0, 0x12
+dynsym_closedir: equ $-B.code
+..@0x80485e0: dd dynstr_closedir-_dynamic_strtab, 0, 0, 0x12
+dynsym_opendir: equ $-B.code
+..@0x80485f0: dd dynstr_opendir-_dynamic_strtab, 0, 0, 0x12
 _hashed_dynsyms: equ $-B.code
+dynsym_stdout: equ $-B.code
 ..@0x8048600: dd dynstr_stdout-_dynamic_strtab, stdout, 4, 0x001a0011
+dynsym_stderr: equ $-B.code
 ..@0x8048610: dd dynstr_stderr-_dynamic_strtab, stderr, 4, 0x001a0011
+dynsym__IO_stdin_used: equ $-B.code
 ..@0x8048620: dd dynstr__IO_stdin_used-_dynamic_strtab, _IO_stdin_used, 4, 0x00100011
+dynsym_stdin: equ $-B.code
 ..@0x8048630: dd dynstr_stdin-_dynamic_strtab, stdin, 4, 0x001a0011
-_hashed_dynsyms.end: equ $-B.code
-times -((_hash_chain.end-_hash_chain)<<2)+(_hashed_dynsyms.end-_hashed_dynsyms) times 0 nop  ; Assert.
-times +((_hash_chain.end-_hash_chain)<<2)-(_hashed_dynsyms.end-_hashed_dynsyms) times 0 nop  ; Assert.
+_dynamic_symtab.end: equ $-B.code
+times -((_hash_chain.end-_hash_chain)<<2)+(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
+times +((_hash_chain.end-_hash_chain)<<2)-(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
 
 LS.dynstr:  ; addr=0x8048640 off=0x640
 _dynamic_strtab: equ $-B.code
-..@0x8048640: db 0
+..@0x8048640: db 0  ; It always starts with an empty string.
 dynstr_libm_so_6: equ $-B.code
 ..@0x8048641: db 'libm.so.6', 0
+dynstr___gmon_start__: equ $-B.code
 ..@0x804864b: db '__gmon_start__', 0
+dynstr__Jv_RegisterClasses: equ $-B.code
 ..@0x804865a: db '_Jv_RegisterClasses', 0
 dynstr_log: equ $-B.code
 ..@0x804866e: db 'log', 0
@@ -6899,52 +6954,96 @@ dynstr_libc_so_6: equ $-B.code
 ..@0x8048672: db 'libc.so.6', 0
 dynstr__IO_stdin_used: equ $-B.code
 ..@0x804867c: db '_IO_stdin_used', 0
+dynstr_fflush: equ $-B.code
 ..@0x804868b: db 'fflush', 0
+dynstr_strcpy: equ $-B.code
 ..@0x8048692: db 'strcpy', 0
+dynstr_exit: equ $-B.code
 ..@0x8048699: db 'exit', 0
+dynstr_readdir: equ $-B.code
 ..@0x804869e: db 'readdir', 0
+dynstr_rand: equ $-B.code+1  ; 'rand' and 'srand' overlap.
+dynstr_srand: equ $-B.code
 ..@0x80486a6: db 'srand', 0
+dynstr_fopen: equ $-B.code
 ..@0x80486ac: db 'fopen', 0
+dynstr_closedir: equ $-B.code
 ..@0x80486b2: db 'closedir', 0
+dynstr_ftell: equ $-B.code
 ..@0x80486bb: db 'ftell', 0
+dynstr_puts: equ $-B.code
 ..@0x80486c1: db 'puts', 0
+dynstr_time: equ $-B.code
 ..@0x80486c6: db 'time', 0
+dynstr_realloc: equ $-B.code
 ..@0x80486cb: db 'realloc', 0
 dynstr_stdin: equ $-B.code
 ..@0x80486d3: db 'stdin', 0
+dynstr_strtod: equ $-B.code
 ..@0x80486d9: db 'strtod', 0
+dynstr_strtok: equ $-B.code
 ..@0x80486e0: db 'strtok', 0
+dynstr_strtol: equ $-B.code
 ..@0x80486e7: db 'strtol', 0
+dynstr_fgetc: equ $-B.code
 ..@0x80486ee: db 'fgetc', 0
+dynstr_fgets: equ $-B.code
 ..@0x80486f4: db 'fgets', 0
+dynstr_strlen: equ $-B.code
 ..@0x80486fa: db 'strlen', 0
+dynstr_sigemptyset: equ $-B.code
 ..@0x8048701: db 'sigemptyset', 0
+dynstr_memset: equ $-B.code
 ..@0x804870d: db 'memset', 0
+dynstr_fseek: equ $-B.code
 ..@0x8048714: db 'fseek', 0
 dynstr_stdout: equ $-B.code
 ..@0x804871a: db 'stdout', 0
+dynstr_memcpy: equ $-B.code
 ..@0x8048721: db 'memcpy', 0
+dynstr_fclose: equ $-B.code
 ..@0x8048728: db 'fclose', 0
+dynstr_malloc: equ $-B.code
 ..@0x804872f: db 'malloc', 0
+dynstr_strcat: equ $-B.code
 ..@0x8048736: db 'strcat', 0
+dynstr_strcasecmp: equ $-B.code
 ..@0x804873d: db 'strcasecmp', 0
+dynstr_opendir: equ $-B.code
 ..@0x8048748: db 'opendir', 0
 dynstr_stderr: equ $-B.code
 ..@0x8048750: db 'stderr', 0
+dynstr_strncasecmp: equ $-B.code
 ..@0x8048757: db 'strncasecmp', 0
+dynstr___fxstat: equ $-B.code
 ..@0x8048763: db '__fxstat', 0
+dynstr_fileno: equ $-B.code
 ..@0x804876c: db 'fileno', 0
+dynstr_fwrite: equ $-B.code
 ..@0x8048773: db 'fwrite', 0
+dynstr_read: equ $-B.code+1  ; 'read' and 'fread' overlap.
+dynstr_fread: equ $-B.code
 ..@0x804877a: db 'fread', 0
+dynstr_gettimeofday: equ $-B.code
 ..@0x8048780: db 'gettimeofday', 0
+dynstr_sigaction: equ $-B.code
 ..@0x804878d: db 'sigaction', 0
+dynstr_strchr: equ $-B.code
 ..@0x8048797: db 'strchr', 0
+dynstr_memmove: equ $-B.code
 ..@0x804879e: db 'memmove', 0
+dynstr___libc_start_main: equ $-B.code
 ..@0x80487a6: db '__libc_start_main', 0
+dynstr_stpcpy: equ $-B.code
 ..@0x80487b8: db 'stpcpy', 0
+dynstr_printf: equ $-B.code+2  ; 'printf' and 'vfprintf' overlap.
+dynstr_vfprintf: equ $-B.code
 ..@0x80487bf: db 'vfprintf', 0
+dynstr_free: equ $-B.code
 ..@0x80487c8: db 'free', 0
+dynstr_GLIBC_2.1: equ $-B.code
 ..@0x80487cd: db 'GLIBC_2.1', 0
+dynstr_GLIBC_2.0: equ $-B.code
 ..@0x80487d7: db 'GLIBC_2.0', 0
 _dynamic_strtab.end: equ $-B.code
 ..@0x80487e1: times 1 db 0  ; Alignment padding.
@@ -7118,7 +7217,7 @@ __fxstat: equ $-B.code
 ..@0x8048b96: push strict dword ($-B.code-_plt_code0-0x16)>>1
 ..@0x8048b9b: jmp strict near B.code+_plt_code0
 __gmon_start__: equ $-B.code
-..@0x8048ba0: jmp [__gmon_start__@GLIBC_2.0@got]
+..@0x8048ba0: jmp [__gmon_start__@got]
 ..@0x8048ba6: push strict dword ($-B.code-_plt_code0-0x16)>>1
 ..@0x8048bab: jmp strict near B.code+_plt_code0
 exit: equ $-B.code
@@ -27308,7 +27407,7 @@ puts@GLIBC_2.0@got: equ $-B.code
 ..@0x805d160: dd puts+6
 __fxstat@GLIBC_2.0@got: equ $-B.code
 ..@0x805d164: dd __fxstat+6
-__gmon_start__@GLIBC_2.0@got: equ $-B.code
+__gmon_start__@got: equ $-B.code
 ..@0x805d168: dd __gmon_start__+6
 exit@GLIBC_2.0@got: equ $-B.code
 ..@0x805d16c: dd exit+6
