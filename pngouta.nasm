@@ -6064,45 +6064,82 @@ dynsym_log: equ $-B.code  ; 1
 ..@0x80481a8: dd dynstr_log-_dynamic_strtab, 0, 0, 0x12  ; TODO(pts): Make the remaining st_name values symbolic.
 dynsym_read: equ $-B.code  ; 2
 ..@0x80481b8: dd dynstr_read-_dynamic_strtab, 0, 0, 0x12
-..@0x80481c8: dd 0x0000000b, 0
-..@0x80481d0: dd 0, 0x00000020, 0x0000017f, 0
-..@0x80481e0: dd 0, 0x00000012, 0x00000081, 0
-..@0x80481f0: dd 0, 0x00000012, 0x0000015c, 0
-..@0x8048200: dd 0, 0x00000012, 0x00000186, 0
-..@0x8048210: dd 0, 0x00000012, 0x000000fa, 0
-..@0x8048220: dd 0, 0x00000012, 0x000000d9, 0
-..@0x8048230: dd 0, 0x00000012, 0x00000101, 0
-..@0x8048240: dd 0, 0x00000012, 0x000000ab, 0
-..@0x8048250: dd 0, 0x00000012, 0x00000148, 0
-..@0x8048260: dd 0, 0x00000012, 0x00000176, 0
-..@0x8048270: dd 0, 0x00000012, 0x000000ed, 0
-..@0x8048280: dd 0, 0x00000012, 0x0000013b, 0
-..@0x8048290: dd 0, 0x00000012, 0x0000010f, 0
-..@0x80482a0: dd 0, 0x00000012, 0x00000142, 0
-..@0x80482b0: dd 0, 0x00000012, 0x00000088, 0
-..@0x80482c0: dd 0, 0x00000012, 0x000000b0, 0
-..@0x80482d0: dd 0, 0x00000012, 0x00000108, 0
-..@0x80482e0: dd 0, 0x00000012, 0x000000a6, 0
-..@0x80482f0: dd 0, 0x00000012, 0x00000027, 0
-..@0x8048300: dd 0, 0x00000020, 0x0000008f, 0
-..@0x8048310: dd 0, 0x00000012, 0x00000094, 0
-..@0x8048320: dd 0, 0x00000012, 0x00000155, 0
-..@0x8048330: dd 0, 0x00000012, 0x000000df, 0
-..@0x8048340: dd 0, 0x00000012, 0x00000164, 0
-..@0x8048350: dd 0, 0x00000012, 0x00000116, 0
-..@0x8048360: dd 0, 0x00000012, 0x000000a0, 0
-..@0x8048370: dd 0, 0x00000012, 0x0000009a, 0
-..@0x8048380: dd 0, 0x00000012, 0x000000e6, 0
-..@0x8048390: dd 0, 0x00000012, 0x00000134, 0
-..@0x80483a0: dd 0, 0x00000012, 0x000000be, 0
-..@0x80483b0: dd 0, 0x00000012, 0x000000d3, 0
-..@0x80483c0: dd 0, 0x00000012, 0x00000128, 0
-..@0x80483d0: dd 0, 0x00000012, 0x00000095, 0
-..@0x80483e0: dd 0, 0x00000012, 0x000000c5, 0
-..@0x80483f0: dd 0, 0x00000012, 0x0000017d, 0
-..@0x8048400: dd 0, 0x00000012, 0x00000036, 0
-..@0x8048410: dd 0, 0x00000020, 0x0000004a, 0
-..@0x8048420: dd 0, 0x00000020 
+dynsym__ITM_deregisterTMCloneTable: equ $-B.code  ; 3
+..@0x80481c8: dd dynstr__ITM_deregisterTMCloneTable-_dynamic_strtab, 0, 0, 0x20
+dynsym_printf: equ $-B.code  ;  4 ; !! Remove this and others unused.
+..@0x80481d8: dd dynstr_printf-_dynamic_strtab, 0, 0, 0x12
+dynsym_fflush: equ $-B.code
+..@0x80481e8: dd dynstr_fflush-_dynamic_strtab, 0, 0, 0x12
+dynsym_memmove: equ $-B.code
+..@0x80481f8: dd dynstr_memmove-_dynamic_strtab, 0, 0, 0x12
+dynsym_free: equ $-B.code
+..@0x8048208: dd dynstr_free-_dynamic_strtab, 0, 0, 0x12
+dynsym_memcpy: equ $-B.code
+..@0x8048218: dd dynstr_memcpy-_dynamic_strtab, 0, 0, 0x12
+dynsym_fgets: equ $-B.code
+..@0x8048228: dd dynstr_fgets-_dynamic_strtab, 0, 0, 0x12
+dynsym_fclose: equ $-B.code
+..@0x8048238: dd dynstr_fclose-_dynamic_strtab, 0, 0, 0x12
+dynsym_time: equ $-B.code
+..@0x8048248: dd dynstr_time-_dynamic_strtab, 0, 0, 0x12
+dynsym_gettimeofday: equ $-B.code
+..@0x8048258: dd dynstr_gettimeofday-_dynamic_strtab, 0, 0, 0x12
+dynsym_stpcpy: equ $-B.code
+..@0x8048268: dd dynstr_stpcpy-_dynamic_strtab, 0, 0, 0x12
+dynsym_fseek: equ $-B.code
+..@0x8048278: dd dynstr_fseek-_dynamic_strtab, 0, 0, 0x12
+dynsym_fwrite: equ $-B.code
+..@0x8048288: dd dynstr_fwrite-_dynamic_strtab, 0, 0, 0x12
+dynsym_strcat: equ $-B.code
+..@0x8048298: dd dynstr_strcat-_dynamic_strtab, 0, 0, 0x12
+dynsym_fread: equ $-B.code
+..@0x80482a8: dd dynstr_fread-_dynamic_strtab, 0, 0, 0x12
+dynsym_strcpy: equ $-B.code
+..@0x80482b8: dd dynstr_strcpy-_dynamic_strtab, 0, 0, 0x12
+dynsym_realloc: equ $-B.code
+..@0x80482c8: dd dynstr_realloc-_dynamic_strtab, 0, 0, 0x12
+dynsym_malloc: equ $-B.code
+..@0x80482d8: dd dynstr_malloc-_dynamic_strtab, 0, 0, 0x12
+dynsym_puts: equ $-B.code  ; 0x16
+..@0x80482e8: dd dynstr_puts-_dynamic_strtab, 0, 0, 0x12
+dynsym___gmon_start__: equ $-B.code  ; 0x16
+..@0x80482f8: dd dynstr___gmon_start__-_dynamic_strtab, 0, 0, 0x20
+dynsym_exit: equ $-B.code
+..@0x8048308: dd dynstr_exit-_dynamic_strtab, 0, 0, 0x12
+dynsym_srand: equ $-B.code
+..@0x8048318: dd dynstr_srand-_dynamic_strtab, 0, 0, 0x12
+dynsym_strchr: equ $-B.code
+..@0x8048328: dd dynstr_strchr-_dynamic_strtab, 0, 0, 0x12
+dynsym_strlen: equ $-B.code
+..@0x8048338: dd dynstr_strlen-_dynamic_strtab, 0, 0, 0x12
+dynsym___libc_start_main: equ $-B.code
+..@0x8048348: dd dynstr___libc_start_main-_dynamic_strtab, 0, 0, 0x12
+dynsym_strcasecmp: equ $-B.code
+..@0x8048358: dd dynstr_strcasecmp-_dynamic_strtab, 0, 0, 0x12
+dynsym_ftell: equ $-B.code
+..@0x8048368: dd dynstr_ftell-_dynamic_strtab, 0, 0, 0x12
+dynsym_fopen: equ $-B.code
+..@0x8048378: dd dynstr_fopen-_dynamic_strtab, 0, 0, 0x12
+dynsym_memset: equ $-B.code
+..@0x8048388: dd dynstr_memset-_dynamic_strtab, 0, 0, 0x12
+dynsym_fileno: equ $-B.code
+..@0x8048398: dd dynstr_fileno-_dynamic_strtab, 0, 0, 0x12
+dynsym_strtod: equ $-B.code
+..@0x80483a8: dd dynstr_strtod-_dynamic_strtab, 0, 0, 0x12
+dynsym_fgetc: equ $-B.code
+..@0x80483b8: dd dynstr_fgetc-_dynamic_strtab, 0, 0, 0x12
+dynsym_strncasecmp: equ $-B.code
+..@0x80483c8: dd dynstr_strncasecmp-_dynamic_strtab, 0, 0, 0x12
+dynsym_rand: equ $-B.code
+..@0x80483d8: dd dynstr_rand-_dynamic_strtab, 0, 0, 0x12
+dynsym_strtok: equ $-B.code
+..@0x80483e8: dd dynstr_strtok-_dynamic_strtab, 0, 0, 0x12
+dynsym_vfprintf: equ $-B.code  ; 0x26
+..@0x80483f8: dd dynstr_vfprintf-_dynamic_strtab, 0, 0, 0x12
+dynsym__Jv_RegisterClasses: equ $-B.code
+..@0x8048408: dd 0x036, 0, 0, 0x20
+dynsym__ITM_registerTMCloneTable: equ $-B.code
+..@0x8048418: dd 0x04a, 0, 0, 0x20
 dynsym_strtol: equ $-B.code  ; 0x29
 ..@0x8048428: dd dynstr_strtol-_dynamic_strtab, 0, 0, 0x12
 _hashed_dynsyms: equ $-B.code
@@ -6114,68 +6151,103 @@ dynsym__IO_stdin_used: equ $-B.code  ; 0x2c
 ..@0x8048458: dd dynstr__IO_stdin_used-_dynamic_strtab, _IO_stdin_used, 4, 0x000f0011
 dynsym_stdin: equ $-B.code  ; 0x2d
 ..@0x8048468: dd dynstr_stdin-_dynamic_strtab, stdin, 4, 0x00180011
-_hashed_dynsyms.end: equ $-B.code
-times -((_hash_chain.end-_hash_chain)<<2)+(_hashed_dynsyms.end-_hashed_dynsyms) times 0 nop  ; Assert.
-times +((_hash_chain.end-_hash_chain)<<2)-(_hashed_dynsyms.end-_hashed_dynsyms) times 0 nop  ; Assert.
+_dynamic_symtab.end: equ $-B.code
+times -((_hash_chain.end-_hash_chain)<<2)+(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
+times +((_hash_chain.end-_hash_chain)<<2)-(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
 
 L.dynstr:  ; addr=0x8048478 off=0x478
 _dynamic_strtab: equ $-B.code
 ..@0x8048478: db 0
 dynstr_libm_so_6: equ $-B.code
 ..@0x8048479: db 'libm.so.6', 0
-..@0x8048483: db '_ITM_deregisterTMCloneTable', 0
-..@0x804849f: db '__gmon_start__', 0
-..@0x80484ae: db '_Jv_RegisterClasses', 0
-..@0x80484c2: db '_ITM_registerTMCloneTable', 0
+dynstr__ITM_deregisterTMCloneTable: equ $-B.code
+..@0x8048483: db '_ITM_deregisterTMCloneTable', 0  ; !! Remove this unused (also from versym).
+dynstr___gmon_start__: equ $-B.code
+..@0x804849f: db '__gmon_start__', 0  ; !! Remove this unused.
+dynstr__Jv_RegisterClasses: equ $-B.code
+..@0x80484ae: db '_Jv_RegisterClasses', 0  ; !! Remove this unused.
+dynstr__ITM_registerTMCloneTable: equ $-B.code
+..@0x80484c2: db '_ITM_registerTMCloneTable', 0  ; !! Remove this unused.
 dynstr_log: equ $-B.code
 ..@0x80484dc: db 'log', 0
 dynstr_libc_so_6: equ $-B.code
 ..@0x80484e0: db 'libc.so.6', 0
 dynstr__IO_stdin_used: equ $-B.code
-..@0x80484ea: db '_IO_stdin_used', 0
+..@0x80484ea: db '_IO_stdin_used', 0  ; !! Remove this unused.
+dynstr_fflush: equ $-B.code
 ..@0x80484f9: db 'fflush', 0
+dynstr_strcpy: equ $-B.code
 ..@0x8048500: db 'strcpy', 0
+dynstr_exit: equ $-B.code
 ..@0x8048507: db 'exit', 0
+dynstr_rand: equ $-B.code+1  ; 'rand' and 'srand' overlap.
+dynstr_srand: equ $-B.code
 ..@0x804850c: db 'srand', 0
+dynstr_fopen: equ $-B.code
 ..@0x8048512: db 'fopen', 0
+dynstr_ftell: equ $-B.code
 ..@0x8048518: db 'ftell', 0
-..@0x804851e: db 'puts', 0
+dynstr_puts: equ $-B.code
+..@0x804851e: db 'puts', 0  ; !! Remove this unused.
+dynstr_time: equ $-B.code
 ..@0x8048523: db 'time', 0
+dynstr_realloc: equ $-B.code
 ..@0x8048528: db 'realloc', 0
 dynstr_stdin: equ $-B.code
 ..@0x8048530: db 'stdin', 0
+dynstr_strtod: equ $-B.code
 ..@0x8048536: db 'strtod', 0
+dynstr_strtok: equ $-B.code
 ..@0x804853d: db 'strtok', 0
 dynstr_strtol: equ $-B.code
 ..@0x8048544: db 'strtol', 0
+dynstr_fgetc: equ $-B.code
 ..@0x804854b: db 'fgetc', 0
+dynstr_fgets: equ $-B.code
 ..@0x8048551: db 'fgets', 0
+dynstr_strlen: equ $-B.code
 ..@0x8048557: db 'strlen', 0
+dynstr_memset: equ $-B.code
 ..@0x804855e: db 'memset', 0
+dynstr_fseek: equ $-B.code
 ..@0x8048565: db 'fseek', 0
 dynstr_stdout: equ $-B.code
 ..@0x804856b: db 'stdout', 0
+dynstr_memcpy: equ $-B.code
 ..@0x8048572: db 'memcpy', 0
+dynstr_fclose: equ $-B.code
 ..@0x8048579: db 'fclose', 0
+dynstr_malloc: equ $-B.code
 ..@0x8048580: db 'malloc', 0
+dynstr_strcat: equ $-B.code
 ..@0x8048587: db 'strcat', 0
+dynstr_strcasecmp: equ $-B.code
 ..@0x804858e: db 'strcasecmp', 0
 dynstr_stderr: equ $-B.code
 ..@0x8048599: db 'stderr', 0
+dynstr_strncasecmp: equ $-B.code
 ..@0x80485a0: db 'strncasecmp', 0
+dynstr_fileno: equ $-B.code
 ..@0x80485ac: db 'fileno', 0
+dynstr_fwrite: equ $-B.code
 ..@0x80485b3: db 'fwrite', 0
 dynstr_read: equ $-B.code+1  ; 'read' and 'fread' overlap.
 dynstr_fread: equ $-B.code
 ..@0x80485ba: db 'fread', 0
+dynstr_gettimeofday: equ $-B.code
 ..@0x80485c0: db 'gettimeofday', 0
+dynstr_strchr: equ $-B.code
 ..@0x80485cd: db 'strchr', 0
+dynstr_memmove: equ $-B.code
 ..@0x80485d4: db 'memmove', 0
+dynstr___libc_start_main: equ $-B.code
 ..@0x80485dc: db '__libc_start_main', 0
+dynstr_stpcpy: equ $-B.code
 ..@0x80485ee: db 'stpcpy', 0
-dynstr_printf: equ $-B.code+2  ; 'printf' and 'vfprintf'overlap.
+dynstr_printf: equ $-B.code+2  ; 'printf' and 'vfprintf' overlap.
 dynstr_vfprintf: equ $-B.code
 ..@0x80485f5: db 'vfprintf', 0
+dynstr_free: equ $-B.code
 ..@0x80485fe: db 'free', 0
 dynstr_GLIBC_2.1: equ $-B.code
 ..@0x8048603: db 'GLIBC_2.1', 0
