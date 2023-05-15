@@ -6119,8 +6119,6 @@ dynsym__ITM_registerTMCloneTable: equ $-B.code
 ..@0x8048418: dd 0x04a, 0, 0, 0x20
 dynsym_strtol: equ $-B.code  ; 0x29
 ..@0x8048428: dd dynstr_strtol-_dynamic_strtab, 0, 0, 0x12
-dynsym__IO_stdin_used: equ $-B.code
-..@0x8048458: dd dynstr__IO_stdin_used-_dynamic_strtab, _IO_stdin_used, 4, 0x000f0011
 dynsym_stderr: equ $-B.code
 ..@0x8048448: dd dynstr_stderr-_dynamic_strtab, stderr, 4, 0x00180011
 dynsym_stdin: equ $-B.code
@@ -6131,6 +6129,7 @@ dynsym_stdout: equ $-B.code
 _dynamic_symtab.end: equ $-B.code
 times -((_hash_chain.end-_hash_chain)<<2)+(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
 times +((_hash_chain.end-_hash_chain)<<2)-(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
+              times 1 dd 0, 0, 0, 0  ; Padding.
 
 L.dynstr:  ; addr=0x8048478 off=0x478
 _dynamic_strtab: equ $-B.code
@@ -6242,11 +6241,12 @@ _dynamic_versym: equ $-B.code
 ..@0x8048630: dw 3, 3, 3, 3, 3, 3, 3, 3
 ..@0x8048640: dw 3, 3, 0, 3, 3, 3, 3, 3
 ..@0x8048650: dw 3, 3, 4, 3, 3, 3, 3, 3
-..@0x8048660: dw 3, 3, 3, 0, 0, 3, 1, 3
-..@0x8048670: dw 3, 3
+..@0x8048660: dw 3, 3, 3, 0, 0, 3, 3, 3
+..@0x8048670: dw 3
 _dynamic_versym.end: equ $-B.code
 times -((_dynamic_versym.end-_dynamic_versym)<<3)+(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
 times +((_dynamic_versym.end-_dynamic_versym)<<3)-(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
+              times 1 dw 0  ; Padding.
 
 L.gnu.version_r:  ; addr=0x8048674 off=0x674
 _dynamic_verneed: equ $-B.code
@@ -6494,8 +6494,7 @@ strtol: equ $-B.code
 ..@0x8048aab: jmp strict near B.code+_plt_code0
 ..@0x8048ab0: times 0x8048bb0-0x8048ab0 db 0  ; !! TODO(pts): Why this 0x100 bytes of padding? Not for alignment. Remove it.
 
-L.glibc.text:  ; addr=0x8048bb0 off=0xbb0
-; From crt1.o, section .text:
+L.start.text:  ; addr=0x8048bb0 off=0xbb0
 dummy_init_and_fini: equ $-B.code
 ..@0x8048bb0: ret
 _start: equ $-B.code
@@ -25694,21 +25693,10 @@ L.gap16:  ; addr=0x805a698 off=0x12698
 ..@0x805a698: times 0x805a728-0x805a698 hlt  ; Padding.
 
 L.glibc.rodata:  ; addr=0x805a728 off=0x12728
-; From crt1.o, section .rodata:  !! Also remove these.
-_fp_hw: equ $-B.code
-..@0x805a728: dd 3
-; End from crt1.o.
-; From crt1.o, section .rodata.cst4:
-_IO_stdin_used: equ $-B.code
-; Why this value?
-; https://sourceware.org/git/?p=glibc.git;a=blob;f=csu/init.c;h=c2f978f3da565590bcab355fefa3d81cf211cb36;hb=63fb8f9aa9d19f85599afe4b849b567aefd70a36
-; It works even if the value is 0.
-..@0x805a72c: dd 0x20001
-; End from crt1.o.
-..@0x805a730: times 0x10 daa  ; Alignment (0x20) padding.
+..@0x805a728: times 0x18 hlt  ; Padding.
 
 L.rodata:  ; addr=0x805a740 off=0x12740
-..@0x805a740: times 0x2c daa  ; Padding instead of (a copy of _fp_hw) + (a copy of _IO_stdin_used) + str_message_on_sigint.
+..@0x805a740: times 0x2c hlt  ; Padding instead of (a copy of _fp_hw) + (a copy of _IO_stdin_used) + str_message_on_sigint.
 %endif  ; TARGET, l
 
 %ifidn TARGET, d
@@ -26570,22 +26558,11 @@ strtol@GLIBC_2.0@got: equ $-B.data
 ..@0x805d1a0: dd strtol+6
 
 L.glibc.data:  ; addr=0x805d1a4 off=0x141a4
-; From crt1.o, section .data:  !! Overwrite this with other values, see if they work.
-data_start: equ $-B.data
-__data_start: equ $-B.data
-..@0x805d1a4: dd 0  ; What is this used for?
-; End from crt1.o.
-; From crtbegin.o, section .data:
-__dso_handle: equ $-B.data  ; What is this used for? https://stackoverflow.com/questions/34308720/where-is-dso-handle-defined
-..@0x805d1a8: dd 0
-; End from crtbegin.o.
-_before_data: equ $-B.data
-..@0x805d1ac: times 0x805d1c4-0x805d0c0+8+12-0x100 daa
+..@0x805d1a4: times 0x805d1c4-0x805d0c0+8+12-0x100+8 daa  ; Padding.
 %endif  ; TARGET, ;
 
 %ifidn TARGET, d
 D.gap16:  ; addr=0x805ba20 off=0x13a20
-; !! Add `times'.
 ..@0x805ba20: times 0x805bd1e-0x805ba20 nop  ; Padding.
 ..@0x805bd1e: db 0xff, 0x25
 ..@0x805bd20: db 0x1c, 0xc0, 0x05, 0x08, 0xff, 0x25, 0x20, 0xc0, 0x05, 0x08, 0xff, 0x25, 0x24, 0xc0, 0x05, 0x08
@@ -26646,7 +26623,6 @@ D.gap16:  ; addr=0x805ba20 off=0x13a20
 ..@0x805c090: db 0x58, 0xbf, 0x05, 0x08, 0x64, 0xbf, 0x05, 0x08, 0x70, 0xbf, 0x05, 0x08, 0x7c, 0xbf, 0x05, 0x08
 ..@0x805c0a0: db 0x88, 0xbf, 0x05, 0x08, 0x94, 0xbf, 0x05, 0x08, 0xa0, 0xbf, 0x05, 0x08, 0xac, 0xbf, 0x05, 0x08
 ..@0x805c0b0: db 0x00, 0x80, 0x04, 0x08
-
 ..@0x805c0b4: times 0x805d1c4-0x805c0b4 db 1  ; Padding.
 ;..@0x805d1c4:
 %endif  ; TARGET, d
