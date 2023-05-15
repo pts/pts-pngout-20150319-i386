@@ -6315,27 +6315,44 @@ _dynamic_rel.end: equ $-B.code
 
 L.rel.plt:  ; addr=0x80486e4 off=0x6e4
 _dynamic_jmprel: equ $-B.code  ; Relocations in plt.
-..@0x80486e4: dd log@GLIBC_2.0@got,  7 | (dynsym_log-_dynamic_symtab)>>4<<8
-..@0x80486ec: dd read@GLIBC_2.0@got, 7 | (dynsym_read-_dynamic_symtab)>>4<<8
-..@0x80486f4: dd 0x805d114, 0x00000407, 0x805d118
-..@0x8048700: dd 0x00000507, 0x805d11c, 0x00000607, 0x805d120
-..@0x8048710: dd 0x00000707, 0x805d124, 0x00000807, 0x805d128
-..@0x8048720: dd 0x00000907, 0x805d12c, 0x00000a07, 0x805d130
-..@0x8048730: dd 0x00000b07, 0x805d134, 0x00000c07, 0x805d138
-..@0x8048740: dd 0x00000d07, 0x805d13c, 0x00000e07, 0x805d140
-..@0x8048750: dd 0x00000f07, 0x805d144, 0x00001007, 0x805d148
-..@0x8048760: dd 0x00001107, 0x805d14c, 0x00001207, 0x805d150
-..@0x8048770: dd 0x00001307, 0x805d154, 0x00001407, 0x805d158
-..@0x8048780: dd 0x00001507, 0x805d15c, 0x00001607, 0x805d160
-..@0x8048790: dd 0x00001707, 0x805d164, 0x00001807, 0x805d168
-..@0x80487a0: dd 0x00001907, 0x805d16c, 0x00001a07, 0x805d170
-..@0x80487b0: dd 0x00001b07, 0x805d174, 0x00001c07, 0x805d178
-..@0x80487c0: dd 0x00001d07, 0x805d17c, 0x00001e07, 0x805d180
-..@0x80487d0: dd 0x00001f07, 0x805d184, 0x00002007, 0x805d188
-..@0x80487e0: dd 0x00002107, 0x805d18c, 0x00002207, 0x805d190
-..@0x80487f0: dd 0x00002307, 0x805d194, 0x00002407, 0x805d198
-..@0x8048800: dd 0x00002507, 0x805d19c, 0x00002607
-..@0x804880c: dd strtol@GLIBC_2.0@got, 7 | (dynsym_strtol-_dynamic_symtab)>>4<<8
+..@0x80486e4: dd log@GLIBC_2.0@got,               7 | (dynsym_log-_dynamic_symtab)>>4<<8
+..@0x80486ec: dd read@GLIBC_2.0@got,              7 | (dynsym_read-_dynamic_symtab)>>4<<8
+..@0x80486f4: dd printf@GLIBC_2.0@got,            7 | (dynsym_printf-_dynamic_symtab)>>4<<8
+..@0x80486fc: dd fflush@GLIBC_2.0@got,            7 | (dynsym_fflush-_dynamic_symtab)>>4<<8
+..@0x8048704: dd memmove@GLIBC_2.0@got,           7 | (dynsym_memmove-_dynamic_symtab)>>4<<8
+..@0x804870c: dd free@GLIBC_2.0@got,              7 | (dynsym_free-_dynamic_symtab)>>4<<8
+..@0x8048714: dd memcpy@GLIBC_2.0@got,            7 | (dynsym_memcpy-_dynamic_symtab)>>4<<8
+..@0x804871c: dd fgets@GLIBC_2.0@got,             7 | (dynsym_fgets-_dynamic_symtab)>>4<<8
+..@0x8048724: dd fclose@GLIBC_2.1@got,            7 | (dynsym_fclose-_dynamic_symtab)>>4<<8
+..@0x804872c: dd time@GLIBC_2.0@got,              7 | (dynsym_time-_dynamic_symtab)>>4<<8
+..@0x8048734: dd gettimeofday@GLIBC_2.0@got,      7 | (dynsym_gettimeofday-_dynamic_symtab)>>4<<8
+..@0x804873c: dd stpcpy@GLIBC_2.0@got,            7 | (dynsym_stpcpy-_dynamic_symtab)>>4<<8
+..@0x8048744: dd fseek@GLIBC_2.0@got,             7 | (dynsym_fseek-_dynamic_symtab)>>4<<8
+..@0x804874c: dd fwrite@GLIBC_2.0@got,            7 | (dynsym_fwrite-_dynamic_symtab)>>4<<8
+..@0x8048754: dd strcat@GLIBC_2.0@got,            7 | (dynsym_strcat-_dynamic_symtab)>>4<<8
+..@0x804875c: dd fread@GLIBC_2.0@got,             7 | (dynsym_fread-_dynamic_symtab)>>4<<8
+..@0x8048764: dd strcpy@GLIBC_2.0@got,            7 | (dynsym_strcpy-_dynamic_symtab)>>4<<8
+..@0x804876c: dd realloc@GLIBC_2.0@got,           7 | (dynsym_realloc-_dynamic_symtab)>>4<<8
+..@0x8048774: dd malloc@GLIBC_2.0@got,            7 | (dynsym_malloc-_dynamic_symtab)>>4<<8
+..@0x804877c: dd puts@GLIBC_2.0@got,              7 | (dynsym_puts-_dynamic_symtab)>>4<<8
+..@0x8048784: dd __gmon_start__@got,              7 | (dynsym___gmon_start__-_dynamic_symtab)>>4<<8
+..@0x804878c: dd exit@GLIBC_2.0@got,              7 | (dynsym_exit-_dynamic_symtab)>>4<<8
+..@0x8048794: dd srand@GLIBC_2.0@got,             7 | (dynsym_srand-_dynamic_symtab)>>4<<8
+..@0x804879c: dd strchr@GLIBC_2.0@got,            7 | (dynsym_strchr-_dynamic_symtab)>>4<<8
+..@0x80487a4: dd strlen@GLIBC_2.0@got,            7 | (dynsym_strlen-_dynamic_symtab)>>4<<8
+..@0x80487ac: dd __libc_start_main@GLIBC_2.0@got, 7 | (dynsym___libc_start_main-_dynamic_symtab)>>4<<8
+..@0x80487b4: dd strcasecmp@GLIBC_2.0@got,        7 | (dynsym_strcasecmp-_dynamic_symtab)>>4<<8
+..@0x80487bc: dd ftell@GLIBC_2.0@got,             7 | (dynsym_ftell-_dynamic_symtab)>>4<<8
+..@0x80487c4: dd fopen@GLIBC_2.1@got,             7 | (dynsym_fopen-_dynamic_symtab)>>4<<8
+..@0x80487cc: dd memset@GLIBC_2.0@got,            7 | (dynsym_memset-_dynamic_symtab)>>4<<8
+..@0x80487d4: dd fileno@GLIBC_2.0@got,            7 | (dynsym_fileno-_dynamic_symtab)>>4<<8
+..@0x80487dc: dd strtod@GLIBC_2.0@got,            7 | (dynsym_strtod-_dynamic_symtab)>>4<<8
+..@0x80487e4: dd fgetc@GLIBC_2.0@got,             7 | (dynsym_fgetc-_dynamic_symtab)>>4<<8
+..@0x80487ec: dd strncasecmp@GLIBC_2.0@got,       7 | (dynsym_strncasecmp-_dynamic_symtab)>>4<<8
+..@0x80487f4: dd rand@GLIBC_2.0@got,              7 | (dynsym_rand-_dynamic_symtab)>>4<<8
+..@0x80487fc: dd strtok@GLIBC_2.0@got,            7 | (dynsym_strtok-_dynamic_symtab)>>4<<8
+..@0x8048804: dd vfprintf@GLIBC_2.0@got,          7 | (dynsym_vfprintf-_dynamic_symtab)>>4<<8
+..@0x804880c: dd strtol@GLIBC_2.0@got,            7 | (dynsym_strtol-_dynamic_symtab)>>4<<8
 _dynamic_jmprel.end: equ $-B.code
 
 L.init:  ; addr=0x8048814 off=0x814
