@@ -6266,13 +6266,11 @@ _dynamic_rel.end: equ $-B.code
 
 L.rel.plt:  ; addr=0x80486e4 off=0x6e4
 _dynamic_jmprel: equ $-B.code  ; Relocations in plt.
-dynsym___gmon_start__ equ dynsym_exit  ; !! Remove this.
-dynsym_printf equ dynsym_exit  ; !! Remove this.
-dynsym_puts equ dynsym_exit  ; !! Remove this.
-; The order of these entries must match L.plt, otherwise it would segfault at startup.
+; The order of these entries must match L.plt, otherwise it would segfault
+; at startup. Maybe that's because to -0x16 offset calculation in L.pt.
+; TODO(pts): Make the -0x16 offset calculation reference L.rel.plt.
 ..@0x80486e4: dd log@GLIBC_2.0@got,               7 | (dynsym_log-_dynamic_symtab)>>4<<8
               dd read@GLIBC_2.0@got,              7 | (dynsym_read-_dynamic_symtab)>>4<<8
-              dd printf@GLIBC_2.0@got,            7 | (dynsym_printf-_dynamic_symtab)>>4<<8
               dd fflush@GLIBC_2.0@got,            7 | (dynsym_fflush-_dynamic_symtab)>>4<<8
               dd memmove@GLIBC_2.0@got,           7 | (dynsym_memmove-_dynamic_symtab)>>4<<8
               dd free@GLIBC_2.0@got,              7 | (dynsym_free-_dynamic_symtab)>>4<<8
@@ -6289,8 +6287,6 @@ dynsym_puts equ dynsym_exit  ; !! Remove this.
               dd strcpy@GLIBC_2.0@got,            7 | (dynsym_strcpy-_dynamic_symtab)>>4<<8
               dd realloc@GLIBC_2.0@got,           7 | (dynsym_realloc-_dynamic_symtab)>>4<<8
               dd malloc@GLIBC_2.0@got,            7 | (dynsym_malloc-_dynamic_symtab)>>4<<8
-              dd puts@GLIBC_2.0@got,              7 | (dynsym_puts-_dynamic_symtab)>>4<<8
-              dd __gmon_start__@got,              7 | (dynsym___gmon_start__-_dynamic_symtab)>>4<<8
               dd exit@GLIBC_2.0@got,              7 | (dynsym_exit-_dynamic_symtab)>>4<<8
               dd srand@GLIBC_2.0@got,             7 | (dynsym_srand-_dynamic_symtab)>>4<<8
               dd strchr@GLIBC_2.0@got,            7 | (dynsym_strchr-_dynamic_symtab)>>4<<8
@@ -6309,6 +6305,7 @@ dynsym_puts equ dynsym_exit  ; !! Remove this.
               dd vfprintf@GLIBC_2.0@got,          7 | (dynsym_vfprintf-_dynamic_symtab)>>4<<8
               dd strtol@GLIBC_2.0@got,            7 | (dynsym_strtol-_dynamic_symtab)>>4<<8
 _dynamic_jmprel.end: equ $-B.code
+              times 3 dd 0, 0  ; Padding.
 
 L.gap14:  ; addr=0x8048804 off=0x814
 ..@0x804880c: times 0x8048840-0x8048814 hlt  ; Padding.
@@ -6321,158 +6318,146 @@ _plt_code0: equ $-B.code
 ..@0x8048846: jmp [_GLOBAL_OFFSET_TABLE_special2@got]
 ..@0x804884c: times 4 db 0  ; Alignment padding.
 log: equ $-B.code
-..@0x8048850: jmp [log@GLIBC_2.0@got]
-..@0x8048856: push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 0.
-..@0x804885b: jmp strict near B.code+_plt_code0
+              jmp [log@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 0.
+              jmp strict near B.code+_plt_code0
 read: equ $-B.code
-..@0x8048860: jmp [read@GLIBC_2.0@got]
-..@0x8048866: push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 8.
-..@0x804886b: jmp strict near B.code+_plt_code0
-printf: equ $-B.code
-..@0x8048870: jmp [printf@GLIBC_2.0@got]
-..@0x8048876: push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 0x10.
-..@0x804887b: jmp strict near B.code+_plt_code0
+              jmp [read@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 8.
+              jmp strict near B.code+_plt_code0
 fflush: equ $-B.code
-..@0x8048880: jmp [fflush@GLIBC_2.0@got]
-..@0x8048886: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804888b: jmp strict near B.code+_plt_code0
+              jmp [fflush@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 memmove: equ $-B.code
-..@0x8048890: jmp [memmove@GLIBC_2.0@got]
-..@0x8048896: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804889b: jmp strict near B.code+_plt_code0
+              jmp [memmove@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 free: equ $-B.code
-..@0x80488a0: jmp [free@GLIBC_2.0@got]
-..@0x80488a6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80488ab: jmp strict near B.code+_plt_code0
+              jmp [free@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 memcpy: equ $-B.code
-..@0x80488b0: jmp [memcpy@GLIBC_2.0@got]
-..@0x80488b6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80488bb: jmp strict near B.code+_plt_code0
+              jmp [memcpy@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 fgets: equ $-B.code
-..@0x80488c0: jmp [fgets@GLIBC_2.0@got]
-..@0x80488c6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80488cb: jmp strict near B.code+_plt_code0
+              jmp [fgets@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 fclose: equ $-B.code
-..@0x80488d0: jmp [fclose@GLIBC_2.1@got]
-..@0x80488d6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80488db: jmp strict near B.code+_plt_code0
+              jmp [fclose@GLIBC_2.1@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 time: equ $-B.code
-..@0x80488e0: jmp [time@GLIBC_2.0@got]
-..@0x80488e6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80488eb: jmp strict near B.code+_plt_code0
+              jmp [time@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 gettimeofday: equ $-B.code
-..@0x80488f0: jmp [gettimeofday@GLIBC_2.0@got]
-..@0x80488f6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80488fb: jmp strict near B.code+_plt_code0
+              jmp [gettimeofday@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 stpcpy: equ $-B.code
-..@0x8048900: jmp [stpcpy@GLIBC_2.0@got]
-..@0x8048906: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804890b: jmp strict near B.code+_plt_code0
+              jmp [stpcpy@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 fseek: equ $-B.code
-..@0x8048910: jmp [fseek@GLIBC_2.0@got]
-..@0x8048916: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804891b: jmp strict near B.code+_plt_code0
+              jmp [fseek@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 fwrite: equ $-B.code
-..@0x8048920: jmp [fwrite@GLIBC_2.0@got]
-..@0x8048926: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804892b: jmp strict near B.code+_plt_code0
+              jmp [fwrite@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 strcat: equ $-B.code
-..@0x8048930: jmp [strcat@GLIBC_2.0@got]
-..@0x8048936: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804893b: jmp strict near B.code+_plt_code0
+              jmp [strcat@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 fread: equ $-B.code
-..@0x8048940: jmp [fread@GLIBC_2.0@got]
-..@0x8048946: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804894b: jmp strict near B.code+_plt_code0
+              jmp [fread@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 strcpy: equ $-B.code
-..@0x8048950: jmp [strcpy@GLIBC_2.0@got]
-..@0x8048956: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804895b: jmp strict near B.code+_plt_code0
+              jmp [strcpy@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 realloc: equ $-B.code
-..@0x8048960: jmp [realloc@GLIBC_2.0@got]
-..@0x8048966: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804896b: jmp strict near B.code+_plt_code0
+              jmp [realloc@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 malloc: equ $-B.code
-..@0x8048970: jmp [malloc@GLIBC_2.0@got]
-..@0x8048976: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804897b: jmp strict near B.code+_plt_code0
-puts: equ $-B.code
-..@0x8048980: jmp [puts@GLIBC_2.0@got]
-..@0x8048986: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804898b: jmp strict near B.code+_plt_code0
-__gmon_start__: equ $-B.code  ; !! Remove unused.
-..@0x8048990: jmp [__gmon_start__@got]
-..@0x8048996: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x804899b: jmp strict near B.code+_plt_code0
+              jmp [malloc@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 exit: equ $-B.code
-..@0x80489a0: jmp [exit@GLIBC_2.0@got]
-..@0x80489a6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80489ab: jmp strict near B.code+_plt_code0
+              jmp [exit@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 srand: equ $-B.code
-..@0x80489b0: jmp [srand@GLIBC_2.0@got]
-..@0x80489b6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80489bb: jmp strict near B.code+_plt_code0
+              jmp [srand@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 strchr: equ $-B.code
-..@0x80489c0: jmp [strchr@GLIBC_2.0@got]
-..@0x80489c6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80489cb: jmp strict near B.code+_plt_code0
+              jmp [strchr@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 strlen: equ $-B.code
-..@0x80489d0: jmp [strlen@GLIBC_2.0@got]
-..@0x80489d6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80489db: jmp strict near B.code+_plt_code0
+              jmp [strlen@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 __libc_start_main: equ $-B.code
-..@0x80489e0: jmp [__libc_start_main@GLIBC_2.0@got]
-..@0x80489e6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80489eb: jmp strict near B.code+_plt_code0
+              jmp [__libc_start_main@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 strcasecmp: equ $-B.code
-..@0x80489f0: jmp [strcasecmp@GLIBC_2.0@got]
-..@0x80489f6: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x80489fb: jmp strict near B.code+_plt_code0
+              jmp [strcasecmp@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 ftell: equ $-B.code
-..@0x8048a00: jmp [ftell@GLIBC_2.0@got]
-..@0x8048a06: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x8048a0b: jmp strict near B.code+_plt_code0
+              jmp [ftell@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 fopen: equ $-B.code
-..@0x8048a10: jmp [fopen@GLIBC_2.1@got]
-..@0x8048a16: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x8048a1b: jmp strict near B.code+_plt_code0
+              jmp [fopen@GLIBC_2.1@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 memset: equ $-B.code
-..@0x8048a20: jmp [memset@GLIBC_2.0@got]
-..@0x8048a26: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x8048a2b: jmp strict near B.code+_plt_code0
+              jmp [memset@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 fileno: equ $-B.code
-..@0x8048a30: jmp [fileno@GLIBC_2.0@got]
-..@0x8048a36: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x8048a3b: jmp strict near B.code+_plt_code0
+              jmp [fileno@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 strtod: equ $-B.code
-..@0x8048a40: jmp [strtod@GLIBC_2.0@got]
-..@0x8048a46: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x8048a4b: jmp strict near B.code+_plt_code0
+              jmp [strtod@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 fgetc: equ $-B.code
-..@0x8048a50: jmp [fgetc@GLIBC_2.0@got]
-..@0x8048a56: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x8048a5b: jmp strict near B.code+_plt_code0
+              jmp [fgetc@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 strncasecmp: equ $-B.code
-..@0x8048a60: jmp [strncasecmp@GLIBC_2.0@got]
-..@0x8048a66: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x8048a6b: jmp strict near B.code+_plt_code0
+              jmp [strncasecmp@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 rand: equ $-B.code
-..@0x8048a70: jmp [rand@GLIBC_2.0@got]
-..@0x8048a76: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x8048a7b: jmp strict near B.code+_plt_code0
+              jmp [rand@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 strtok: equ $-B.code
-..@0x8048a80: jmp [strtok@GLIBC_2.0@got]
-..@0x8048a86: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x8048a8b: jmp strict near B.code+_plt_code0
+              jmp [strtok@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 vfprintf: equ $-B.code
-..@0x8048a90: jmp [vfprintf@GLIBC_2.0@got]
-..@0x8048a96: push strict dword ($-B.code-_plt_code0-0x16)>>1
-..@0x8048a9b: jmp strict near B.code+_plt_code0
+              jmp [vfprintf@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1
+              jmp strict near B.code+_plt_code0
 strtol: equ $-B.code
-..@0x8048aa0: jmp [strtol@GLIBC_2.0@got]
-..@0x8048aa6: push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 0x128.
-..@0x8048aab: jmp strict near B.code+_plt_code0
-..@0x8048ab0: times 0x8048bb0-0x8048ab0 db 0  ; !! TODO(pts): Why this 0x100 bytes of padding? Not for alignment. Remove it.
+              jmp [strtol@GLIBC_2.0@got]
+              push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 0x128.
+              jmp strict near B.code+_plt_code0
+              times 0x8048bb0-0x8048ab0+0x30 db 0  ; Padding. !! TODO(pts): Why this 0x100 bytes of padding? Not for alignment. Remove it.
 
 L.start.text:  ; addr=0x8048bb0 off=0xbb0
 times -(L.start.text-B.code-$$)+0x8048bb0 times 0 nop  ; Assert.
@@ -26461,13 +26446,11 @@ _GLOBAL_OFFSET_TABLE_special1: equ $-B.data
 ..@0x805d104: dd 0  ; Special entry 1.
 _GLOBAL_OFFSET_TABLE_special2@got: equ $-B.data
 ..@0x805d108: dd 0  ; Special entry 2.
-; Functions below correspond to L.plt, they are in the same order.
+; Functions below correspond to L.plt, but their order doesn't matter.
 log@GLIBC_2.0@got: equ $-B.data
 ..@0x805d10c: dd log+6
 read@GLIBC_2.0@got: equ $-B.data
 ..@0x805d110: dd read+6
-printf@GLIBC_2.0@got: equ $-B.data
-..@0x805d114: dd printf+6
 fflush@GLIBC_2.0@got: equ $-B.data
 ..@0x805d118: dd fflush+6
 memmove@GLIBC_2.0@got: equ $-B.data
@@ -26500,10 +26483,6 @@ realloc@GLIBC_2.0@got: equ $-B.data
 ..@0x805d150: dd realloc+6
 malloc@GLIBC_2.0@got: equ $-B.data
 ..@0x805d154: dd malloc+6
-puts@GLIBC_2.0@got: equ $-B.data
-..@0x805d158: dd puts+6
-__gmon_start__@got: equ $-B.data
-..@0x805d15c: dd __gmon_start__+6
 exit@GLIBC_2.0@got: equ $-B.data
 ..@0x805d160: dd exit+6
 srand@GLIBC_2.0@got: equ $-B.data
@@ -26540,7 +26519,7 @@ strtol@GLIBC_2.0@got: equ $-B.data
 ..@0x805d1a0: dd strtol+6
 
 L.glibc.data:  ; addr=0x805d1a4 off=0x141a4
-..@0x805d1a4: times 0x805d1c4-0x805d0c0+8+12-0x100+8 daa  ; Padding.
+..@0x805d1a4: times 0x805d1c4-0x805d0c0+8+12-0x100+8+3*4 daa  ; Padding.
 %endif  ; TARGET, ;
 
 %ifidn TARGET, d
