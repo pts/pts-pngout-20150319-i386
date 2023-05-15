@@ -25639,18 +25639,14 @@ times +(P.text.end-P.text)-(0x805a698-0x8048d10) times 0 nop  ; Assert.
 
 %ifidn TARGET, x
 X.gap5:      ;0x18698..0x1876c  +0x000d4    @0x805a698...0x805a76c
-times +0x000d4 db 0
+..@0x805a698: times 0x805a76c-0x805a698 db 0  ; Padding.
+;..@0x805a76c:
 %endif  ; TARGET, x
 
 %ifidn TARGET, l
 L.gap16:  ; addr=0x805a698 off=0x12698
-..@0x805a698: times 0x805a728-0x805a698 hlt  ; Padding.
-
-L.glibc.rodata:  ; addr=0x805a728 off=0x12728
-..@0x805a728: times 0x18 hlt  ; Padding.
-
-L.rodata:  ; addr=0x805a740 off=0x12740
-..@0x805a740: times 0x2c hlt  ; Padding instead of (a copy of _fp_hw) + (a copy of _IO_stdin_used) + str_message_on_sigint.
+..@0x805a698: times 0x805a76c-0x805a698 hlt  ; Padding.
+;..@0x805a76c:
 %endif  ; TARGET, l
 
 %ifidn TARGET, d
