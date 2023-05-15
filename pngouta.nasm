@@ -6273,12 +6273,37 @@ times +((_dynamic_versym.end-_dynamic_versym)<<3)-(_dynamic_symtab.end-_dynamic_
 
 L.gnu.version_r:  ; addr=0x8048674 off=0x674
 _dynamic_verneed: equ $-B.code
-..@0x8048674: db 0x01, 0x00, 0x02, 0x00, 0x68, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00
-..@0x8048680: db 0x30, 0x00, 0x00, 0x00, 0x11, 0x69, 0x69, 0x0d, 0x00, 0x00, 0x04, 0x00, 0x8b, 0x01, 0x00, 0x00
-..@0x8048690: db 0x10, 0x00, 0x00, 0x00, 0x10, 0x69, 0x69, 0x0d, 0x00, 0x00, 0x03, 0x00, 0x95, 0x01, 0x00, 0x00
-..@0x80486a0: db 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00
-..@0x80486b0: db 0x00, 0x00, 0x00, 0x00, 0x10, 0x69, 0x69, 0x0d, 0x00, 0x00, 0x02, 0x00, 0x95, 0x01, 0x00, 0x00
-..@0x80486c0: db 0x00, 0x00, 0x00, 0x00
+; Also update $DT.VERNEEDNUM if this is updated.
+_verneed0: equ $-B.code
+..@0x8048674: dw 1  ; File group version.
+              dw 2  ; Entry count in this file.
+              dd dynstr_libc_so_6-_dynamic_strtab
+              dd _vernaux4-_verneed0
+              dd _verneed1-_dynamic_verneed  ; Pointer to next _verneed*.
+_vernaux4: equ $-B.code
+..@0x8048684: dd VNA.HASH.GLIBC_2.1  ; vna_hash (of vna_name).
+              dw 0  ; vna_flags.
+              dw 4  ; vna_other (version number). Corresponds to this value in _dynamic_versym.
+              dd dynstr_GLIBC_2.1-_dynamic_strtab  ; vna_name.
+..@0x8048690: dd _vernaux3-_vernaux4  ; vna_next.
+_vernaux3: equ $-B.code
+              dd VNA.HASH.GLIBC_2.0  ; vna_hash (of vna_name).
+              dw 0  ; vna_flags.
+              dw 3  ; vna_other (version number). Corresponds to this value in _dynamic_versym.
+              dd dynstr_GLIBC_2.0-_dynamic_strtab
+..@0x80486a0: dd 0  ; vna_next. Non next _vernaux*.
+_verneed1: equ $-B.code
+              dw 1  ; File group version.
+              dw 1  ; Entry count in this file.
+              dd dynstr_libm_so_6-_dynamic_strtab
+              dd _vernaux2-_verneed1
+..@0x80486b0: dd 0  ; No next _verneed*.
+_vernaux2: equ $-B.code
+              dd VNA.HASH.GLIBC_2.0  ; vna_hash (of vna_name).
+              dw 0  ; vna_flags.
+              dw 2  ; vna_other (version number). Corresponds to this value in _dynamic_versym.
+              dd dynstr_GLIBC_2.0-_dynamic_strtab ; vna_name.
+..@0x80486c0: dd 0  ; vna_next. No next _vernaux*.
 
 L.rel.dyn:  ; addr=0x80486c4 off=0x6c4
 _dynamic_rel: equ $-B.code  ; Relocations.
