@@ -26401,7 +26401,7 @@ _elf_dynamic: equ $-B.data  ; PT.DYNAMIC must be at a read-write location, other
               ;dd $DT.SYMENT,       0x10  ; It works without this. Size of a $DT.SYMTAB entry. The number of symbols seems to be te same as the number of strings at $DT.STRTAB (except for the first, empty string).
               dd $DT.PLTGOT,       _dynamic_pltgot  ; Required. It segfaults without this.
               dd $DT.PLTRELSZ,     _dynamic_jmprel.end-_dynamic_jmprel  ; Required. It segfaults without this.
-              dd $DT.PLTREL,       $DT.REL  ; It works without this.
+              ;dd $DT.PLTREL,       $DT.REL  ; It works without this.
               dd $DT.JMPREL,       _dynamic_jmprel  ; Required. It segfaults without this.
               dd $DT.REL,          _dynamic_rel  ; Required. It segfaults without this.
               dd $DT.RELSZ,        _dynamic_rel.end-_dynamic_rel  ; Required. It segfaults without this.
