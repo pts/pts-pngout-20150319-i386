@@ -6008,35 +6008,31 @@ _elf_interp.end: equ $-B.code
 ..@0x80480e7: times 1 db 0  ; Alignment padding.
 ;..@0x80480e8:
 
-L.gap13:  ; addr=0x8048148 off=0x148
-..@0x8048148: times 0x8048168-0x80480e8 db 0  ; Padding.
-
-L.gnu.hash:  ; addr=0x8048168 off=0x168
+L.gnu.hash:
 ; Without a $DT.GNU_HASH containing stdout, glibc (2.19 and 2.27) wouldn't
 ; autoflush stdout before reading from stdin (e.g. with fgetc(3)). So we add
 ; a minimal .gnu.hash, consisting of just `stdout' (and a single bucket).
 _dynamic_gnu_hash: equ $-B.code
 ; https://blogs.oracle.com/solaris/post/gnu-hash-elf-sections
-..@0x8048168: dd (_hash_buckets.end-_hash_buckets)>>2  ; nbuckets.
-..@0x804816c: dd ((_hashed_dynsyms-_dynamic_symtab)>>4)  ; symndx.
-..@0x8048170: dd (_bloom_filter.end-_bloom_filter)>>2  ; maskwords.
+              dd (_hash_buckets.end-_hash_buckets)>>2  ; nbuckets.
+              dd ((_hashed_dynsyms-_dynamic_symtab)>>4)  ; symndx.
+              dd (_bloom_filter.end-_bloom_filter)>>2  ; maskwords.
 %define GNU_HASH_SHIFT2 5
-..@0x8048174: dd GNU_HASH_SHIFT2  ; shift2: Bloom filter hash shift.
+              dd GNU_HASH_SHIFT2  ; shift2: Bloom filter hash shift.
 _bloom_filter: equ $-B.code
-..@0x8048178: dd GNU_HASH_BLOOM_MASK(GNU.HASH.stdout, GNU_HASH_SHIFT2)
+              dd GNU_HASH_BLOOM_MASK(GNU.HASH.stdout, GNU_HASH_SHIFT2)
 _bloom_filter.end: equ $-B.code
 _hash_buckets: equ $-B.code
-..@0x804817c: dd (dynsym_stdout-_dynamic_symtab)>>4
+              dd (dynsym_stdout-_dynamic_symtab)>>4
 _hash_buckets.end: equ $-B.code
 _hash_chain: equ $-B.code  ; Same number of dwords as number of hashed symbols.
-..@0x8048188: dd (GNU.HASH.stdout&~1)|1
+              dd (GNU.HASH.stdout&~1)|1
 _hash_chain.end: equ $-B.code
-              times 0x14 db 0  ; Padding.
 
-L.dynsym:  ; addr=0x8048198 off=0x198
+L.dynsym:
 _dynamic_symtab: equ $-B.code
 ; Each Elf32_Sym entry is 16 bytes: dd st_name; dd st_value; dd st_size; db st_info; db st_other; dw st_shndx.
-..@0x8048198: times 4 dd 0  ; First element is zero-filled.
+              times 4 dd 0  ; First element is zero-filled.
 dynsym_log: equ $-B.code  ; 1
               dd dynstr_log-_dynamic_strtab, 0, 0, 0x12  ; TODO(pts): Make the remaining st_name values symbolic.
 dynsym_read: equ $-B.code  ; 2
@@ -6117,11 +6113,10 @@ dynsym_stdout: equ $-B.code
 _dynamic_symtab.end: equ $-B.code
 times -((_hash_chain.end-_hash_chain)<<2)+(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
 times +((_hash_chain.end-_hash_chain)<<2)-(_dynamic_symtab.end-_hashed_dynsyms) times 0 nop  ; Assert.
-              times $$+0x8048478-$+B.code db 0  ; Padding.
 
-L.dynstr:  ; addr=0x8048478 off=0x478
+L.dynstr:
 _dynamic_strtab: equ $-B.code
-..@0x8048478: db 0  ; It always starts with an empty string.
+              db 0  ; It always starts with an empty string.
 dynstr_libm_so_6: equ $-B.code
               db 'libm.so.6', 0
 dynstr_log: equ $-B.code
@@ -6205,13 +6200,13 @@ dynstr_GLIBC_2.1: equ $-B.code
 dynstr_GLIBC_2.0: equ $-B.code
               db 'GLIBC_2.0', 0
 _dynamic_strtab.end: equ $-B.code
-              times $$+0x8048618-$+B.code db 0  ; Alignment and padding.
+              times (ehdr-$)&3 db 0  ; Alignment to 4.
 
-L.gnu.version:  ; addr=0x8048618 off=0x618
+L.gnu.version:
 _dynamic_versym: equ $-B.code
 ; it has the same number of (16-byte) elements as _dynamic_symtab, in the same order.
 ; Value 0 means local, value 1 means global.
-..@0x8048618: dw 0, 2, 3
+              dw 0, 2, 3
               dw 3, 3, 3, 3, 3, 4, 3
               dw 3, 3, 3, 3, 3, 3, 3, 3
               dw 3, 3, 3, 3, 3, 3
@@ -6220,56 +6215,55 @@ _dynamic_versym: equ $-B.code
 _dynamic_versym.end: equ $-B.code
 times -((_dynamic_versym.end-_dynamic_versym)<<3)+(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
 times +((_dynamic_versym.end-_dynamic_versym)<<3)-(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
-              times 7 dw 0  ; Padding. It can be removed.
+              times (ehdr-$)&3 db 0  ; Alignment to 4.
 
-L.gnu.version_r:  ; addr=0x8048674 off=0x674
+L.gnu.version_r:
 _dynamic_verneed: equ $-B.code
 ; Also update $DT.VERNEEDNUM if this is updated.
 _verneed0: equ $-B.code
-..@0x8048674: dw 1  ; File group version.
+              dw 1  ; File group version.
               dw 2  ; Entry count in this file.
               dd dynstr_libc_so_6-_dynamic_strtab
               dd _vernaux4-_verneed0
               dd _verneed1-_dynamic_verneed  ; Pointer to next _verneed*.
 _vernaux4: equ $-B.code
-..@0x8048684: dd VNA.HASH.GLIBC_2.1  ; vna_hash (of vna_name).
+              dd VNA.HASH.GLIBC_2.1  ; vna_hash (of vna_name).
               dw 0  ; vna_flags.
               dw 4  ; vna_other (version number). Corresponds to this value in _dynamic_versym.
               dd dynstr_GLIBC_2.1-_dynamic_strtab  ; vna_name.
-..@0x8048690: dd _vernaux3-_vernaux4  ; vna_next.
+              dd _vernaux3-_vernaux4  ; vna_next.
 _vernaux3: equ $-B.code
               dd VNA.HASH.GLIBC_2.0  ; vna_hash (of vna_name).
               dw 0  ; vna_flags.
               dw 3  ; vna_other (version number). Corresponds to this value in _dynamic_versym.
               dd dynstr_GLIBC_2.0-_dynamic_strtab
-..@0x80486a0: dd 0  ; vna_next. Non next _vernaux*.
+              dd 0  ; vna_next. Non next _vernaux*.
 _verneed1: equ $-B.code
               dw 1  ; File group version.
               dw 1  ; Entry count in this file.
               dd dynstr_libm_so_6-_dynamic_strtab
               dd _vernaux2-_verneed1
-..@0x80486b0: dd 0  ; No next _verneed*.
+              dd 0  ; No next _verneed*.
 _vernaux2: equ $-B.code
               dd VNA.HASH.GLIBC_2.0  ; vna_hash (of vna_name).
               dw 0  ; vna_flags.
               dw 2  ; vna_other (version number). Corresponds to this value in _dynamic_versym.
               dd dynstr_GLIBC_2.0-_dynamic_strtab ; vna_name.
-..@0x80486c0: dd 0  ; vna_next. No next _vernaux*.
+              dd 0  ; vna_next. No next _vernaux*.
 
-L.rel.dyn:  ; addr=0x80486c4 off=0x6c4
+L.rel.dyn:
 _dynamic_rel: equ $-B.code  ; Relocations.
-..@0x80486cc: dd stderr, 5 | (dynsym_stderr-_dynamic_symtab)>>4<<8
-..@0x80486d4: dd stdin,  5 | (dynsym_stdin -_dynamic_symtab)>>4<<8
-..@0x80486dc: dd stdout, 5 | (dynsym_stdout-_dynamic_symtab)>>4<<8
+              dd stderr, 5 | (dynsym_stderr-_dynamic_symtab)>>4<<8
+              dd stdin,  5 | (dynsym_stdin -_dynamic_symtab)>>4<<8
+              dd stdout, 5 | (dynsym_stdout-_dynamic_symtab)>>4<<8
 _dynamic_rel.end: equ $-B.code
-              times 1 dd 0, 0  ; Padding.
 
-L.rel.plt:  ; addr=0x80486e4 off=0x6e4
+L.rel.plt:
 _dynamic_jmprel: equ $-B.code  ; Relocations in plt.
 ; The order of these entries must match L.plt, otherwise it would segfault
 ; at startup. Maybe that's because to -0x16 offset calculation in L.pt.
 ; TODO(pts): Make the -0x16 offset calculation reference L.rel.plt.
-..@0x80486e4: dd log@GLIBC_2.0@got,               7 | (dynsym_log-_dynamic_symtab)>>4<<8
+              dd log@GLIBC_2.0@got,               7 | (dynsym_log-_dynamic_symtab)>>4<<8
               dd read@GLIBC_2.0@got,              7 | (dynsym_read-_dynamic_symtab)>>4<<8
               dd fflush@GLIBC_2.0@got,            7 | (dynsym_fflush-_dynamic_symtab)>>4<<8
               dd memmove@GLIBC_2.0@got,           7 | (dynsym_memmove-_dynamic_symtab)>>4<<8
@@ -6305,14 +6299,8 @@ _dynamic_jmprel: equ $-B.code  ; Relocations in plt.
               dd vfprintf@GLIBC_2.0@got,          7 | (dynsym_vfprintf-_dynamic_symtab)>>4<<8
               dd strtol@GLIBC_2.0@got,            7 | (dynsym_strtol-_dynamic_symtab)>>4<<8
 _dynamic_jmprel.end: equ $-B.code
-              times 3 dd 0, 0  ; Padding.
 
-L.gap14:  ; addr=0x8048804 off=0x814
-..@0x804880c: times 0x8048840-0x8048814 hlt  ; Padding.
-
-L.plt:  ; addr=0x8048840 off=0x840
-times -(L.plt-B.code-$$)+0x8048840 times 0 nop  ; Assert.
-times +(L.plt-B.code-$$)-0x8048840 times 0 nop  ; Assert.
+L.plt:
 _plt_code0: equ $-B.code
 ..@0x8048840: push dword [_GLOBAL_OFFSET_TABLE_special1]
 ..@0x8048846: jmp [_GLOBAL_OFFSET_TABLE_special2@got]
@@ -6457,30 +6445,29 @@ strtol: equ $-B.code
               jmp [strtol@GLIBC_2.0@got]
               push strict dword ($-B.code-_plt_code0-0x16)>>1  ; 0x128.
               jmp strict near B.code+_plt_code0
-              times 0x8048bb0-0x8048ab0+0x30 db 0  ; Padding. !! TODO(pts): Why this 0x100 bytes of padding? Not for alignment. Remove it.
 
-L.start.text:  ; addr=0x8048bb0 off=0xbb0
-times -(L.start.text-B.code-$$)+0x8048bb0 times 0 nop  ; Assert.
-times +(L.start.text-B.code-$$)-0x8048bb0 times 0 nop  ; Assert.
+L.start.text:
 dummy_init_and_fini: equ $-B.code
-..@0x8048bb0: ret
+              ret
 _start: equ $-B.code
-..@0x8048bb1: mov ebp, dummy_init_and_fini
-..@0x8048bb6: pop esi
-..@0x8048bb7: db 0x89, 0xe1  ; mov ecx, esp
-..@0x8048bb9: and esp, strict byte -0x10
-..@0x8048bbc: push eax
-..@0x8048bbd: push esp
-..@0x8048bbe: push edx
-..@0x8048bbf: push ebp  ; No-op __libc_csu_fini, pointing to dummy_init_and_fini.
-..@0x8048bc0: push ebp  ; No-op __libc_csu_init, pointing to dummy_init_and_fini.
-..@0x8048bc1: push ecx
-..@0x8048bc2: push esi
-..@0x8048bc3: push strict dword main
-..@0x8048bc8: db 0x31, 0xed  ; xor ebp, ebp
-..@0x8048bca: call B.code+__libc_start_main
-..@0x8048bcf: hlt
-..@0x8048bd0: times 0x8048d10-0x8048bd0 hlt  ; Padding.
+              mov ebp, dummy_init_and_fini
+              pop esi
+              db 0x89, 0xe1  ; mov ecx, esp
+              and esp, strict byte -0x10
+              push eax
+              push esp
+              push edx
+              push ebp  ; No-op __libc_csu_fini, pointing to dummy_init_and_fini.
+              push ebp  ; No-op __libc_csu_init, pointing to dummy_init_and_fini.
+              push ecx
+              push esi
+              push strict dword main
+              db 0x31, 0xed  ; xor ebp, ebp
+              call B.code+__libc_start_main
+              hlt
+
+L.gap13:
+              times $$+0x8048d10-$+B.code db 0   ; Padding (about 0x438 bytes).
 %endif  ; TARGET, l
 
 %ifidn TARGET, d
