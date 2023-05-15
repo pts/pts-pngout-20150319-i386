@@ -6820,15 +6820,16 @@ _dynamic_gnu_hash: equ $-B.code
 ..@0x80482f0: dd (_hash_buckets.end-_hash_buckets)>>2  ; nbuckets.
 ..@0x80482f4: dd ((_hashed_dynsyms-_dynamic_symtab)>>4)  ; symndx.
 ..@0x80482f8: dd (_bloom_filter.end-_bloom_filter)>>2  ; maskwords.
-..@0x80482fc: dd 5  ; shift2: Bloom filter hash shift.
+%define GNU_HASH_SHIFT2 5
+..@0x80482fc: dd GNU_HASH_SHIFT2  ; shift2: Bloom filter hash shift.
 _bloom_filter: equ $-B.code
-..@0x8048300: dd 0x22022b80
+..@0x8048300: dd GNU_HASH_BLOOM_MASK(GNU.HASH.stdin, GNU_HASH_SHIFT2) | GNU_HASH_BLOOM_MASK(GNU.HASH.stdout, GNU_HASH_SHIFT2) | GNU_HASH_BLOOM_MASK(GNU.HASH.stderr, GNU_HASH_SHIFT2) | GNU_HASH_BLOOM_MASK(GNU.HASH._IO_stdin_used, GNU_HASH_SHIFT2)
 _bloom_filter.end: equ $-B.code
 _hash_buckets: equ $-B.code
-.@0x8048304: dd 0x02e, 0x2f, 0
+.@0x8048304: dd (dynsym_stdout-_dynamic_symtab)>>4, (dynsym_stderr-_dynamic_symtab)>>4, 0
 _hash_buckets.end: equ $-B.code
 _hash_chain: equ $-B.code  ; Same number of dwords as number of hashed symbols.
-..@0x8048310: dd 0x1c8c1d29, 0x1c8bf238, 0xc0e34bac, 0x10615567
+..@0x8048310: dd (GNU.HASH.stdout&~1)|1, (GNU.HASH.stderr&~1), (GNU.HASH._IO_stdin_used&~1), (GNU.HASH.stdin&~1)|1
 _hash_chain.end: equ $-B.code
 ;..@0x8048320:
 
