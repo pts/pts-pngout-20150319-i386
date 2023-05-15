@@ -26389,28 +26389,26 @@ L.gap11:  ; addr=0x805ba20 off=0x13a20 base=B.code
 
 L.dynamic:  ; addr=0x805d000 off=0x14000
 _elf_dynamic: equ $-B.data  ; PT.DYNAMIC must be at a read-write location, otherwise it will segfault.
-; !! TODO(pts): Which of these is actually required in an executable? Maybe only SYMENT and RELENT
-;
 ; https://refspecs.linuxbase.org/elf/gabi4+/ch5.dynamic.html explains that
 ; some of these are not required in an executable, but it indeed works on
 ; Linux glibc with $DT.GNU_HASH (and $DT.HASH) even if it's missing.
-..@0x805d000: dd $DT.NEEDED,       dynstr_libm_so_6-_dynamic_strtab  ; Seems to be required.
-              dd $DT.NEEDED,       dynstr_libc_so_6-_dynamic_strtab  ; Seems to be required.
-              dd $DT.GNU_HASH,     _dynamic_gnu_hash  ; Optional, but we keep it, because without it libc.so.6 won't autoswitch stdout to line-buffered (on a TTY). Having _IO_stdin_used doesn't matter though.
-              dd $DT.STRTAB,       _dynamic_strtab  ; Seems to be required.
-              dd $DT.SYMTAB,       _dynamic_symtab  ; Seems to be required. How do we get the number of symbols.
-              dd $DT.STRSZ,        _dynamic_strtab.end-_dynamic_strtab  ; Seems to be required.
-              dd $DT.SYMENT,       0x10  ; Seems to be required. Size of a $DT.SYMTAB entry. The number of symbols seems to be te same as the number of strings at $DT.STRTAB (except for the first, empty string).
-              dd $DT.PLTGOT,       _dynamic_pltgot  ; Seems to be required.
-              dd $DT.PLTRELSZ,     _dynamic_jmprel.end-_dynamic_jmprel  ; Seems to be required.
-              dd $DT.PLTREL,       $DT.REL  ; Seems to be required.
-              dd $DT.JMPREL,       _dynamic_jmprel  ; Seems to be required.
-              dd $DT.REL,          _dynamic_rel  ; Seems to be required.
-              dd $DT.RELSZ,        _dynamic_rel.end-_dynamic_rel  ; Seems to be required.
-              dd $DT.RELENT,       8  ; Seems to be required. Size of a relocation ($DT.REL) entry.
-              dd $DT.VERNEED,      _dynamic_verneed  ; Seems to be required.
-              dd $DT.VERNEEDNUM,   2  ; Seems to be required. Computing this is complicated, see https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA.junk/symversion.html
-              dd $DT.VERSYM,       _dynamic_versym  ; Seems to be required.
+..@0x805d000: dd $DT.NEEDED,       dynstr_libm_so_6-_dynamic_strtab  ; Required.
+              dd $DT.NEEDED,       dynstr_libc_so_6-_dynamic_strtab  ; Required.
+              dd $DT.GNU_HASH,     _dynamic_gnu_hash  ; Keep it because without it libc.so.6 won't autoswitch stdout to line-buffered (on a TTY). Having _IO_stdin_used doesn't matter though.
+              dd $DT.STRTAB,       _dynamic_strtab  ; Required.
+              dd $DT.SYMTAB,       _dynamic_symtab  ; Required. How do we get the number of symbols.
+              dd $DT.STRSZ,        _dynamic_strtab.end-_dynamic_strtab  ; It works without this.
+              dd $DT.SYMENT,       0x10  ; It works without this. Size of a $DT.SYMTAB entry. The number of symbols seems to be te same as the number of strings at $DT.STRTAB (except for the first, empty string).
+              dd $DT.PLTGOT,       _dynamic_pltgot  ; Required. It segfaults without this.
+              dd $DT.PLTRELSZ,     _dynamic_jmprel.end-_dynamic_jmprel  ; Required. It segfaults without this.
+              dd $DT.PLTREL,       $DT.REL  ; It works without this.
+              dd $DT.JMPREL,       _dynamic_jmprel  ; Required. It segfaults without this.
+              dd $DT.REL,          _dynamic_rel  ; Required. It segfaults without this.
+              dd $DT.RELSZ,        _dynamic_rel.end-_dynamic_rel  ; Required. It segfaults without this.
+              dd $DT.RELENT,       8  ; Required. It segfaults without this. Size of a relocation ($DT.REL) entry.
+              dd $DT.VERNEED,      _dynamic_verneed  ; Required. It segfaults without this.
+              dd $DT.VERNEEDNUM,   2  ; It works (and enforces versions) without this. Computing this is complicated, see https://refspecs.linuxfoundation.org/LSB_3.0.0/LSB-PDA/LSB-PDA.junk/symversion.html
+              dd $DT.VERSYM,       _dynamic_versym  ; Required. It segfaults without this.
               dd $DT.NULL,         0  ; Required. Terminates the list. Value is always 0.
 _elf_dynamic.end: equ $-B.data
 
