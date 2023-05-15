@@ -26405,17 +26405,14 @@ $DT:  ; Symbolic constants for ELF DT_... (dynamic type).
 L.gap11:  ; addr=0x805ba20 off=0x13a20 base=B.code
 ..@0x805ba20: times 0x805c000-0x805ba20 db 0  ; Padding.
 
-L.gap12:  ; addr=0x805d000 off=0x14000 base=B.data
-..@0x805d000: times 0x805d00c-0x805d000 db 0  ; Padding.
-
-L.dynamic:  ; addr=0x805d00c off=0x1400c
+L.dynamic:  ; addr=0x805d000 off=0x14000
 _elf_dynamic: equ $-B.data  ; PT.DYNAMIC must be at a read-write location, otherwise it will segfault.
 ; !! TODO(pts): Which of these is actually required in an executable? Maybe only SYMENT and RELENT
 ;
 ; https://refspecs.linuxbase.org/elf/gabi4+/ch5.dynamic.html explains that
 ; some of these are not required in an executable, but it indeed works on
 ; Linux glibc with $DT.GNU_HASH (and $DT.HASH) even if it's missing.
-..@0x805d00c: dd $DT.NEEDED,       dynstr_libm_so_6-_dynamic_strtab  ; Seems to be required.
+..@0x805d000: dd $DT.NEEDED,       dynstr_libm_so_6-_dynamic_strtab  ; Seems to be required.
               dd $DT.NEEDED,       dynstr_libc_so_6-_dynamic_strtab  ; Seems to be required.
               dd $DT.GNU_HASH,     _dynamic_gnu_hash  ; Optional, but we keep it, because without it libc.so.6 won't autoswitch stdout to line-buffered (on a TTY). Having _IO_stdin_used doesn't matter though.
               dd $DT.STRTAB,       _dynamic_strtab  ; Seems to be required.
@@ -26434,7 +26431,6 @@ _elf_dynamic: equ $-B.data  ; PT.DYNAMIC must be at a read-write location, other
               dd $DT.VERSYM,       _dynamic_versym  ; Seems to be required.
               dd $DT.NULL,         0  ; Required. Terminates the list. Value is always 0.
 _elf_dynamic.end: equ $-B.data
-              times 0x64 db 0  ; Padding.
 
 L.got.plt:  ; addr=0x805d100 off=0x14100
 _dynamic_pltgot: equ $-B.data  ; $DT.PLTGOT must be at a read-write location, otherwise it will segfault.
@@ -26518,8 +26514,8 @@ vfprintf@GLIBC_2.0@got: equ $-B.data
 strtol@GLIBC_2.0@got: equ $-B.data
 ..@0x805d1a0: dd strtol+6
 
-L.glibc.data:  ; addr=0x805d1a4 off=0x141a4
-..@0x805d1a4: times 0x805d1c4-0x805d0c0+8+12-0x100+8+3*4 daa  ; Padding.
+L.gap12:
+              times $$+0x805d1c4-$+B.data db 0  ; Padding (about 0x9c bytes).
 %endif  ; TARGET, ;
 
 %ifidn TARGET, d
