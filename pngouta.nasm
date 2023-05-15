@@ -5899,6 +5899,27 @@ X.gap3:      ;0x06d09..0x06d10  +0x00007    @0x8048d09...0x8048d10
 times +0x00007 nop
 %endif  ; TARGET, x
 
+; http://www.linker-aliens.org/blogs/ali/entry/gnu_hash_elf_sections/
+; unsigned long gnu_hash(const char *s) {
+;   unsigned long h = 5381;
+;   unsigned char c;
+;   for (c = *s; c != '\0'; c = *++s) {
+;     h = h * 33 + c;
+;   }
+;   return h & 0xffffffff;
+; }
+GNU.HASH:  ; Symbolic constants.
+.stdin: equ 0x10615567
+.stdout: equ 0x1c8c1d28
+.stderr: equ 0x1c8bf239
+._IO_stdin_used: equ 0xc0e34bad
+; Assumes maskwords==1.
+%define GNU_HASH_BLOOM_MASK(hash, shift2) (1 << ((hash) & 0x1f) | 1 << ((hash) >> (shift2) & 0x1f))
+
+VNA.HASH:  ; Symbolic constants.
+.GLIBC_2.0: equ 0x0d696910
+.GLIBC_2.1: equ 0x0d696911
+
 %ifidn TARGET, l
 L.ELF_ehdr:  ; addr=0x8048000 off=0x0
 ehdr:					; Elf32_Ehdr
@@ -27207,7 +27228,7 @@ _GLOBAL_OFFSET_TABLE_special1: equ $-B.data
 ..@0x805d10c: dd 0  ; Special entry 1.
 _GLOBAL_OFFSET_TABLE_special2@got: equ $-B.data
 ..@0x805d110: dd 0  ; Special entry 2.
-; Functions below correspond to L.plt, they are in the same order.
+; Functions below correspond to L.plt, but their order doesn't matter.
 log@GLIBC_2.0@got: equ $-B.data
 ..@0x805d114: dd log+6
 read@GLIBC_2.0@got: equ $-B.data
