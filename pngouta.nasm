@@ -25645,14 +25645,13 @@ X.gap5:      ;0x18698..0x1876c  +0x000d4    @0x805a698...0x805a76c
 
 %ifidn TARGET, l
 L.gap16:  ; addr=0x805a698 off=0x12698
-..@0x805a698: times 0x805a76c-0x805a698 hlt  ; Padding.
+..@0x805a698: times 0x805a76c-0x805a698 db 0  ; Padding.
 ;..@0x805a76c:
 %endif  ; TARGET, l
 
 %ifidn TARGET, d
 D.gap15:  ; addr=0x805a698 off=0x12698
-..@0x805a698: times 0x805a740-0x805a698 nop
-..@0x805a740: times 0x805a76c-0x805a740 daa
+..@0x805a698: times 0x805a76c-0x805a698 db 0  ; Padding.
 ;..@0x805a76c:
 %endif
 
