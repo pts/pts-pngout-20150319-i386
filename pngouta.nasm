@@ -99,14 +99,14 @@ A.code equ 0
 ;extern srand  ; Reimplemented.
 ;extern strchr  ; Reimplemented.
 ;extern strlen  ; Reimplemented.
-;extern strcasecmp
+;extern strcasecmp  ; Reimplemented.
 ;extern ftell
 ;extern fopen
 ;extern memset
 ;extern fileno
 ;extern strtod  ; Reimplemented. !! Remove referenes to U __GI___ctype_b, U __GI___ctype_tolower, U __errno_location
 ;extern fgetc  ; Needs read buffering, not from stdin.
-;extern strncasecmp
+;extern strncasecmp  ; Reimplemented.
 ;extern rand  ; Reimplemented.
 ;extern strtok
 ;extern vfprintf  ; Reimplemented.
@@ -2529,60 +2529,8 @@ stpcpy: equ $-B.code
 ..@0x8045cd6: db 0x75, 0xf6  ;; jnz 0x8045cce
 ..@0x8045cd8: db 0x8d, 0x42, 0xff  ;; lea eax,[edx-0x1]
 ..@0x8045cdb: ret
-strcasecmp: equ $-B.code
-..@0x8045cdc: push esi
-..@0x8045cdd: db 0x8b, 0x35, 0xa8, 0xd1, 0x05, 0x08  ;; mov esi,[__ctype_tolower]
-..@0x8045ce3: db 0x31, 0xc0  ;; xor eax,eax
-..@0x8045ce5: push ebx
-..@0x8045ce6: db 0x8b, 0x4c, 0x24, 0x0c  ;; mov ecx,[esp+0xc]
-..@0x8045cea: db 0x8b, 0x5c, 0x24, 0x10  ;; mov ebx,[esp+0x10]
-..@0x8045cee: db 0x39, 0xd9  ;; cmp ecx,ebx
-..@0x8045cf0: db 0x74, 0x14  ;; jz 0x8045d06
-..@0x8045cf2: db 0x0f, 0xb6, 0x01  ;; movzx eax,byte [ecx]
-..@0x8045cf5: db 0x0f, 0xbf, 0x14, 0x46  ;; movsx edx,word [esi+eax*2]
-..@0x8045cf9: db 0x0f, 0xb6, 0x03  ;; movzx eax,byte [ebx]
-..@0x8045cfc: db 0x0f, 0xbf, 0x04, 0x46  ;; movsx eax,word [esi+eax*2]
-..@0x8045d00: db 0x29, 0xc2  ;; sub edx,eax
-..@0x8045d02: db 0x89, 0xd0  ;; mov eax,edx
-..@0x8045d04: db 0x75, 0x09  ;; jnz 0x8045d0f
-..@0x8045d06: db 0x80, 0x39, 0x00  ;; cmp byte [ecx],0x0
-..@0x8045d09: db 0x74, 0x04  ;; jz 0x8045d0f
-..@0x8045d0b: inc ebx
-..@0x8045d0c: inc ecx
-..@0x8045d0d: db 0xeb, 0xdf  ;; jmp short 0x8045cee
-..@0x8045d0f: pop ebx
-..@0x8045d10: pop esi
-..@0x8045d11: ret
-strncasecmp: equ $-B.code
-..@0x8045d12: push edi
-..@0x8045d13: db 0x8b, 0x3d, 0xa8, 0xd1, 0x05, 0x08  ;; mov edi,[__ctype_tolower]
-..@0x8045d19: db 0x31, 0xc0  ;; xor eax,eax
-..@0x8045d1b: push esi
-..@0x8045d1c: push ebx
-..@0x8045d1d: db 0x8b, 0x4c, 0x24, 0x10  ;; mov ecx,[esp+0x10]
-..@0x8045d21: db 0x8b, 0x5c, 0x24, 0x14  ;; mov ebx,[esp+0x14]
-..@0x8045d25: db 0x8b, 0x74, 0x24, 0x18  ;; mov esi,[esp+0x18]
-..@0x8045d29: db 0x85, 0xf6  ;; test esi,esi
-..@0x8045d2b: db 0x74, 0x22  ;; jz 0x8045d4f
-..@0x8045d2d: db 0x39, 0xd9  ;; cmp ecx,ebx
-..@0x8045d2f: db 0x74, 0x14  ;; jz 0x8045d45
-..@0x8045d31: db 0x0f, 0xb6, 0x01  ;; movzx eax,byte [ecx]
-..@0x8045d34: db 0x0f, 0xbf, 0x14, 0x47  ;; movsx edx,word [edi+eax*2]
-..@0x8045d38: db 0x0f, 0xb6, 0x03  ;; movzx eax,byte [ebx]
-..@0x8045d3b: db 0x0f, 0xbf, 0x04, 0x47  ;; movsx eax,word [edi+eax*2]
-..@0x8045d3f: db 0x29, 0xc2  ;; sub edx,eax
-..@0x8045d41: db 0x89, 0xd0  ;; mov eax,edx
-..@0x8045d43: db 0x75, 0x0a  ;; jnz 0x8045d4f
-..@0x8045d45: db 0x80, 0x39, 0x00  ;; cmp byte [ecx],0x0
-..@0x8045d48: db 0x74, 0x05  ;; jz 0x8045d4f
-..@0x8045d4a: dec esi
-..@0x8045d4b: inc ebx
-..@0x8045d4c: inc ecx
-..@0x8045d4d: db 0xeb, 0xda  ;; jmp short 0x8045d29
-..@0x8045d4f: pop ebx
-..@0x8045d50: pop esi
-..@0x8045d51: pop edi
-..@0x8045d52: ret
+unused_strcasecmp_and_strncasecmp: equ $-B.code
+..@0x8045cdc: times 0x8045d53-0x8045cdc hlt  ; Padding
 strtok: equ $-B.code
 ..@0x8045d53: sub esp, strict byte 0x10
 ..@0x8045d56: push strict dword next_start.1278
@@ -4315,7 +4263,57 @@ index: equ $-B.code  ; char *index(const char *s, int c);
 		pop esi
 		ret
 ;
-		times $$+0x8047552-$+B.code hlt  ; Unused, 0x64 bytes.
+strcasecmp: equ $-B.code  ; int strcasecmp(const char *l, const char *r);
+		or ecx, byte -1  ; ECX := -1.
+		jmp strict short B.code+strncasecmp.have_ecx
+;
+; Manually written, 0x4a bytes.
+strncasecmp: equ $-B.code  ; int strncasecmp(const char *l, const char *r, size_t n);
+		mov ecx, [esp+3*4]  ; n (maximum number of bytes to scan).
+strncasecmp.have_ecx: equ $-B.code
+		push esi
+		push edi
+		push ebx
+		mov esi, [esp+4*4]  ; Start of string l.
+		mov edi, [esp+5*4]  ; Start of string r.
+; ESI: Start of string l. Will be ruined.
+; EDI: Start of string r. Will be ruined.
+; ECX: n (maximum number of bytes to scan). Will be ruined.
+; EBX: Scratch. Will be ruined.
+; EDX: Scratch. Will be ruined.
+; EAX: Scratch. The result is returned here.
+		xor eax, eax
+		xor ebx, ebx
+.again:		jecxz .return
+		dec ecx
+		lodsb
+		mov dh, al
+		sub dh, 'A'
+		cmp dh, 'Z'-'A'
+		mov dl, al
+		ja .2a
+		or al, 0x20
+.2a:		movzx eax, al
+		mov bl, [edi]
+		inc edi
+		mov dh, bl
+		sub dh, 'A'
+		cmp dh, 'Z'-'A'
+		mov dh, bl
+		ja .2b
+		or bl, 0x20
+.2b:		sub eax, ebx  ; EAX := tolower(*l) - tolower(*r), zero-extended.
+		jnz .return
+		test dh, dh
+		jz .return
+		test dl, dl
+		jnz .again
+.return:	pop ebx
+		pop edi
+		pop esi
+		ret
+;
+		times $$+0x8047552-$+B.code hlt  ; Padding.
 exit: equ $-B.code
 ..@0x8047552: push esi
 ..@0x8047553: push ebx
