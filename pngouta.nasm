@@ -98,7 +98,7 @@ A.code equ 0
 ;extern exit  ; There is a corresponding Linux syscall _exit.
 ;extern srand  ; Reimplemented.
 ;extern strchr
-;extern strlen
+;extern strlen  ; Reimplemented.
 ;extern strcasecmp
 ;extern ftell
 ;extern fopen
@@ -2516,17 +2516,8 @@ strcpy: equ $-B.code
 ..@0x8045bc4: pop esi
 ..@0x8045bc5: pop edi
 ..@0x8045bc6: ret
-strlen: equ $-B.code
-..@0x8045bc7: push edi
-..@0x8045bc8: db 0x31, 0xc0  ;; xor eax,eax
-..@0x8045bca: db 0x8b, 0x7c, 0x24, 0x08  ;; mov edi,[esp+0x8]
-..@0x8045bce: or ecx, strict byte -0x1
-..@0x8045bd1: db 0xf2, 0xae  ;; repne scasb
-..@0x8045bd3: db 0xf7, 0xd1  ;; not ecx
-..@0x8045bd5: dec ecx
-..@0x8045bd6: pop edi
-..@0x8045bd7: db 0x89, 0xc8  ;; mov eax,ecx
-..@0x8045bd9: ret
+unused_strlen: equ $-B.code
+..@0x8045bc7: times 0x8045bda-0x8045bc7 hlt  ; Padding.
 strnlen: equ $-B.code
 ..@0x8045bda: db 0x8b, 0x4c, 0x24, 0x04  ;; mov ecx,[esp+0x4]
 ..@0x8045bde: db 0x8b, 0x54, 0x24, 0x08  ;; mov edx,[esp+0x8]
@@ -4308,6 +4299,18 @@ strtod_labels:
 		; Now: ST0 is p_base, ST1 is number.
 		fstp st0  ; Pop p_base. `number' remains on the stack.
 		jmp short .store_done
+;
+strlen: equ $-B.code:  ; size_t strlen(const char *s);
+		push edi
+		mov edi, [esp+8]  ; Argument s.
+		xchg eax, eax
+		or ecx, byte -1  ; ECX := -1.
+		repne scasb
+		sub eax, ecx
+		dec eax
+		dec eax
+		pop edi
+		ret
 ;
 		times $$+0x8047552-$+B.code hlt  ; Unused, 0x64 bytes.
 exit: equ $-B.code
