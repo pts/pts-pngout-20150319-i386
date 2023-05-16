@@ -104,7 +104,7 @@ A.code equ 0
 ;extern fopen
 ;extern memset
 ;extern fileno
-;extern strtod  ; For pngoutx, keep the uClibc implementation, it's releatively small (strtod + __strtofpmax + __fp_range_check), remove referenes to U __GI___ctype_b, U __GI___ctype_tolower, U __errno_location
+;extern strtod  ; Reimplemented. !! Remove referenes to U __GI___ctype_b, U __GI___ctype_tolower, U __errno_location
 ;extern fgetc  ; Needs read buffering, not from stdin.
 ;extern strncasecmp
 ;extern rand  ; Reimplemented.
@@ -201,8 +201,8 @@ times -($-$$+0x8042000)+0x80424c0 times 0 nop  ; Assert.
 times +($-$$+0x8042000)-0x80424c0 times 0 nop  ; Assert.
 ucrodata_unknown1: equ $-B.code  ; No labels here.
 ..@0x80424c0: db 0x00, 0x00, 0x80, 0xda, 0x00, 0x00, 0x80, 0x5a, 0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0x00, 0x40
-f32_10: equ $-B.code
-..@0x80424d0: dd 0x41200000  ; 32-bit (float)10.0.
+unused_f32_10: equ $-B.code
+..@0x80424d0: dd 0
 f32_0.25: equ $-B.code
 ..@0x80424d4: dd 0x3e800000  ; 32-bit (float)0.25.
 ucrodata_unknown4: equ $-B.code  ; No labels here.
@@ -4007,14 +4007,14 @@ strtol: equ $-B.code  ; long strtol(const char *nptr, char **endptr, int base);
 ; We dn't make ARG_* ebp+... (rather than esp+...), because the size saving
 ; (1 byte per use in an effective address) is 0 (push ebp ++ mov ebp, esp ++
 ; pop ebp == 4 bytes).
-%define ARG_NPTR esp+0x10
-%define ARG_ENDPTR ARG_NPTR+4
-%define ARG_BASE ARG_ENDPTR+4
+%define STRTOL_ARG_NPTR esp+0x10
+%define STRTOL_ARG_ENDPTR STRTOL_ARG_NPTR+4
+%define STRTOL_ARG_BASE STRTOL_ARG_ENDPTR+4
 		push ebx
 		push esi
 		push edi
-		mov esi, [ARG_NPTR]
-		mov ebx, [ARG_ENDPTR]
+		mov esi, [STRTOL_ARG_NPTR]
+		mov ebx, [STRTOL_ARG_ENDPTR]
 		test ebx, ebx
 		jz .endptr_null_1
 		mov [ebx], esi
@@ -4035,7 +4035,7 @@ strtol: equ $-B.code  ; long strtol(const char *nptr, char **endptr, int base);
 .not_minus:	cmp al, '+'
 		je .after_sign
 		dec esi
-.after_sign:	mov ebx, [ARG_BASE]
+.after_sign:	mov ebx, [STRTOL_ARG_BASE]
 		cmp ebx, byte 16
 		je .maybe_base_16
 		test ebx, ebx
@@ -4091,7 +4091,7 @@ strtol: equ $-B.code  ; long strtol(const char *nptr, char **endptr, int base);
 .no_overflow_2: jmp .next_digit
 .after_loop:	test cl, 2
 		jz .endptr_null_2
-		mov ebx, [ARG_ENDPTR]
+		mov ebx, [STRTOL_ARG_ENDPTR]
 		test ebx, ebx
 		jz .endptr_null_2
 		mov [ebx], esi
@@ -4118,243 +4118,200 @@ strtol: equ $-B.code  ; long strtol(const char *nptr, char **endptr, int base);
 		pop ebx
 		ret
 ;
-		times $$+0x80472b6-$+B.code hlt  ; Unused, 0x64 bytes.
-strtod: equ $-B.code
-..@0x80472b6: sub esp, strict byte 0x20
-..@0x80472b9: push strict byte 0x0
-..@0x80472bb: push dword [esp+0x2c]
-..@0x80472bf: push dword [esp+0x2c]
-..@0x80472c3: call B.code+__strtofpmax
-..@0x80472c8: db 0xdd, 0x54, 0x24, 0x18  ;; fst qword [esp+0x18]
-..@0x80472cc: sub esp, strict byte 0x10
-..@0x80472cf: db 0xdb, 0x7c, 0x24, 0x0c  ;; fstp tword [esp+0xc]
-..@0x80472d3: db 0xdd, 0x44, 0x24, 0x28  ;; fld qword [esp+0x28]
-..@0x80472d7: db 0xdb, 0x3c, 0x24  ;; fstp tword [esp]
-..@0x80472da: call B.code+__fp_range_check
-..@0x80472df: db 0xdd, 0x44, 0x24, 0x28  ;; fld qword [esp+0x28]
-..@0x80472e3: add esp, strict byte 0x3c
-..@0x80472e6: ret
-__strtofpmax: equ $-B.code
-..@0x80472e7: push ebp
-..@0x80472e8: push edi
-..@0x80472e9: push esi
-..@0x80472ea: push ebx
-..@0x80472eb: sub esp, strict byte 0x3c
-..@0x80472ee: db 0xa1, 0xa0, 0xd1, 0x05, 0x08  ;; mov eax,[__ctype_b]  ;; !! TODO(pts): Get rid of ctype_b here.
-..@0x80472f3: db 0x8b, 0x7c, 0x24, 0x58  ;; mov edi,[esp+0x58]
-..@0x80472f7: db 0x8b, 0x74, 0x24, 0x50  ;; mov esi,[esp+0x50]
-..@0x80472fb: db 0x89, 0x44, 0x24, 0x2c  ;; mov [esp+0x2c],eax
-..@0x80472ff: db 0xeb, 0x01  ;; jmp short 0x8047302
-..@0x8047301: inc esi
-..@0x8047302: db 0x0f, 0xbe, 0x06  ;; movsx eax,byte [esi]
-..@0x8047305: db 0x8b, 0x54, 0x24, 0x2c  ;; mov edx,[esp+0x2c]  ; ctype_b.
-..@0x8047309: db 0xf6, 0x04, 0x42, 0x20  ;; test byte [edx+eax*2],0x20
-..@0x804730d: db 0x75, 0xf2  ;; jnz 0x8047301
-..@0x804730f: cmp eax, strict byte 0x2b
-..@0x8047312: db 0x74, 0x17  ;; jz 0x804732b
-..@0x8047314: cmp eax, strict byte 0x2d
-..@0x8047317: db 0xc7, 0x44, 0x24, 0x0c, 0x00, 0x00, 0x00, 0x00  ;; mov dword [esp+0xc],0x0
-..@0x804731f: db 0x75, 0x13  ;; jnz 0x8047334
-..@0x8047321: db 0xc7, 0x44, 0x24, 0x0c, 0x01, 0x00, 0x00, 0x00  ;; mov dword [esp+0xc],0x1
-..@0x8047329: db 0xeb, 0x08  ;; jmp short 0x8047333
-..@0x804732b: db 0xc7, 0x44, 0x24, 0x0c, 0x00, 0x00, 0x00, 0x00  ;; mov dword [esp+0xc],0x0
-..@0x8047333: inc esi
-..@0x8047334: db 0xd9, 0xee  ;; fldz  ; number = 0.;
-..@0x8047336: db 0x31, 0xdb  ;; xor ebx,ebx
-..@0x8047338: or ecx, strict byte -0x1
-..@0x804733b: db 0xd9, 0x05, 0xd0, 0x24, 0x04, 0x08  ;; fld dword [f32_10]
-..@0x8047341: db 0xeb, 0x2b  ;; jmp short 0x804736e
-..@0x8047343: db 0x81, 0xf9, 0x00, 0x00, 0x00, 0x80  ;; cmp ecx,0x80000000
-..@0x8047349: sbb ecx, strict byte -0x1
-..@0x804734c: db 0x85, 0xc9  ;; test ecx,ecx
-..@0x804734e: db 0x75, 0x05  ;; jnz 0x8047355
-..@0x8047350: db 0x80, 0xfa, 0x30  ;; cmp dl,0x30
-..@0x8047353: db 0x74, 0x18  ;; jz 0x804736d
-..@0x8047355: inc ecx
-..@0x8047356: cmp ecx, strict byte 0x15
-..@0x8047359: db 0x7f, 0x12  ;; jg 0x804736d
-..@0x804735b: db 0x8b, 0x44, 0x24, 0x1c  ;; mov eax,[esp+0x1c]
-..@0x804735f: db 0xdc, 0xc9  ;; fmul to st1
-..@0x8047361: sub eax, strict byte 0x30
-..@0x8047364: push eax
-..@0x8047365: db 0xdb, 0x04, 0x24  ;; fild dword [esp]
-..@0x8047368: add esp, strict byte 0x4
-..@0x804736b: db 0xde, 0xc2  ;; faddp st2
-..@0x804736d: inc esi
-..@0x804736e: db 0x8a, 0x16  ;; mov dl,[esi]
-..@0x8047370: db 0x8b, 0x44, 0x24, 0x2c  ;; mov eax,[esp+0x2c]  ; ctype_b.
-..@0x8047374: db 0x0f, 0xbe, 0xea  ;; movsx ebp,dl
-..@0x8047377: db 0x89, 0x6c, 0x24, 0x1c  ;; mov [esp+0x1c],ebp
-..@0x804737b: db 0xf6, 0x04, 0x68, 0x08  ;; test byte [eax+ebp*2],0x8
-..@0x804737f: db 0x75, 0xc2  ;; jnz 0x8047343
-..@0x8047381: db 0x80, 0xfa, 0x2e  ;; cmp dl,0x2e
-..@0x8047384: db 0x75, 0x09  ;; jnz 0x804738f
-..@0x8047386: db 0x85, 0xdb  ;; test ebx,ebx
-..@0x8047388: db 0x75, 0x05  ;; jnz 0x804738f
-..@0x804738a: inc esi
-..@0x804738b: db 0x89, 0xf3  ;; mov ebx,esi
-..@0x804738d: db 0xeb, 0xdf  ;; jmp short 0x804736e
-..@0x804738f: db 0xdd, 0xd8  ;; fstp st0
-..@0x8047391: db 0x85, 0xc9  ;; test ecx,ecx
-..@0x8047393: db 0x79, 0x72  ;; jns 0x8047407
-..@0x8047395: db 0x85, 0xdb  ;; test ebx,ebx
-..@0x8047397: db 0x75, 0x65  ;; jnz 0x80473fe
-..@0x8047399: db 0x31, 0xff  ;; xor edi,edi
-..@0x804739b: db 0xeb, 0x37  ;; jmp short 0x80473d4
-..@0x804739d: inc edi
-..@0x804739e: db 0x80, 0xbc, 0x1f
-                dd nan_inf_str+1
-                db 0  ;; cmp byte [edi+ebx+nan_inf_str+1],0x0
-..@0x80473a6: db 0x75, 0x2c  ;; jnz 0x80473d4
-..@0x80473a8: db 0xdd, 0xd8  ;; fstp st0
-..@0x80473aa: push ebx
-..@0x80473ab: db 0x0f, 0xbe, 0x83, 0xa8, 0x31, 0x04, 0x08  ;; movsx eax,byte [ebx+nan_inf_str]
-..@0x80473b2: db 0xdb, 0x04, 0x24  ;; fild dword [esp]
-..@0x80473b5: add esp, strict byte 0x4
-..@0x80473b8: db 0xdc, 0x35, 0x38, 0x25, 0x04, 0x08  ;; fdiv qword [f64_0]  ; Explicit division by 0: number = i / 0.;
-..@0x80473be: db 0x83, 0x7c, 0x24, 0x0c, 0x00  ;; cmp dword [esp+0xc],byte +0x0
-..@0x80473c3: db 0x8d, 0x74, 0x06, 0xfe  ;; lea esi,[esi+eax-0x2]
-..@0x80473c7: db 0xd9, 0xc0  ;; fld st0
-..@0x80473c9: db 0xd9, 0xe0  ;; fchs
-..@0x80473cb: db 0xda, 0xc9  ;; fcmove st1
-..@0x80473cd: db 0xdd, 0xd9  ;; fstp st1
-..@0x80473cf: jmp strict near R.code+0x80474f0
-..@0x80473d4: db 0x0f, 0xbe, 0x0c, 0x3e  ;; movsx ecx,byte [esi+edi]
-..@0x80473d8: db 0xa1, 0xa8, 0xd1, 0x05, 0x08  ;; mov eax,[__ctype_tolower]
-..@0x80473dd: db 0x66, 0x0f, 0xbe, 0x94, 0x1f, 0xa9, 0x31, 0x04, 0x08  ;; movsx dx,[edi+ebx+nan_inf_str+1]
-..@0x80473e6: db 0x66, 0x39, 0x14, 0x48  ;; cmp [eax+ecx*2],dx  ; ctype_tolower_base_0[ecx] == nan_inf_str[i+1+j])?  !! TODO(pts): For the default locale, change this lookup to: or cl, 0x20; cmp cl, dl
-..@0x80473ea: db 0x74, 0xb1  ;; jz 0x804739d
-..@0x80473ec: db 0x0f, 0xbe, 0x83, 0xa8, 0x31, 0x04, 0x08  ;; movsx eax,byte [ebx+nan_inf_str]
-..@0x80473f3: db 0x01, 0xc3  ;; add ebx,eax
-..@0x80473f5: db 0x80, 0xbb, 0xa8, 0x31, 0x04, 0x08, 0x00  ;; cmp byte [ebx+nan_inf_str],0x0
-..@0x80473fc: db 0x75, 0x9b  ;; jnz 0x8047399
-..@0x80473fe: db 0x8b, 0x74, 0x24, 0x50  ;; mov esi,[esp+0x50]
-..@0x8047402: jmp strict near R.code+0x80474f0
-..@0x8047407: cmp ecx, strict byte 0x15
-..@0x804740a: db 0x7e, 0x04  ;; jng 0x8047410
-..@0x804740c: db 0x8d, 0x7c, 0x0f, 0xeb  ;; lea edi,[edi+ecx-0x15]
-..@0x8047410: db 0x85, 0xdb  ;; test ebx,ebx
-..@0x8047412: db 0x74, 0x04  ;; jz 0x8047418
-..@0x8047414: db 0x29, 0xf3  ;; sub ebx,esi
-..@0x8047416: db 0x01, 0xdf  ;; add edi,ebx
-..@0x8047418: db 0x83, 0x7c, 0x24, 0x0c, 0x00  ;; cmp dword [esp+0xc],byte +0x0
-..@0x804741d: db 0xd9, 0xc0  ;; fld st0
-..@0x804741f: db 0xd9, 0xe0  ;; fchs
-..@0x8047421: db 0xda, 0xc9  ;; fcmove st1
-..@0x8047423: db 0xdd, 0xd9  ;; fstp st1
-..@0x8047425: db 0x80, 0xca, 0x20  ;; or dl,0x20
-..@0x8047428: db 0x80, 0xfa, 0x65  ;; cmp dl,0x65
-..@0x804742b: db 0x75, 0x66  ;; jnz 0x8047493
-..@0x804742d: db 0x0f, 0xbe, 0x46, 0x01  ;; movsx eax,byte [esi+0x1]
-..@0x8047431: db 0x8d, 0x5e, 0x01  ;; lea ebx,[esi+0x1]
-..@0x8047434: cmp eax, strict byte 0x2b
-..@0x8047437: db 0x74, 0x0f  ;; jz 0x8047448
-..@0x8047439: cmp eax, strict byte 0x2d
-..@0x804743c: db 0xbd, 0x01, 0x00, 0x00, 0x00  ;; mov ebp,0x1
-..@0x8047441: db 0x75, 0x0b  ;; jnz 0x804744e
-..@0x8047443: or ebp, strict byte -0x1
-..@0x8047446: db 0xeb, 0x05  ;; jmp short 0x804744d
-..@0x8047448: db 0xbd, 0x01, 0x00, 0x00, 0x00  ;; mov ebp,0x1
-..@0x804744d: inc ebx
-..@0x804744e: db 0x89, 0xda  ;; mov edx,ebx
-..@0x8047450: db 0xc7, 0x44, 0x24, 0x1c, 0x00, 0x00, 0x00, 0x00  ;; mov dword [esp+0x1c],0x0
-..@0x8047458: db 0xeb, 0x1c  ;; jmp short 0x8047476
-..@0x804745a: db 0x81, 0x7c, 0x24, 0x1c, 0x6c, 0x13, 0x00, 0x00  ;; cmp dword [esp+0x1c],0x136c
-..@0x8047462: db 0x7f, 0x11  ;; jg 0x8047475
-..@0x8047464: db 0x6b, 0x44, 0x24, 0x1c, 0x0a  ;; imul eax,[esp+0x1c],byte +0xa
-..@0x8047469: db 0x8b, 0x4c, 0x24, 0x18  ;; mov ecx,[esp+0x18]
-..@0x804746d: db 0x8d, 0x44, 0x08, 0xd0  ;; lea eax,[eax+ecx-0x30]
-..@0x8047471: db 0x89, 0x44, 0x24, 0x1c  ;; mov [esp+0x1c],eax
-..@0x8047475: inc edx
-..@0x8047476: db 0x0f, 0xbe, 0x02  ;; movsx eax,byte [edx]
-..@0x8047479: db 0x8b, 0x4c, 0x24, 0x2c  ;; mov ecx,[esp+0x2c]  ; ctype_b.
-..@0x804747d: db 0x89, 0x44, 0x24, 0x18  ;; mov [esp+0x18],eax
-..@0x8047481: db 0xf6, 0x04, 0x41, 0x08  ;; test byte [ecx+eax*2],0x8
-..@0x8047485: db 0x75, 0xd3  ;; jnz 0x804745a
-..@0x8047487: db 0x39, 0xda  ;; cmp edx,ebx
-..@0x8047489: db 0x0f, 0x45, 0xf2  ;; cmovnz esi,edx
-..@0x804748c: db 0x0f, 0xaf, 0x6c, 0x24, 0x1c  ;; imul ebp,[esp+0x1c]
-..@0x8047491: db 0x01, 0xef  ;; add edi,ebp
-..@0x8047493: db 0xd9, 0xee  ;; fldz
-..@0x8047495: db 0xd9, 0xc9  ;; fxch st1
-..@0x8047497: db 0xdb, 0xe9  ;; fucomi st1  ; This needs CPU >= 686 (P6).
-..@0x8047499: db 0xdd, 0xd9  ;; fstp st1
-..@0x804749b: db 0x7a, 0x02  ;; jpe 0x804749f
-..@0x804749d: db 0x74, 0x51  ;; jz 0x80474f0
-..@0x804749f: db 0x85, 0xff  ;; test edi,edi
-..@0x80474a1: db 0xd9, 0x05, 0xd0, 0x24, 0x04, 0x08  ;; fld dword [f32_10]
-..@0x80474a7: db 0x78, 0x04  ;; js 0x80474ad
-..@0x80474a9: db 0x89, 0xf8  ;; mov eax,edi
-..@0x80474ab: db 0xeb, 0x18  ;; jmp short 0x80474c5
-..@0x80474ad: db 0x89, 0xf8  ;; mov eax,edi
-..@0x80474af: db 0xf7, 0xd8  ;; neg eax
-..@0x80474b1: db 0xeb, 0x12  ;; jmp short 0x80474c5
-..@0x80474b3: db 0xa8, 0x01  ;; test al,0x1
-..@0x80474b5: db 0x74, 0x0a  ;; jz 0x80474c1
-..@0x80474b7: db 0x85, 0xff  ;; test edi,edi
-..@0x80474b9: db 0x79, 0x04  ;; jns 0x80474bf
-..@0x80474bb: db 0xdc, 0xf9  ;; fdiv to st1
-..@0x80474bd: db 0xeb, 0x02  ;; jmp short 0x80474c1
-..@0x80474bf: db 0xdc, 0xc9  ;; fmul to st1
-..@0x80474c1: db 0xd8, 0xc8  ;; fmul st0
-..@0x80474c3: db 0xd1, 0xf8  ;; sar eax,1
-..@0x80474c5: db 0x85, 0xc0  ;; test eax,eax
-..@0x80474c7: db 0x75, 0xea  ;; jnz 0x80474b3
-..@0x80474c9: db 0xdd, 0xd8  ;; fstp st0
-..@0x80474cb: db 0xd9, 0x05, 0xd4, 0x24, 0x04, 0x08  ;; fld dword [f32_0.25]
-..@0x80474d1: db 0xd8, 0xc9  ;; fmul st1
-..@0x80474d3: db 0xd9, 0xc9  ;; fxch st1
-..@0x80474d5: db 0xdb, 0xe9  ;; fucomi st1
-..@0x80474d7: db 0xdd, 0xd9  ;; fstp st1
-..@0x80474d9: db 0x75, 0x15  ;; jnz 0x80474f0
-..@0x80474db: db 0x7a, 0x13  ;; jpe 0x80474f0
-..@0x80474dd: db 0xdb, 0x7c, 0x24, 0x20  ;; fstp tword [esp+0x20]
-..@0x80474e1: call B.code+__errno_location
-..@0x80474e6: db 0xc7, 0x00, 0x22, 0x00, 0x00, 0x00  ;; mov dword [eax],0x22  ; ERANGE.
-..@0x80474ec: db 0xdb, 0x6c, 0x24, 0x20  ;; fld tword [esp+0x20]
-..@0x80474f0: db 0x83, 0x7c, 0x24, 0x54, 0x00  ;; cmp dword [esp+0x54],byte +0x0
-..@0x80474f5: db 0x74, 0x07  ;; jz 0x80474fe
-..@0x80474f7: db 0x8b, 0x6c, 0x24, 0x54  ;; mov ebp,[esp+0x54]
-..@0x80474fb: db 0x89, 0x75, 0x00  ;; mov [ebp+0x0],esi
-..@0x80474fe: add esp, strict byte 0x3c
-..@0x8047501: pop ebx
-..@0x8047502: pop esi
-..@0x8047503: pop edi
-..@0x8047504: pop ebp
-..@0x8047505: ret
-__fp_range_check: equ $-B.code
-..@0x8047506: sub esp, strict byte 0xc
-..@0x8047509: db 0xdb, 0x6c, 0x24, 0x10  ;; fld tword [esp+0x10]
-..@0x804750d: db 0xdb, 0x6c, 0x24, 0x1c  ;; fld tword [esp+0x1c]
-..@0x8047511: db 0xd9, 0x05, 0xd4, 0x24, 0x04, 0x08  ;; fld dword [f32_0.25]
-..@0x8047517: db 0xd9, 0xc2  ;; fld st2
-..@0x8047519: db 0xd8, 0xc9  ;; fmul st1
-..@0x804751b: db 0xd9, 0xcb  ;; fxch st3
-..@0x804751d: db 0xdb, 0xeb  ;; fucomi st3
-..@0x804751f: db 0xdd, 0xdb  ;; fstp st3
-..@0x8047521: db 0x75, 0x25  ;; jnz 0x8047548
-..@0x8047523: db 0x7a, 0x23  ;; jpe 0x8047548
-..@0x8047525: db 0xd9, 0xee  ;; fldz
-..@0x8047527: db 0xd9, 0xcb  ;; fxch st3
-..@0x8047529: db 0xdf, 0xeb  ;; fucomip st3
-..@0x804752b: db 0xdd, 0xda  ;; fstp st2
-..@0x804752d: db 0x7a, 0x02  ;; jpe 0x8047531
-..@0x804752f: db 0x74, 0x19  ;; jz 0x804754a
-..@0x8047531: db 0xdc, 0xc9  ;; fmul to st1
-..@0x8047533: db 0xdf, 0xe9  ;; fucomip st1
-..@0x8047535: db 0xdd, 0xd8  ;; fstp st0
-..@0x8047537: db 0x7a, 0x02  ;; jpe 0x804753b
-..@0x8047539: db 0x74, 0x13  ;; jz 0x804754e
-..@0x804753b: call B.code+__errno_location
-..@0x8047540: db 0xc7, 0x00, 0x22, 0x00, 0x00, 0x00  ;; mov dword [eax],0x22  ; ERANGE.
-..@0x8047546: db 0xeb, 0x06  ;; jmp short 0x804754e
-..@0x8047548: db 0xdd, 0xd8  ;; fstp st0
-..@0x804754a: db 0xdd, 0xd8  ;; fstp st0
-..@0x804754c: db 0xdd, 0xd8  ;; fstp st0
-..@0x804754e: add esp, strict byte 0xc
-..@0x8047551: ret
+strtod: equ $-B.code  ; double strtod(const char *str, char **endptr)
+%define STRTOD_VAR_TMP_DIGIT 0  ; 4 bytes.
+%define STRTOD_VAR_F32_10 4  ; 4 bytes f32.
+%define STRTOD_VARS_SIZE 8
+; esp+9 is pushed EBP.
+; esp+0xc is pushed EDI.
+; esp+0x10 is pushed ESI.
+; esp+0x14 is pushed EBX.
+; esp+0x18 is the return address.
+%define STRTOD_ARG_STR 0x1c  ; 4 bytes char*.
+%define STRTOD_ARG_ENDPTR 0x20  ; 4 bytes char**.
+STRTOD_DECIMAL_BIG equ 21
+STRTOD_MAX_ALLOWED_EXP equ 4973
+strtod_labels:
+		push ebx
+		push esi
+		push edi
+		push ebp
+		push dword 0x41200000  ; (f32)10.0.
+		push ebp  ; Just a shorter `sub esp, byte 4'.
+		mov ebx, [esp+STRTOD_ARG_STR]
+.1:		mov al, [ebx]
+		cmp al, ' '
+		je .2
+		mov ah, al
+		sub ah, 9  ; "\t".
+		cmp ah, 4  ; ord("\r")-ord("\t").
+		ja .3
+.2:		inc ebx
+		jmp .1
+.3:		xor ebp, ebp
+		cmp al, '-'
+		je .4
+		cmp al, '+'
+		je .5
+		jmp short .6
+.4:		inc ebp  ; ++pos;
+.5:		inc ebx
+.6:		or eax, byte -1  ; num_digits = -1;
+		xor edi, edi
+		xor esi, esi
+		fldz  ; number = 0;  `number' will be kept in ST0 for most of this function.
+		xor edx, edx  ; Clear high 24 bits, for the `mov [esp+STRTOD_VAR_TMP_DIGIT], edx' below.
+.loop7:		mov dl, [ebx]
+		sub dl, '0'
+		cmp dl, 9
+		ja .after_loop7
+		test eax, eax
+		jge .8
+		inc eax
+.8:		test eax, eax
+		jnz .9
+		test dl, dl
+		jz .10
+.9:		inc eax
+		cmp eax, byte STRTOD_DECIMAL_BIG
+		jg .10
+		mov [esp+STRTOD_VAR_TMP_DIGIT], edx
+		fmul dword [esp+STRTOD_VAR_F32_10]
+		fiadd dword [esp+STRTOD_VAR_TMP_DIGIT]
+.10:		inc ebx
+		jmp .loop7
+.after_loop7:	cmp dl, '.'-'0'
+		jne .done_loop7
+		test esi, esi
+		jne .done_loop7
+		inc ebx
+		mov esi, ebx  ; pos0 = pos;
+		jmp .loop7
+.done_loop7:	test eax, eax
+		jge .18
+		test esi, esi
+		jne .17
+		; Now we use ESI for something else (i), with initial value already 0.
+		xor ecx, ecx  ; Keep high 24 bits 0, for ch and ecx below.
+		mov [esp+STRTOD_VAR_TMP_DIGIT], esi  ; 0.
+		mov esi, nan_inf_str
+.loop13:	mov edx, ebx
+		mov eax, esi
+		lea eax, [esi+1]  ; Same size as `mov' + `inc'.
+.14:		mov cl, [edx]
+		or cl, 0x20
+		cmp cl, [eax]
+		jne .16
+		inc edx
+		inc eax
+		cmp [eax], ch  ; Same as: cmp byte [eax], 0
+		jne .14
+		fstp st0  ; Pop `number' (originally in ST0) from the stack.
+		fild dword [esp+STRTOD_VAR_TMP_DIGIT]
+		fldz
+		fdivp st1, st0
+		test ebp, ebp
+		je .15
+		fchs  ; number = -number.
+.15:		mov cl, [esi]
+		add ebx, ecx
+		dec ebx
+		dec ebx
+		jmp short .store_done
+.16:		mov cl, [esi]
+		add esi, ecx
+		inc byte [esp+STRTOD_VAR_TMP_DIGIT]  ; Set it to anything positive.
+		cmp cl, ch
+		jne .loop13
+.17:		mov ebx, [esp+STRTOD_ARG_STR]  ; pos = str;
+		jmp short .store_done
+.18:		cmp eax, byte STRTOD_DECIMAL_BIG
+		jle .19
+		sub eax, byte STRTOD_DECIMAL_BIG
+		add edi, eax
+.19:		test esi, esi
+		je .20
+		mov eax, esi
+		sub eax, ebx
+		add edi, eax
+.20:		test ebp, ebp  ; if (negative);
+		je .21
+		fchs  ; number = -number;
+.21:		mov al, [ebx]
+		or al, 0x20
+		cmp al, 'e'
+		jne .29
+		mov [esp+STRTOD_VAR_TMP_DIGIT], ebx  ; pos1 = pos;  ! Maybe push ebx/pop ebx? Only if we don't use other variables in the meantime.
+		xor esi, esi
+		inc esi  ; negative = 1;
+		inc ebx  ; Skip past the 'e'.
+		mov al, [ebx]
+		cmp al, '-'
+		je .22
+		cmp al, '+'
+		je .23
+		jmp short .24
+; We put this to the middle so that we don't need `jmp near'.
+.store_done:	; STRTOD_VAR_NUMBER is already populated.
+		mov eax, [esp+STRTOD_ARG_ENDPTR]  ; Argument endptr.
+		test eax, eax
+		je .36
+		mov [eax], ebx
+.36:		fstp qword [esp]
+		fld qword [esp]  ; By doing this fstp+fld combo, we round the result to f64.
+		times 2 pop ebp  ; Just `add esp, byte STRTOD_VARS_SIZE'.
+		pop ebp
+		pop edi
+		pop esi
+		pop ebx
+		ret
+.22:		neg esi  ; negative = -1;
+.23:		inc ebx
+.24:		mov ebp, ebx
+		xor eax, eax
+		xor edx, edx  ; Clear high 24 bits, for the `add eax, edx' below.
+.loop25:	mov dl, [ebx]
+		sub dl, '0'
+		cmp dl, 9
+		ja .27
+		cmp eax, STRTOD_MAX_ALLOWED_EXP  ; if (exponent_temp < STRTOD_MAX_ALLOWED_EXP);
+		jge .26
+		imul eax, byte 10
+		add eax, edx
+.26:		inc ebx
+		jmp .loop25
+.27:		cmp ebx, ebp
+		jne .28
+		mov ebx, [esp+STRTOD_VAR_TMP_DIGIT]  ; pos = pos1;
+.28:		imul eax, esi
+		add edi, eax
+.29:		fldz
+		db 0xdf, 0xe9  ; fucomip st1  ; if (number == 0.);  True for +0.0 and -0.0.  ; Needs i686 (P6).
+		je .store_done  ; if (number == 0.) goto DONE;
+		mov eax, edi
+		test eax, eax
+		jz .store_done
+		jge .skip_neg
+		neg eax  ; Exponent_temp = -exponent_temp;
+.skip_neg:	fld dword [esp+STRTOD_VAR_F32_10]  ; p_base = 10.0, but with higher (f80) precision.
+.loop31:	; Now: ST0 is p_base, ST1 is number.
+		test al, 1
+		jz .34
+		test edi, edi
+		jge .32
+		fdiv st1, st0  ; number /= p_base;
+		jmp short .34
+.32:		fmul st1, st0  ; number *= p_base;
+.34:		fmul st0, st0  ; p_base *= p_base;
+		shr eax, 1
+		jnz .loop31
+		; Now: ST0 is p_base, ST1 is number.
+		fstp st0  ; Pop p_base. `number' remains on the stack.
+		jmp short .store_done
+;
+		times $$+0x8047552-$+B.code hlt  ; Unused, 0x64 bytes.
 exit: equ $-B.code
-..@0x8047552: push esi
+..@: push esi
 ..@0x8047553: push ebx
 ..@0x8047554: sub esp, strict byte 0x18
 ..@0x8047557: db 0x8b, 0x74, 0x24, 0x24  ;; mov esi,[esp+0x24]
