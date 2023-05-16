@@ -97,7 +97,7 @@ A.code equ 0
 ;extern puts  ; Not used anymore in pngoutl and pngoutx.
 ;extern exit  ; There is a corresponding Linux syscall _exit.
 ;extern srand  ; Reimplemented.
-;extern strchr
+;extern strchr  ; Reimplemented.
 ;extern strlen  ; Reimplemented.
 ;extern strcasecmp
 ;extern ftell
@@ -2485,22 +2485,7 @@ strcat: equ $-B.code
 ..@0x8045b8b: pop esi
 ..@0x8045b8c: pop edi
 ..@0x8045b8d: ret
-index: equ $-B.code
-strchr: equ $-B.code
-..@0x8045b8e: push esi
-..@0x8045b8f: db 0x8b, 0x74, 0x24, 0x08  ;; mov esi,[esp+0x8]
-..@0x8045b93: db 0x8b, 0x44, 0x24, 0x0c  ;; mov eax,[esp+0xc]
-..@0x8045b97: db 0x88, 0xc4  ;; mov ah,al
-..@0x8045b99: lodsb
-..@0x8045b9a: db 0x38, 0xe0  ;; cmp al,ah
-..@0x8045b9c: db 0x74, 0x09  ;; jz 0x8045ba7
-..@0x8045b9e: db 0x84, 0xc0  ;; test al,al
-..@0x8045ba0: db 0x75, 0xf7  ;; jnz 0x8045b99
-..@0x8045ba2: db 0xbe, 0x01, 0x00, 0x00, 0x00  ;; mov esi,0x1
-..@0x8045ba7: db 0x89, 0xf0  ;; mov eax,esi
-..@0x8045ba9: dec eax
-..@0x8045baa: pop esi
-..@0x8045bab: ret
+unused_strchr: times 0x8045bac-0x8045b8e hlt  ; Padding.
 strcpy: equ $-B.code
 ..@0x8045bac: push edi
 ..@0x8045bad: push esi
@@ -4312,9 +4297,27 @@ strlen: equ $-B.code:  ; size_t strlen(const char *s);
 		pop edi
 		ret
 ;
+strchr: equ $-B.code  ; char *strchr(const char *s, int c);
+index: equ $-B.code  ; char *index(const char *s, int c);
+		push esi
+		mov al, [esp+0xc]
+		mov esi, [esp+8]
+		mov ah, al
+.next:		lodsb
+		cmp al, ah
+		je .found
+		test al, al
+		jnz .next
+		xor esi, esi  ; Not found, we will return NULL.
+		inc esi
+.found:		xchg eax, esi  ; EAX := ESI; ESI := junk.
+		dec eax
+		pop esi
+		ret
+;
 		times $$+0x8047552-$+B.code hlt  ; Unused, 0x64 bytes.
 exit: equ $-B.code
-..@: push esi
+..@0x8047552: push esi
 ..@0x8047553: push ebx
 ..@0x8047554: sub esp, strict byte 0x18
 ..@0x8047557: db 0x8b, 0x74, 0x24, 0x24  ;; mov esi,[esp+0x24]
