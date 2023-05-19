@@ -98,7 +98,7 @@ A.code equ 0
 ;extern memmove
 ;extern memcpy  ; Reimplemented.
 ;extern memset
-;extern stpcpy
+;extern stpcpy  ; Reimplemented.
 ;extern strcat
 ;extern strcpy
 ;extern strchr  ; Reimplemented.
@@ -1613,6 +1613,20 @@ memcpy: equ $-B.code  ; void *memcpy(void *dest, const void *src, size_t n);
 		pop edi
 		ret
 ;
+stpcpy: equ $-B.code  ; char *stpcpy(char *dest, const char *src);
+		; TODO(pts): Add it to minilibc686.
+		mov edx, [esp+0x4]
+		mov ecx, [esp+0x8]
+.next:		mov al,[ecx]
+		inc ecx
+		mov [edx], al
+		inc edx
+		test al, al
+		jnz .next
+		xchg eax, edx  ; EAX := result+1; EDX := junk.
+		dec eax
+		ret
+;
 		times $$+0x8045279-$+B.code hlt  ; Padding.
 fflush: equ $-B.code
 ..@0x8045279: push edi
@@ -2323,17 +2337,8 @@ strnlen: equ $-B.code
 ..@0x8045bf2: ret
 unused_strerrors: equ $-B.code
 ..@0x8045bf3: times 0x8045cc6-0x8045bf3 hlt  ; Unused, 0xd3 bytes.
-stpcpy: equ $-B.code
-..@0x8045cc6: db 0x8b, 0x54, 0x24, 0x04  ;; mov edx,[esp+0x4]
-..@0x8045cca: db 0x8b, 0x4c, 0x24, 0x08  ;; mov ecx,[esp+0x8]
-..@0x8045cce: db 0x8a, 0x01  ;; mov al,[ecx]
-..@0x8045cd0: inc ecx
-..@0x8045cd1: db 0x88, 0x02  ;; mov [edx],al
-..@0x8045cd3: inc edx
-..@0x8045cd4: db 0x84, 0xc0  ;; test al,al
-..@0x8045cd6: db 0x75, 0xf6  ;; jnz 0x8045cce
-..@0x8045cd8: db 0x8d, 0x42, 0xff  ;; lea eax,[edx-0x1]
-..@0x8045cdb: ret
+unused_stpcpy: equ $-B.code
+..@0x8045cc6: times 0x8045cdc-0x8045cc6 hlt  ; Unused.
 unused_strcasecmp_and_strncasecmp: equ $-B.code
 ..@0x8045cdc: times 0x8045d53-0x8045cdc hlt  ; Padding
 unused_strtok: equ $-B.code
