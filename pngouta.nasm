@@ -100,7 +100,7 @@ A.code equ 0
 ;extern memset  ; Reimplemented.
 ;extern stpcpy  ; Reimplemented.
 ;extern strcat  ; Reimplemented.
-;extern strcpy
+;extern strcpy  ; Reimplemented.
 ;extern strchr  ; Reimplemented.
 ;extern strlen  ; Reimplemented.
 ;extern strcasecmp  ; Reimplemented.
@@ -1684,6 +1684,22 @@ strcat: equ $-B.code
 		pop edi
 		ret
 ;
+strcpy: equ $-B.code
+		; TODO(pts): Add it to minilibc686.
+		push edi
+		push esi
+		mov edi, [esp+0xc]
+		mov esi, [esp+0x10]
+		push edi
+.next3:		lodsb
+		stosb
+		test al, al
+		jnz strict short .next3
+		pop eax  ; Result: pointer to dest.
+		pop esi
+		pop edi
+		ret
+;
 		times $$+0x8045279-$+B.code hlt  ; Padding.
 fflush: equ $-B.code
 ..@0x8045279: push edi
@@ -2322,22 +2338,10 @@ unused_memset: equ $-B.code
 ..@0x8045b5a: times 0x8045b6f-0x8045b5a hlt  ; Padding.
 unused_strcat: equ $-B.code
 ..@0x8045b6f: times 0x8045bac-0x8045b6f hlt  ; Padding.
-unused_strchr: times 0x8045bac-0x8045b8e hlt  ; Padding.
-strcpy: equ $-B.code
-..@0x8045bac: push edi
-..@0x8045bad: push esi
-..@0x8045bae: sub esp, strict byte 0x4
-..@0x8045bb1: db 0x8b, 0x74, 0x24, 0x14  ;; mov esi,[esp+0x14]
-..@0x8045bb5: db 0x8b, 0x7c, 0x24, 0x10  ;; mov edi,[esp+0x10]
-..@0x8045bb9: lodsb
-..@0x8045bba: stosb
-..@0x8045bbb: db 0x84, 0xc0  ;; test al,al
-..@0x8045bbd: db 0x75, 0xfa  ;; jnz 0x8045bb9
-..@0x8045bbf: db 0x8b, 0x44, 0x24, 0x10  ;; mov eax,[esp+0x10]
-..@0x8045bc3: pop edx
-..@0x8045bc4: pop esi
-..@0x8045bc5: pop edi
-..@0x8045bc6: ret
+unused_strchr: equ $-B.code
+..@0x8045b8e: times 0x8045bac-0x8045b8e hlt  ; Padding.
+unused_strcpy: equ $-B.code
+..@0x8045bac: times 0x8045bc7-0x8045bac hlt  ; Padding.
 unused_strlen: equ $-B.code
 ..@0x8045bc7: times 0x8045bda-0x8045bc7 hlt  ; Padding.
 strnlen: equ $-B.code
