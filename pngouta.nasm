@@ -95,7 +95,7 @@ A.code equ 0
 ;extern free
 
 ; libc string functions used.
-;extern memmove
+;extern memmove  ; Reimplemented.
 ;extern memcpy  ; Reimplemented.
 ;extern memset
 ;extern stpcpy  ; Reimplemented.
@@ -1613,6 +1613,31 @@ memcpy: equ $-B.code  ; void *memcpy(void *dest, const void *src, size_t n);
 		pop edi
 		ret
 ;
+memmove: equ $-B.code  ; void *memmove(void *dest, const void *src, size_t n);
+		; TODO(pts): Add it to minilibc686.
+		; This it untested, it's invoked very rarely.
+		push edi
+		push esi
+		mov eax, [esp+0xc]
+		mov esi, [esp+0x10]
+		mov ecx, [esp+0x14]
+		cmp eax, esi
+		mov edi, eax
+		jnc strict short .reverse
+		rep movsb
+		jmp strict short .return2
+.reverse:	add esi, ecx
+		add edi, ecx
+		dec esi
+		dec edi
+		std
+		rep movsb
+		cld
+.return2:	pop esi
+		pop edi
+		hlt
+		ret
+;
 stpcpy: equ $-B.code  ; char *stpcpy(char *dest, const char *src);
 		; TODO(pts): Add it to minilibc686.
 		mov edx, [esp+0x4]
@@ -2259,25 +2284,8 @@ fwrite_unlocked: equ $-B.code
 ..@0x8045b0b: ret
 unused_memcpy: equ $-B.code
 ..@0x8045b0c: times 0x8045b33-0x8045b0c hlt  ; Padding.
-memmove: equ $-B.code
-..@0x8045b33: push edi
-..@0x8045b34: push esi
-..@0x8045b35: db 0x8b, 0x44, 0x24, 0x0c  ;; mov eax,[esp+0xc]
-..@0x8045b39: db 0x8b, 0x74, 0x24, 0x10  ;; mov esi,[esp+0x10]
-..@0x8045b3d: db 0x8b, 0x4c, 0x24, 0x14  ;; mov ecx,[esp+0x14]
-..@0x8045b41: db 0x39, 0xf0  ;; cmp eax,esi
-..@0x8045b43: db 0x73, 0x06  ;; jnc 0x8045b4b
-..@0x8045b45: db 0x89, 0xc7  ;; mov edi,eax
-..@0x8045b47: db 0xf3, 0xa4  ;; rep movsb
-..@0x8045b49: db 0xeb, 0x0c  ;; jmp short 0x8045b57
-..@0x8045b4b: db 0x8d, 0x74, 0x0e, 0xff  ;; lea esi,[esi+ecx-0x1]
-..@0x8045b4f: db 0x8d, 0x7c, 0x08, 0xff  ;; lea edi,[eax+ecx-0x1]
-..@0x8045b53: std
-..@0x8045b54: db 0xf3, 0xa4  ;; rep movsb
-..@0x8045b56: cld
-..@0x8045b57: pop esi
-..@0x8045b58: pop edi
-..@0x8045b59: ret
+unused_memmove: equ $-B.code
+..@0x8045b33: times 0x8045b5a-0x8045b33 hlt  ; Padding.
 memset: equ $-B.code
 ..@0x8045b5a: push edi
 ..@0x8045b5b: db 0x8b, 0x44, 0x24, 0x0c  ;; mov eax,[esp+0xc]
