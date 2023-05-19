@@ -97,7 +97,7 @@ A.code equ 0
 ; libc string functions used.
 ;extern memmove  ; Reimplemented.
 ;extern memcpy  ; Reimplemented.
-;extern memset
+;extern memset  ; Reimplemented.
 ;extern stpcpy  ; Reimplemented.
 ;extern strcat
 ;extern strcpy
@@ -1635,7 +1635,18 @@ memmove: equ $-B.code  ; void *memmove(void *dest, const void *src, size_t n);
 		cld
 .return2:	pop esi
 		pop edi
-		hlt
+		ret
+;
+memset: equ $-B.code
+		; TODO(pts): Add it to minilibc686.
+		push edi
+		mov edi, [esp+0x8]
+		mov eax, [esp+0xc]
+		mov ecx, [esp+0x10]
+		push edi
+		rep stosb
+		pop eax  ; Result: pointer to dest.
+		pop edi
 		ret
 ;
 stpcpy: equ $-B.code  ; char *stpcpy(char *dest, const char *src);
@@ -2286,15 +2297,8 @@ unused_memcpy: equ $-B.code
 ..@0x8045b0c: times 0x8045b33-0x8045b0c hlt  ; Padding.
 unused_memmove: equ $-B.code
 ..@0x8045b33: times 0x8045b5a-0x8045b33 hlt  ; Padding.
-memset: equ $-B.code
-..@0x8045b5a: push edi
-..@0x8045b5b: db 0x8b, 0x44, 0x24, 0x0c  ;; mov eax,[esp+0xc]
-..@0x8045b5f: db 0x8b, 0x4c, 0x24, 0x10  ;; mov ecx,[esp+0x10]
-..@0x8045b63: db 0x8b, 0x7c, 0x24, 0x08  ;; mov edi,[esp+0x8]
-..@0x8045b67: db 0xf3, 0xaa  ;; rep stosb
-..@0x8045b69: db 0x8b, 0x44, 0x24, 0x08  ;; mov eax,[esp+0x8]
-..@0x8045b6d: pop edi
-..@0x8045b6e: ret
+unused_memset: equ $-B.code
+..@0x8045b5a: times 0x8045b6f-0x8045b5a hlt  ; Padding.
 strcat: equ $-B.code
 ..@0x8045b6f: push edi
 ..@0x8045b70: db 0x31, 0xc0  ;; xor eax,eax
