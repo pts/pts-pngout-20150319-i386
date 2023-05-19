@@ -77,7 +77,7 @@ A.code equ 0
 ; libc functions used.
 ;extern log  ; Reimplemented.
 ;extern read  ; Linux syscall.
-;extern printf  ; Not used anymore in pngoutl and pngoutx. TODO(pts): Relink pngoutl with a shorter .plt etc. after all libc functions have been replaced.
+;extern printf  ; Not used anymore in pngoutl, pngoutd or pngoutx. TODO(pts): Relink pngoutl with a shorter .plt etc. after all libc functions have been replaced.
 ;extern fflush
 ;extern memmove
 ;extern free
@@ -103,7 +103,7 @@ A.code equ 0
 ;extern ftell
 ;extern fopen
 ;extern memset
-;extern fileno  ; !! Remove it from pngoutx, it was used only for __fxstat, which doesn't work anyway.
+;extern fileno  ; Not used anymore in pngoutl, pngoutd or pngoutx.
 ;extern strtod  ; Reimplemented.
 ;extern fgetc  ; Needs read buffering, not from stdin.
 ;extern strncasecmp  ; Reimplemented.
@@ -1700,45 +1700,8 @@ fgetc: equ $-B.code  ; Used for reading non-stdin.
 ..@0x8045371: ret
 unused_fgets: equ $-B.code
 ..@0x8045372: times 0x80453d4-0x8045372 hlt  ; Padding.
-fileno: equ $-B.code
-..@0x80453d4: push edi
-..@0x80453d5: push esi
-..@0x80453d6: push ebx
-..@0x80453d7: sub esp, strict byte 0x10
-..@0x80453da: db 0x8b, 0x74, 0x24, 0x20  ;; mov esi,[esp+0x20]
-..@0x80453de: db 0x8b, 0x7e, 0x34  ;; mov edi,[esi+0x34]
-..@0x80453e1: db 0x85, 0xff  ;; test edi,edi
-..@0x80453e3: db 0x75, 0x1f  ;; jnz 0x8045404
-..@0x80453e5: db 0x8d, 0x5e, 0x38  ;; lea ebx,[esi+0x38]
-..@0x80453e8: push edx
-..@0x80453e9: push ebx
-..@0x80453ea: push strict dword __pthread_return_0
-..@0x80453ef: db 0x8d, 0x44, 0x24, 0x0c  ;; lea eax,[esp+0xc]
-..@0x80453f3: push eax
-..@0x80453f4: call B.code+__pthread_return_void
-..@0x80453f9: db 0x89, 0x1c, 0x24  ;; mov [esp],ebx
-..@0x80453fc: call B.code+__pthread_return_0
-..@0x8045401: add esp, strict byte 0x10
-..@0x8045404: sub esp, strict byte 0xc
-..@0x8045407: push esi
-..@0x8045408: call B.code+fileno_unlocked
-..@0x804540d: add esp, strict byte 0x10
-..@0x8045410: db 0x85, 0xff  ;; test edi,edi
-..@0x8045412: db 0x89, 0xc3  ;; mov ebx,eax
-..@0x8045414: db 0x75, 0x11  ;; jnz 0x8045427
-..@0x8045416: push eax
-..@0x8045417: push eax
-..@0x8045418: push strict byte 0x1
-..@0x804541a: db 0x8d, 0x44, 0x24, 0x0c  ;; lea eax,[esp+0xc]
-..@0x804541e: push eax
-..@0x804541f: call B.code+__pthread_return_void
-..@0x8045424: add esp, strict byte 0x10
-..@0x8045427: add esp, strict byte 0x10
-..@0x804542a: db 0x89, 0xd8  ;; mov eax,ebx
-..@0x804542c: pop ebx
-..@0x804542d: pop esi
-..@0x804542e: pop edi
-..@0x804542f: ret
+unused_fileno: equ $-B.code
+..@0x80453d4: times 0x8045430-0x80453d4 hlt  ; Padding.
 fread: equ $-B.code
 ..@0x8045430: push edi
 ..@0x8045431: push esi
@@ -2086,17 +2049,8 @@ getc_unlocked: equ $-B.code
 ..@0x8045806: ret
 unused_fgets_unlocked: equ $-B.code
 ..@0x8045807: times 0x8045870-0x8045807 hlt  ; Padding.
-fileno_unlocked: equ $-B.code
-..@0x8045870: sub esp, strict byte 0xc
-..@0x8045873: db 0x8b, 0x44, 0x24, 0x10  ;; mov eax,[esp+0x10]
-..@0x8045877: db 0x8b, 0x40, 0x04  ;; mov eax,[eax+0x4]
-..@0x804587a: db 0x85, 0xc0  ;; test eax,eax
-..@0x804587c: db 0x79, 0x0e  ;; jns 0x804588c
-..@0x804587e: call B.code+__errno_location
-..@0x8045883: db 0xc7, 0x00, 0x09, 0x00, 0x00, 0x00  ;; mov dword [eax],0x9
-..@0x8045889: or eax, strict byte -0x1
-..@0x804588c: add esp, strict byte 0xc
-..@0x804588f: ret
+unused_fileno_unlocked: equ $-B.code
+..@0x8045870: times 0x8045890-0x8045870 hlt  ; Padding.
 fputc_unlocked: equ $-B.code
 putc_unlocked: equ $-B.code
 fputc: equ $-B.code
@@ -5634,8 +5588,6 @@ dynsym_fopen: equ $-B.code
               dd dynstr_fopen-_dynamic_strtab, 0, 0, 0x12
 dynsym_memset: equ $-B.code
               dd dynstr_memset-_dynamic_strtab, 0, 0, 0x12
-dynsym_fileno: equ $-B.code
-              dd dynstr_fileno-_dynamic_strtab, 0, 0, 0x12
 dynsym_strtod: equ $-B.code
               dd dynstr_strtod-_dynamic_strtab, 0, 0, 0x12
 dynsym_fgetc: equ $-B.code
@@ -5721,8 +5673,6 @@ dynstr_stderr: equ $-B.code
               db 'stderr', 0
 dynstr_strncasecmp: equ $-B.code
               db 'strncasecmp', 0
-dynstr_fileno: equ $-B.code
-              db 'fileno', 0
 dynstr_fwrite: equ $-B.code
               db 'fwrite', 0
 dynstr_read: equ $-B.code+1  ; 'read' and 'fread' overlap.
@@ -5757,7 +5707,7 @@ _dynamic_versym: equ $-B.code
               dw 3, 3, 3, 3, 3, 4, 3
               dw 3, 3, 3, 3, 3, 3, 3, 3
               dw 3, 3, 3, 3, 3, 3
-              dw 3, 3, 4, 3, 3, 3, 3, 3
+              dw 3, 3, 4, 3, 3, 3, 3
               dw 3, 3, 3, 3, 3, 3, 3
 _dynamic_versym.end: equ $-B.code
 times -((_dynamic_versym.end-_dynamic_versym)<<3)+(_dynamic_symtab.end-_dynamic_symtab) times 0 nop  ; Assert.
@@ -5837,7 +5787,6 @@ _dynamic_jmprel: equ $-B.code  ; Relocations in plt.
               dd ftell@GLIBC_2.0@got,             7 | (dynsym_ftell-_dynamic_symtab)>>4<<8
               dd fopen@GLIBC_2.1@got,             7 | (dynsym_fopen-_dynamic_symtab)>>4<<8
               dd memset@GLIBC_2.0@got,            7 | (dynsym_memset-_dynamic_symtab)>>4<<8
-              dd fileno@GLIBC_2.0@got,            7 | (dynsym_fileno-_dynamic_symtab)>>4<<8
               dd strtod@GLIBC_2.0@got,            7 | (dynsym_strtod-_dynamic_symtab)>>4<<8
               dd fgetc@GLIBC_2.0@got,             7 | (dynsym_fgetc-_dynamic_symtab)>>4<<8
               dd strncasecmp@GLIBC_2.0@got,       7 | (dynsym_strncasecmp-_dynamic_symtab)>>4<<8
@@ -5958,10 +5907,6 @@ fopen: equ $-B.code
               jmp strict near B.code+_plt_code0
 memset: equ $-B.code
               jmp [memset@GLIBC_2.0@got]
-              push strict dword ($-B.code-_plt_code0-0x16)>>1
-              jmp strict near B.code+_plt_code0
-fileno: equ $-B.code
-              jmp [fileno@GLIBC_2.0@got]
               push strict dword ($-B.code-_plt_code0-0x16)>>1
               jmp strict near B.code+_plt_code0
 strtod: equ $-B.code
@@ -23708,7 +23653,11 @@ unknown_func1: equ $-B.code
 ..@0x8058fac: db 0x00, 0x00
 ..@0x8058fae: db 0x89, 0x04, 0x24  ;; mov [esp],eax
 ..@0x8058fb1: db 0xa3, 0x60, 0x8a, 0x85, 0x09  ;; mov [0x9858a60],eax
+%ifidn TARGET, ls
 ..@0x8058fb6: call B.code+fileno
+%else  ; TARGET, ls
+..@0x8058fb6: times 5 nop  ; Padding. !! Remove the movs above and below.
+%endif  ; TARGET, ls
 ..@0x8058fbb: db 0x8d, 0x54, 0x24, 0x18  ;; lea edx,[esp+0x18]
 ..@0x8058fbf: db 0xc7, 0x04, 0x24, 0x03, 0x00, 0x00, 0x00  ;; mov dword [esp],0x3
 ..@0x8058fc6: db 0x89, 0x54, 0x24, 0x08  ;; mov [esp+0x8],edx
@@ -23755,7 +23704,11 @@ unknown_func1: equ $-B.code
 ..@0x805904e: db 0x00, 0x00
 ..@0x8059050: db 0xc7, 0x05, 0x68, 0x8a, 0x85, 0x09, 0x00, 0x00  ;; mov dword [0x9858a68],0x0
 ..@0x8059058: db 0x00, 0x00
+%ifidn TARGET, ls
 ..@0x805905a: call B.code+fileno
+%else  ; TARGET, ls
+..@0x805905a: times 5 nop  ; Padding. !! Remove the movs above and below.
+%endif  ; TARGET, ls
 ..@0x805905f: db 0x8d, 0x54, 0x24, 0x7c  ;; lea edx,[esp+0x7c]
 ..@0x8059063: db 0xc7, 0x04, 0x24, 0x03, 0x00, 0x00, 0x00  ;; mov dword [esp],0x3
 ..@0x805906a: db 0x89, 0x54, 0x24, 0x08  ;; mov [esp+0x8],edx
@@ -23985,7 +23938,11 @@ unknown_func1: equ $-B.code
 ..@0x80593a2: db 0x00, 0x00
 ..@0x80593a4: db 0xc7, 0x05, 0x68, 0x8a, 0x85, 0x09, 0x00, 0x00  ;; mov dword [0x9858a68],0x0
 ..@0x80593ac: db 0x00, 0x00
+%ifidn TARGET, ls
 ..@0x80593ae: call B.code+fileno
+%else  ; TARGET, ls
+..@0x80593ae: times 5 nop  ; Padding. !! Remove the movs above and below.
+%endif  ; TARGET, ls
 ..@0x80593b3: db 0x8d, 0x54, 0x24, 0x24  ;; lea edx,[esp+0x24]
 ..@0x80593b7: db 0xc7, 0x04, 0x24, 0x03, 0x00, 0x00, 0x00  ;; mov dword [esp],0x3
 ..@0x80593be: db 0x89, 0x54, 0x24, 0x08  ;; mov [esp+0x8],edx
@@ -26061,8 +26018,6 @@ fopen@GLIBC_2.1@got: equ $-B.data
 ..@0x805d17c: dd fopen+6
 memset@GLIBC_2.0@got: equ $-B.data
 ..@0x805d180: dd memset+6
-fileno@GLIBC_2.0@got: equ $-B.data
-..@0x805d184: dd fileno+6
 strtod@GLIBC_2.0@got: equ $-B.data
 ..@0x805d188: dd strtod+6
 fgetc@GLIBC_2.0@got: equ $-B.data
