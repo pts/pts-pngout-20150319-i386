@@ -141,6 +141,18 @@ A.code equ 0
   %define prog_free free
 %endif
 
+%ifidn TARGET, x  ; libc-specific stdio.
+  %define MOV_EAX_PROG_STDOUT_REF mov eax, 1  ; Same number of bytes as `mov eax, [stdout]'. Good.
+  %define MOV_EAX_PROG_STDERR_REF mov eax, 2
+  %define prog_fflush progx_fflush
+  %define prog_fgets progx_fgets
+%else  ; TARGET, x
+  %define MOV_EAX_PROG_STDOUT_REF mov eax, [stdout]
+  %define MOV_EAX_PROG_STDERR_REF mov eax, [stderr]
+  %define prog_fflush fflush  ; Always called with stdout.
+  %define prog_fgets fgets
+%endif  ; TARGET, x
+
 PT:  ; Symbolic constants for ELF PT_... (program header type).
 .LOAD equ 1
 .PHDR equ 6
@@ -301,9 +313,10 @@ _start: equ $-B.code
 ..@0x8043af0: push ebp  ; No-op __libc_csu_init, pointing to dummy_init_and_fini.
 ..@0x8043af1: push ecx
 ..@0x8043af2: push esi
-..@0x8043af3: push strict dword main
+..@0x8043af3: push strict dword progx_main
 ..@0x8043af8: db 0x31, 0xed  ; xor ebp, ebp
 ..@0x8043afa: call B.code+__uClibc_main
+              ; Not reached, __uClibc_main never returns.
 %if 0
 FAKE_main: equ $-B.code
 ..@0x8043aff: db 0x31, 0xc0  ; xor eax, eax
@@ -1079,7 +1092,12 @@ __stdio_seek: equ $-B.code
 ..@0x80445de: ret
 unused_old_vfprintf: equ $-B.code
 ..@0x80445df: times 0x8044707-0x80445df hlt  ; Unused, 0x128 bytes.
-vfprintf: equ $-B.code  ; uClibc function replaced with manually optimized shorter (and simpler) implementation, which doesn't support floats. Uses str_null.
+vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list ap);
+; uClibc function replaced with manually optimized shorter (and simpler)
+; implementation, which doesn't support floats. Uses str_null.
+;
+; Furthermore, this implementation is more restricted: it can write to
+; stdout or stderr only, and it does its own buffering.
 ..@0x8044707:
 ; Based on this C code (but heavily optimized manually afterwards).
 ; /* It supports format flags '-', '+', '0', and length modifiers. */
@@ -1437,6 +1455,7 @@ vfprintf: equ $-B.code  ; uClibc function replaced with manually optimized short
 		inc ebx  ; TODO(pts): Swap the role of EBX and ESI, and use lodsb.
 		jmp .1
 .33:
+		call B.code+progx_autoflush
 		xchg eax, ebp  ; EAX := number of bytes written; EBP := junk.
 		add esp, byte 0x20
 		pop ebp
@@ -1444,14 +1463,82 @@ vfprintf: equ $-B.code  ; uClibc function replaced with manually optimized short
 		pop esi
 		pop ebx
 		ret
-.call_fputc:
-		push dword [esp+0x38]
-		push eax  ; Only the low 8 bits matter for fputc, the high 24 bits of EAX is garbage here.
-		; movsx eax, al : Not neede,d fputc ignores the high 24 bits anyway.
-		call B.code+fputc
-		times 2 pop eax  ; Shorter than `add esp, strict byte 8'.
-		inc ebp
+.call_fputc:  ; Input: AL contains the byte to be printed. Can use EAX, EDX and ECX as scratch. Output: byte is written to the buffer, EBP is incremented.
+		mov edx, [esp+0x38]  ; filep. Actually, we use 1 for stdout and 2 for stderr.
+		cmp [progx_buf_fd], edx  ; TODO(pts): For speed, do this comparison only at the beginning of vfprintf(...).
+		je .after_fflush
+.do_fflush:	push eax  ; Save it.
+		call B.code+progx_fflush  ; Flush it if it's a different fd (or missing).
+		pop eax  ; Restore it.
+		mov edx, [esp+0x38]
+		mov [progx_buf_fd], edx  ; Now progx_buf belongs to our fd (in EDX).
+.after_fflush:	mov edx, [progx_buf_ptr]
+		cmp edx, progx_buf.end
+		je .do_fflush  ; If progx_buf is full, then flush it. It won't happen again.
+		mov [edx], al  ; Write the byte in AL to the end of progx_buf.
+		inc edx
+		mov [progx_buf_ptr], edx  ; We could combine this with `inc edx' above, but we don't want read-write memory operations, because a write-only is faster (?).
+		cmp al, 10  ; Newline, '\n'.
+		jne .after_nlflush  ; Don't flush if the lastly appended byte is not a newline.
+		cmp dword [progx_buf_fd], strict byte 1
+		jne .after_nlflush  ; Don't flush if it's not stdout.
+		cmp byte [progx_buf_is_stdout_a_tty], 0
+		je .after_nlflush  ; Don't flush if stdout isn't a TTY.
+		call B.code+progx_fflush  ; This is a bit slow, because we flush after every newline, but for PNGOUT it's fine, because it doesn't print too many newlines in quick succession.
+.after_nlflush:	inc ebp  ; Our caller requires us to do this.
 		ret
+;
+progx_autoflush: equ $-B.code
+; Flushes the progx buffer to its respective filehandle if buffering rules
+; require it.
+; !! Only do line buffering on stdout with isatty(1).
+		mov eax, [progx_buf_fd]
+		cmp eax, byte 1  ; stdout.
+		jne strict short B.code+progx_fflush_eax  ; Always flush stderr. If the buffer is unused (progx_buf_fd == 0), also flush just for smaller code (quick no-op).
+		ret  ; Don't flush stdout.
+progx_fflush: equ $-B.code
+; Flushes progx_buf buf to its respective filehandle. It is a function entry
+; point with the cdecl ABI, so it can use EAX, EDX and ECX as scratch.
+		mov eax, [progx_buf_fd]
+progx_fflush_eax: equ $-B.code
+		test eax, eax
+		jz strict short .return  ; Buffer currently unused.
+		mov edx, [progx_buf_ptr]
+		mov ecx, progx_buf
+		sub edx, ecx
+		je strict short .return  ; No data to flush.
+		push ecx  ; Save it.
+		push edx  ; Argument size of write(2).
+		push strict dword progx_buf  ; Argument buf of write(2).
+		push eax  ; Argument fd (file descriptor) of write(2).
+		call B.code+write
+		times 3 pop eax  ; Ignore return value.
+		pop dword [progx_buf_ptr]  ; Set [progx_buf_ptr] to the beginning of progx_buf.
+		xor eax, eax
+		mov [progx_buf_fd], eax  ; Indicate that the buffer is unused.
+.return:	ret
+;
+progx_fgets: equ $-B.code
+; !! Reimplement this without using uClibc.
+		call B.code+progx_fflush  ; Flush stdout before reading from stdin.
+		jmp strict near B.code+fgets
+;
+progx_main: equ $-B.code
+		push strict dword 1  ; STDOUT_FILENO (stdout).
+		call B.code+isatty
+		pop edx  ; Clean up argument of isatty(...) above from the stack.
+		mov [progx_buf_is_stdout_a_tty], al
+%if 0  ; For debugging of isatty(2).
+		add al, '0'
+		push eax
+		mov edx, esp
+		push strict byte 1
+		push edx  ; Write "0" or "1" indicating satty(stdout).
+		push 2  ; STDERR_FILENO.
+                call B.code+write
+                add esp, byte 4*4  ; Clean up arguments of write(...) above from the stack.
+%endif
+		jmp strict near B.code+main
 ;
 srand: equ $-B.code  ; uClibc function replaced with manually optimized shorter (and simpler) implementation. Uses seed.
 ; static unsigned long long seed;
@@ -2437,7 +2524,7 @@ unused_strcasecmp_and_strncasecmp: equ $-B.code
 ..@0x8045cdc: times 0x8045d53-0x8045cdc hlt  ; Padding
 unused_strtok: equ $-B.code
 ..@0x8045d53: times 0x8045d6c-0x8045d53 hlt  ; Padding.
-isatty: equ $-B.code
+isatty: equ $-B.code  ; !! Write size-optimized implementation.
 ..@0x8045d6c: sub esp, strict byte 0x54
 ..@0x8045d6f: db 0x8d, 0x44, 0x24, 0x18  ;; lea eax,[esp+0x18]
 ..@0x8045d73: push eax
@@ -2453,12 +2540,18 @@ tcgetattr_used_by_isatty: equ $-B.code
 ..@0x8045d8a: push ebx
 ..@0x8045d8b: sub esp, strict byte 0x38
 ..@0x8045d8e: db 0x8d, 0x44, 0x24, 0x14  ;; lea eax,[esp+0x14]
-..@0x8045d92: db 0x8b, 0x5c, 0x24, 0x48  ;; mov ebx,[esp+0x48]
+..@0x8045d92: db 0x8b, 0x5c, 0x24, 0x48  ;; mov ebx,[esp+0x48]  ; !!
 ..@0x8045d96: push eax
-..@0x8045d97: push strict dword 0x5401
+..@0x8045d97: push strict dword 0x5401  ; TCGETS.
 ..@0x8045d9c: push dword [esp+0x4c]
 ..@0x8045da0: call B.code+ioctl
 ..@0x8045da5: add esp, strict byte 0x10
+%if 0  ; !!
+..@0x8045da8: pop ebx
+..@0x8045da9: pop esi
+..@0x8045daa: ret
+..@0x8045dab: times 0x8045df9-0x8045dab hlt  ; Padding.
+%else
 ..@0x8045da8: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8045daa: db 0x89, 0xc6  ;; mov esi,eax
 ..@0x8045dac: db 0x75, 0x43  ;; jnz 0x8045df1
@@ -2490,6 +2583,7 @@ tcgetattr_used_by_isatty: equ $-B.code
 ..@0x8045df6: pop ebx
 ..@0x8045df7: pop esi
 ..@0x8045df8: ret
+%endif
 __malloc_largebin_index: equ $-B.code
 ..@0x8045df9: db 0x89, 0xc2  ;; mov edx,eax
 ..@0x8045dfb: db 0xc1, 0xea, 0x08  ;; shr edx,byte 0x8
@@ -4270,7 +4364,7 @@ exit: equ $-B.code
 ..@0x804756a: call B.code+__pthread_return_void
 ..@0x804756f: db 0xc7, 0x04, 0x24, 0x80, 0xd1, 0x05, 0x08  ;; mov dword [esp],__atexit_lock
 ..@0x8047576: call B.code+__pthread_return_0
-..@0x804757b: db 0xa1, 0x68, 0xea, 0x87, 0x09  ;; mov eax,[__exit_cleanup]
+..@0x804757b: mov eax, progx_fflush  ; Previously: mov eax,[__exit_cleanup]
 ..@0x8047580: add esp, strict byte 0x10
 ..@0x8047583: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8047585: db 0x74, 0x09  ;; jz 0x8047590
@@ -7813,7 +7907,7 @@ main: equ $-B.code
 ..@0x80499ca: push ebx
 ..@0x80499cb: and esp, strict byte -0x10
 ..@0x80499ce: db 0x81, 0xec, 0xa0, 0x03, 0x00, 0x00  ;; sub esp,0x3a0
-..@0x80499d4: mov eax, [stderr]
+..@0x80499d4: MOV_EAX_PROG_STDERR_REF
 ..@0x80499d9: fld dword [f32_256]
 ..@0x80499df: mov [message_filep], eax  ; message_filep := stderr.
 ..@0x80499e4: lea eax, [esp+MAIN_LOCAL_CONF_STRUCT]
@@ -7879,7 +7973,7 @@ jmp_parse_next_arg: equ $-B.code
 ..@0x8049b05: db 0x89, 0x74, 0x24, 0x78  ;; mov [esp+0x78],esi
 ..@0x8049b09: db 0x8b, 0xb4, 0x24, 0x80, 0x00, 0x00, 0x00  ;; mov esi,[esp+0x80]
 ..@0x8049b10: db 0x75, 0x0a  ;; jnz A.code+0x8049b1c
-..@0x8049b12: mov eax, [stdout]
+..@0x8049b12: MOV_EAX_PROG_STDOUT_REF
 ..@0x8049b17: mov [message_filep], eax  ; message_filep := stdout.
 ..@0x8049b1c: cmp byte [esp+MAIN_LOCAL_FLAG_Q], 0
 ..@0x8049b21: jnz strict near B.code+jmp_set_message_filep_to_null  ; message_filep := NULL, then continue below.
@@ -8533,7 +8627,7 @@ jmp_ask_for_overwrite_again: equ $-B.code
 ..@0x804a671: db 0xc7, 0x44, 0x24, 0x04, 0x80, 0x00, 0x00, 0x00  ;; mov dword [esp+0x4],0x80  ; size == 0x80 == 128 bytes.
 ..@0x804a679: db 0x89, 0x1c, 0x24  ;; mov [esp],ebx  ; s: esp+MAIN_LOCAL_PROMPT_FGETS_BUF of 0x80 bytes.
 ..@0x804a67c: db 0x89, 0x44, 0x24, 0x08  ;; mov [esp+0x8],eax  ; filep: stdout.
-..@0x804a680: call B.code+fgets  ; Call fgets(s, size, filep).
+..@0x804a680: call B.code+prog_fgets  ; Call fgets(s, size, filep).
 ..@0x804a685: db 0x85, 0xc0  ;; test eax,eax
 ..@0x804a687: jz strict near B.code+jmp_operation_cancelled
 ..@0x804a68d: movzx eax, byte [esp+MAIN_LOCAL_PROMPT_FGETS_BUF]  ; First byte of user response.
@@ -8576,17 +8670,9 @@ jmp_do_convert: equ $-B.code
 ..@0x804a73e: db 0x0f, 0x84, 0x32, 0x03, 0x00, 0x00  ;; jz near A.code+0x804aa76
 ..@0x804a744: db 0x85, 0xf6  ;; test esi,esi
 ..@0x804a746: db 0x0f, 0x84, 0xa2, 0x02, 0x00, 0x00  ;; jz near A.code+0x804a9ee
-%ifndef FLAG_EXPERIMENT_FFLUSH
 ..@0x804a74c: db 0x89, 0x74, 0x24, 0x04  ;; mov [esp+0x4],esi
 ..@0x804a750: db 0xc7, 0x04, 0x24, 0x5d, 0xb1, 0x05, 0x08  ;; mov dword [esp],str_fmt_in_bytes
 ..@0x804a757: call B.code+message_printf
-%else
-..@0x804a74c: mov eax, [stdout]
-..@0x804a751: db 0x89, 0x04, 0x24  ;; mov [esp],eax
-..@0x804a754: call B.code+fflush  ; fflush(stdout);
-..@0x804a759: times 3 nop
-;..@0x804a74c: times 0x10 nop
-%endif
 ..@0x804a75c: db 0x8b, 0x4c, 0x24, 0x7c  ;; mov ecx,[esp+0x7c]
 ..@0x804a760: db 0xc7, 0x04, 0x24, 0x88, 0xaf, 0x05, 0x08  ;; mov dword [esp],str_fmt_out
 ..@0x804a767: db 0x89, 0x4c, 0x24, 0x04  ;; mov [esp+0x4],ecx
@@ -8688,16 +8774,16 @@ jmp_do_convert: equ $-B.code
 ..@0x804a915: db 0x0f, 0x84, 0x01, 0x02, 0x00, 0x00  ;; jz near A.code+0x804ab1c
 ..@0x804a91b: db 0x80, 0x7c, 0x24, 0x73, 0x00  ;; cmp byte [esp+0x73],0x0
 ..@0x804a920: db 0x0f, 0x84, 0xd9, 0x00, 0x00, 0x00  ;; jz near A.code+0x804a9ff
-..@0x804a926: mov eax, [stdout]
+..@0x804a926: MOV_EAX_PROG_STDOUT_REF
 ..@0x804a92b: db 0x89, 0x5c, 0x24, 0x08  ;; mov [esp+0x8],ebx
 ..@0x804a92f: db 0xc7, 0x44, 0x24, 0x04, 0x01, 0x00, 0x00, 0x00  ;; mov dword [esp+0x4],0x1
 ..@0x804a937: db 0x89, 0x44, 0x24, 0x0c  ;; mov [esp+0xc],eax
 ..@0x804a93b: db 0x8b, 0x84, 0x24, 0x20, 0x01, 0x00, 0x00  ;; mov eax,[esp+0x120]
 ..@0x804a942: db 0x89, 0x04, 0x24  ;; mov [esp],eax
 ..@0x804a945: call B.code+fwrite
-..@0x804a94a: mov eax, [stdout]
+..@0x804a94a: MOV_EAX_PROG_STDOUT_REF
 ..@0x804a94f: db 0x89, 0x04, 0x24  ;; mov [esp],eax
-..@0x804a952: call B.code+fflush  ; fflush(stdout);
+..@0x804a952: call B.code+prog_fflush  ; fflush(stdout);
 ..@0x804a957: db 0xc7, 0x44, 0x24, 0x6c, 0x00, 0x00, 0x00, 0x00  ;; mov dword [esp+0x6c],0x0
 ..@0x804a95f: db 0x85, 0xf6  ;; test esi,esi
 ..@0x804a961: db 0x0f, 0x84, 0x39, 0xff, 0xff, 0xff  ;; jz near A.code+0x804a8a0
@@ -9109,16 +9195,16 @@ jmp_force_flag_y_and_other: equ $-B.code
 ..@0x804b0eb: db 0x0f, 0x84, 0x92, 0xf7, 0xff, 0xff  ;; jz near A.code+0x804a883
 ..@0x804b0f1: db 0x80, 0x7c, 0x24, 0x73, 0x00  ;; cmp byte [esp+0x73],0x0
 ..@0x804b0f6: db 0x0f, 0x84, 0xe7, 0x02, 0x00, 0x00  ;; jz near A.code+0x804b3e3
-..@0x804b0fc: mov eax, [stdout]
+..@0x804b0fc: MOV_EAX_PROG_STDOUT_REF
 ..@0x804b101: db 0x89, 0x74, 0x24, 0x08  ;; mov [esp+0x8],esi
 ..@0x804b105: db 0xc7, 0x44, 0x24, 0x04, 0x01, 0x00, 0x00, 0x00  ;; mov dword [esp+0x4],0x1
 ..@0x804b10d: db 0x89, 0x44, 0x24, 0x0c  ;; mov [esp+0xc],eax
 ..@0x804b111: db 0x8b, 0x84, 0x24, 0x80, 0x00, 0x00, 0x00  ;; mov eax,[esp+0x80]
 ..@0x804b118: db 0x89, 0x04, 0x24  ;; mov [esp],eax
 ..@0x804b11b: call B.code+fwrite
-..@0x804b120: mov eax, [stdout]
+..@0x804b120: MOV_EAX_PROG_STDOUT_REF
 ..@0x804b125: db 0x89, 0x04, 0x24  ;; mov [esp],eax
-..@0x804b128: call B.code+fflush  ; fflush(stdout);
+..@0x804b128: call B.code+prog_fflush  ; fflush(stdout);
 ..@0x804b12d: db 0xc7, 0x04, 0x24, 0xfc, 0xaf, 0x05, 0x08  ;; mov dword [esp],0x805affc
 ..@0x804b134: call B.code+message_printf
 ..@0x804b139: db 0xc7, 0x44, 0x24, 0x6c, 0x02, 0x00, 0x00, 0x00  ;; mov dword [esp+0x6c],0x2
@@ -9519,7 +9605,7 @@ init_my_stdio: equ $-B.code
 ..@0x804b5c9: call B.code+fdopen
 ..@0x804b5ce: add esp, strict byte 0x10
 ..@0x804b5d1: db 0x89, 0xc6  ;; mov esi,eax
-..@0x804b5d3: mov [stdout], esi
+..@0x804b5d3: mov [stdout], esi  ; Only for TARGET==d.
 ..@0x804b5d9: sub esp, strict byte 0xc
 ..@0x804b5dc: push edi
 ..@0x804b5dd: call B.code+isatty
@@ -9539,7 +9625,7 @@ init_my_stdio: equ $-B.code
 ..@0x804b60a: push esi
 ..@0x804b60b: call B.code+fdopen
 ..@0x804b610: add esp, strict byte 0x10
-..@0x804b613: mov [stderr],eax
+..@0x804b613: mov [stderr], eax  ; Only for TARGET==d.
 ..@0x804b618: db 0x31, 0xc9  ;; xor ecx,ecx
 ..@0x804b61a: push ecx
 ..@0x804b61b: push esi
@@ -9595,7 +9681,8 @@ message_printf.ret: equ $-B.code
 ..@0x804b68c: jmp strict short B.code+message_printf.filep_in_edx
 prog_printf: equ $-B.code  ; Same as printf(3) in the libc, implemented using fprintf(stdout, ...).
 ; int prog_printf(const char *fmt, ...) { return vfprintf(stdout, fmt, ap); }
-..@0x804b68e: mov edx, [stdout]  ; 6 bytes.
+..@0x804b68e: MOV_EAX_PROG_STDOUT_REF  ; 6 bytes.
+              xchg eax, edx  ; EDX := [prog_stdout]; EAX := junk.
               ; Fall through to code shared by prog_printf and message_printf.
 message_printf.filep_in_edx: equ $-B.code
 ;esp:retaddr fmt val
@@ -9627,7 +9714,7 @@ handle_sigint: equ $-B.code
 ..@0x804b6be: dw 0x9066  ;; o16 nop
 ..@0x804b6c0: db 0x83, 0x3d, 0x40, 0xd2, 0x05, 0x08, 0x01  ;; cmp dword [global_cleanup_counter],byte +0x1
 ..@0x804b6c7: db 0x75, 0xf1  ;; jnz A.code+0x804b6ba
-..@0x804b6c9: mov eax, [stderr]
+..@0x804b6c9: MOV_EAX_PROG_STDERR_REF
 ..@0x804b6ce: db 0xc7, 0x44, 0x24, 0x08, 0x24, 0x00, 0x00, 0x00  ;; mov dword [esp+0x8],0x24
 ..@0x804b6d6: db 0xc7, 0x44, 0x24, 0x04, 0x01, 0x00, 0x00, 0x00  ;; mov dword [esp+0x4],0x1
 ..@0x804b6de: db 0xc7, 0x04, 0x24, 0x48, 0xa7, 0x05, 0x08  ;; mov dword [esp],str_message_on_sigint
@@ -25923,10 +26010,15 @@ __atexit_lock: equ $-B.data
 ..@0x805d180: dd 0, 0, 0, 1, 0, 0
 __uclibc_progname: equ $-B.data
 ..@0x805d198: dd 0x8042565
+progx_buf_ptr: equ $-B.data ; Next byte to write to buffer.
+..@0x805d19c: dd progx_buf
+progx_buf_is_stdout_a_tty: equ $-B.data
+..@0x805d1a0: db 1  ; It's safe to do more frequent flushes.
+              times 3 db 0  ; Padding.
 
-X.gap7:      ;0x1a19c..0x1a1c4  +0x00028    @0x805d19c...0x805d1c4
-..@0x805d19c:
-times +0x00028 db 0
+X.gap7:      ;0x1a1a4..0x1a1c4  +0x00028    @0x805d19c...0x805d1c4
+..@0x805d1a4:
+times +0x00020 db 0
 %endif  ; TARGET, x
 
 $DT:  ; Symbolic constants for ELF DT_... (dynamic type).
@@ -26930,6 +27022,8 @@ buf_stdin: equ $-B.data
 ..@0x987ca60: resb +0x1000
 buf_stdin.end: equ $-B.data
 buf_stdout: equ $-B.data
+progx_buf: equ $-B.data  ; We reuse buf_stdout, since it won't be used by regular calls.
+progx_buf.end: equ progx_buf+0x400  ; Match glibc 2.19 stdout buffer size on a TTY.
 ..@0x987da60: resb +0x1000
 buf_stdout.end: equ $-B.data
 strtok_global_ptr: equ $-B.data
@@ -26937,7 +27031,7 @@ strtok_global_ptr: equ $-B.data
 been_there_done_that: equ $-B.data
 ..@0x987ea64: resb 1
 ..@0x987ea65: resb 3
-_exit_cleanup: equ $-B.data
+unused___exit_cleanup: equ $-B.data
 ..@0x987ea68: resb 4
 __libc_stack_end: equ $-B.data
 ..@0x987ea6c: resb 4
@@ -26956,6 +27050,7 @@ been_there_done_that.3001: equ $-B.data
 errno: equ $-B.data
 ..@0x987ea84: resb 4
 h_errno: equ $-B.data
+progx_buf_fd: equ $-B.data  ; Reuse h_errno (otherwise unused) for printf output buffering.
 ..@0x987ea88: resb 4
 __curbrk: equ $-B.data
 ..@0x987ea8c: resb 4
