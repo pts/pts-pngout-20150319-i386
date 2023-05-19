@@ -82,7 +82,7 @@ A.code equ 0
 ;extern memmove
 ;extern free
 ;extern memcpy
-;extern fgets  ; Needs read buffering, only used from stdin, only called from one code location (prompt response).
+;extern fgets  ; Reimplemented and caller code changed to progx_getchar. The only caller was jmp_read_prompt_response.
 ;extern fclose
 ;extern time  ; Linux syscall.
 ;extern gettimeofday  ; Linux syscall.
@@ -103,7 +103,7 @@ A.code equ 0
 ;extern ftell
 ;extern fopen
 ;extern memset
-;extern fileno
+;extern fileno  ; !! Remove it from pngoutx, it was used only for __fxstat, which doesn't work anyway.
 ;extern strtod  ; Reimplemented.
 ;extern fgetc  ; Needs read buffering, not from stdin.
 ;extern strncasecmp  ; Reimplemented.
@@ -145,12 +145,14 @@ A.code equ 0
   %define MOV_EAX_PROG_STDOUT_REF mov eax, 1  ; Same number of bytes as `mov eax, [stdout]'. Good.
   %define MOV_EAX_PROG_STDERR_REF mov eax, 2
   %define prog_fflush progx_fflush
-  %define prog_fgets progx_fgets
+  %define prog_fgets progx_fgets_missing  ; It's an error to use it.
+  %define prog_stdin progx_stdin_missing  ; It's an error to use it.
 %else  ; TARGET, x
   %define MOV_EAX_PROG_STDOUT_REF mov eax, [stdout]
   %define MOV_EAX_PROG_STDERR_REF mov eax, [stderr]
   %define prog_fflush fflush  ; Always called with stdout.
   %define prog_fgets fgets
+  %define prog_stdin stdin
 %endif  ; TARGET, x
 
 PT:  ; Symbolic constants for ELF PT_... (program header type).
@@ -1517,10 +1519,20 @@ progx_fflush_eax: equ $-B.code
 		mov [progx_buf_fd], eax  ; Indicate that the buffer is unused.
 .return:	ret
 ;
-progx_fgets: equ $-B.code
-; !! Reimplement this without using uClibc.
-		call B.code+progx_fflush  ; Flush stdout before reading from stdin.
-		jmp strict near B.code+fgets
+progx_getchar: equ $-B.code  ; int progx_getchar(void);
+; Reads 1 byte from stdin, and returns it as 0..255, or -1 (on EOF or error).
+		push strict byte 0  ; 1-byte read buffer + 3 high bytes of 0 (important).
+		mov eax, esp  ; EAX := address of 1-byte read buffer.
+		push strict byte 1  ; Count argument of read(...).
+		push eax  ; buf argument of read(...).
+		push strict byte 0  ; fd argument of read(...): STDIN_FILENO.
+		call B.code+read  ; !! Make this read buffered.
+		cmp eax, byte 1
+		mov eax, [esp+0xc]  ; Byte in the 1-byte read buffer.
+		jge .got_byte  ; No jump if result < 0 (error) or result == 0 (EOF).
+		or eax, byte -1  ; EAX := -1 (EOF).
+.got_byte:	add esp, byte 4*4  ; Clean up arguments of read(...) above from the stack.
+		ret  ; Return EAX: 0..255 (high bytes of 0 above are import) or -1 (EOF).
 ;
 progx_main: equ $-B.code
 		push strict dword 1  ; STDOUT_FILENO (stdout).
@@ -1623,8 +1635,7 @@ fflush: equ $-B.code
 ..@0x80452eb: pop esi
 ..@0x80452ec: pop edi
 ..@0x80452ed: ret
-fgetc: equ $-B.code
-getc: equ $-B.code
+fgetc: equ $-B.code  ; Used for reading non-stdin.
 ..@0x80452ee: push esi
 ..@0x80452ef: push ebx
 ..@0x80452f0: sub esp, strict byte 0x14
@@ -1677,47 +1688,8 @@ getc: equ $-B.code
 ..@0x804536f: pop ebx
 ..@0x8045370: pop esi
 ..@0x8045371: ret
-fgets: equ $-B.code
-..@0x8045372: push edi
-..@0x8045373: push esi
-..@0x8045374: push ebx
-..@0x8045375: sub esp, strict byte 0x10
-..@0x8045378: db 0x8b, 0x74, 0x24, 0x28  ;; mov esi,[esp+0x28]
-..@0x804537c: db 0x8b, 0x7e, 0x34  ;; mov edi,[esi+0x34]
-..@0x804537f: db 0x85, 0xff  ;; test edi,edi
-..@0x8045381: db 0x75, 0x1f  ;; jnz 0x80453a2
-..@0x8045383: db 0x8d, 0x5e, 0x38  ;; lea ebx,[esi+0x38]
-..@0x8045386: push ecx
-..@0x8045387: push ebx
-..@0x8045388: push strict dword __pthread_return_0
-..@0x804538d: db 0x8d, 0x44, 0x24, 0x0c  ;; lea eax,[esp+0xc]
-..@0x8045391: push eax
-..@0x8045392: call B.code+__pthread_return_void
-..@0x8045397: db 0x89, 0x1c, 0x24  ;; mov [esp],ebx
-..@0x804539a: call B.code+__pthread_return_0
-..@0x804539f: add esp, strict byte 0x10
-..@0x80453a2: push edx
-..@0x80453a3: push esi
-..@0x80453a4: push dword [esp+0x2c]
-..@0x80453a8: push dword [esp+0x2c]
-..@0x80453ac: call B.code+fgets_unlocked
-..@0x80453b1: add esp, strict byte 0x10
-..@0x80453b4: db 0x85, 0xff  ;; test edi,edi
-..@0x80453b6: db 0x89, 0xc3  ;; mov ebx,eax
-..@0x80453b8: db 0x75, 0x11  ;; jnz 0x80453cb
-..@0x80453ba: push eax
-..@0x80453bb: push eax
-..@0x80453bc: push strict byte 0x1
-..@0x80453be: db 0x8d, 0x44, 0x24, 0x0c  ;; lea eax,[esp+0xc]
-..@0x80453c2: push eax
-..@0x80453c3: call B.code+__pthread_return_void
-..@0x80453c8: add esp, strict byte 0x10
-..@0x80453cb: add esp, strict byte 0x10
-..@0x80453ce: db 0x89, 0xd8  ;; mov eax,ebx
-..@0x80453d0: pop ebx
-..@0x80453d1: pop esi
-..@0x80453d2: pop edi
-..@0x80453d3: ret
+unused_fgets: equ $-B.code
+..@0x8045372: times 0x80453d4-0x8045372 hlt  ; Padding.
 fileno: equ $-B.code
 ..@0x80453d4: push edi
 ..@0x80453d5: push esi
@@ -2102,56 +2074,8 @@ getc_unlocked: equ $-B.code
 ..@0x8045803: db 0x89, 0xd0  ;; mov eax,edx
 ..@0x8045805: pop ebx
 ..@0x8045806: ret
-fgets_unlocked: equ $-B.code
-..@0x8045807: push ebp
-..@0x8045808: push edi
-..@0x8045809: push esi
-..@0x804580a: push ebx
-..@0x804580b: sub esp, strict byte 0xc
-..@0x804580e: db 0x8b, 0x74, 0x24, 0x24  ;; mov esi,[esp+0x24]
-..@0x8045812: db 0x8b, 0x7c, 0x24, 0x20  ;; mov edi,[esp+0x20]
-..@0x8045816: db 0x8b, 0x6c, 0x24, 0x28  ;; mov ebp,[esp+0x28]
-..@0x804581a: db 0x85, 0xf6  ;; test esi,esi
-..@0x804581c: db 0x89, 0xfb  ;; mov ebx,edi
-..@0x804581e: db 0x7f, 0x38  ;; jg 0x8045858
-..@0x8045820: db 0xeb, 0x42  ;; jmp short 0x8045864
-..@0x8045822: db 0x8b, 0x45, 0x10  ;; mov eax,[ebp+0x10]
-..@0x8045825: db 0x3b, 0x45, 0x18  ;; cmp eax,[ebp+0x18]
-..@0x8045828: db 0x73, 0x0e  ;; jnc 0x8045838
-..@0x804582a: db 0x8a, 0x10  ;; mov dl,[eax]
-..@0x804582c: inc eax
-..@0x804582d: db 0x88, 0x13  ;; mov [ebx],dl
-..@0x804582f: inc ebx
-..@0x8045830: db 0x80, 0xfa, 0x0a  ;; cmp dl,0xa
-..@0x8045833: db 0x89, 0x45, 0x10  ;; mov [ebp+0x10],eax
-..@0x8045836: db 0xeb, 0x1e  ;; jmp short 0x8045856
-..@0x8045838: sub esp, strict byte 0xc
-..@0x804583b: push ebp
-..@0x804583c: call B.code+getc_unlocked
-..@0x8045841: add esp, strict byte 0x10
-..@0x8045844: cmp eax, strict byte -0x1
-..@0x8045847: db 0x75, 0x08  ;; jnz 0x8045851
-..@0x8045849: db 0xf6, 0x45, 0x00, 0x08  ;; test byte [ebp+0x0],0x8
-..@0x804584d: db 0x74, 0x0c  ;; jz 0x804585b
-..@0x804584f: db 0xeb, 0x13  ;; jmp short 0x8045864
-..@0x8045851: db 0x88, 0x03  ;; mov [ebx],al
-..@0x8045853: inc ebx
-..@0x8045854: db 0x3c, 0x0a  ;; cmp al,0xa
-..@0x8045856: db 0x74, 0x03  ;; jz 0x804585b
-..@0x8045858: dec esi
-..@0x8045859: db 0x75, 0xc7  ;; jnz 0x8045822
-..@0x804585b: db 0x39, 0xfb  ;; cmp ebx,edi
-..@0x804585d: db 0x76, 0x05  ;; jna 0x8045864
-..@0x804585f: db 0xc6, 0x03, 0x00  ;; mov byte [ebx],0x0
-..@0x8045862: db 0xeb, 0x02  ;; jmp short 0x8045866
-..@0x8045864: db 0x31, 0xff  ;; xor edi,edi
-..@0x8045866: add esp, strict byte 0xc
-..@0x8045869: db 0x89, 0xf8  ;; mov eax,edi
-..@0x804586b: pop ebx
-..@0x804586c: pop esi
-..@0x804586d: pop edi
-..@0x804586e: pop ebp
-..@0x804586f: ret
+unused_fgets_unlocked: equ $-B.code
+..@0x8045807: times 0x8045870-0x8045807 hlt  ; Padding.
 fileno_unlocked: equ $-B.code
 ..@0x8045870: sub esp, strict byte 0xc
 ..@0x8045873: db 0x8b, 0x44, 0x24, 0x10  ;; mov eax,[esp+0x10]
@@ -8574,12 +8498,34 @@ jmp_handle_flag_q: equ $-B.code
 ..@0x804a64c: db 0x8d, 0x9c, 0x24, 0x90, 0x00, 0x00, 0x00  ;; lea ebx,[esp+MAIN_LOCAL_PROMPT_FGETS_BUF] ; Filename and fgets buffer.
 ..@0x804a653: db 0x89, 0x4c, 0x24, 0x04  ;; mov [esp+0x4],ecx
 ..@0x804a657: call B.code+maybe_prog_printf
-..@0x804a65c: db 0xeb, 0x0e  ;; jmp short A.code+0x804a66c
+..@0x804a65c: jmp strict short B.code+jmp_read_prompt_response
 ..@0x804a65e: dw 0x9066  ;; o16 nop
 jmp_ask_for_overwrite_again: equ $-B.code
 ..@0x804a660: db 0xc7, 0x04, 0x24, 0x30, 0xaf, 0x05, 0x08  ;; mov dword [esp],str_message_unrecognised_response
 ..@0x804a667: call B.code+maybe_prog_printf
-..@0x804a66c: mov eax, [stdin]
+jmp_read_prompt_response: equ $-B.code
+%ifidn TARGET, x
+..@0x804a66c: ; This implementation doesn't use use [prog_stdin] or [esp+MAIN_LOCAL_PROMPT_FGETS_BUF].
+              call B.code+progx_fflush  ; Flush stdout before reading from stdin.
+              call B.code+progx_getchar
+              cmp eax, byte -1
+              jz strict short B.code+jmp_jz_to_operation_cancelled  ; Jump iff byte_value == EOF. EOF is -1.
+              mov edx, eax  ; Save first byte (or EOF).
+jmp_continue_reading_prompt_response: equ $-B.code
+              test eax, eax
+              js strict short B.code+jmp_got_prompt_response  ; Jump iff byte_value == EOF. EOF is -1.
+              cmp al, 0xa
+              je strict short B.code+jmp_got_prompt_response  ; Jump iff byte_value == '\n'.
+              push edx  ; Save it.
+              call B.code+progx_getchar
+              pop edx  ; Restore it. EDX := first byte_value read.
+              jmp strict short B.code+jmp_continue_reading_prompt_response
+jmp_got_prompt_response: equ $-B.code
+              xchg eax, edx  ; EAX := first byte of the prompt response (or EOF); EDX := junk.
+              jmp strict short B.code+jmp_check_prompt_response
+              times $$+0x804a695-$+B.code hlt  ; Padding.
+%else  ; TARGET, x
+..@0x804a66c: mov eax, [prog_stdin]
 ..@0x804a671: db 0xc7, 0x44, 0x24, 0x04, 0x80, 0x00, 0x00, 0x00  ;; mov dword [esp+0x4],0x80  ; size == 0x80 == 128 bytes.
 ..@0x804a679: db 0x89, 0x1c, 0x24  ;; mov [esp],ebx  ; s: esp+MAIN_LOCAL_PROMPT_FGETS_BUF of 0x80 bytes.
 ..@0x804a67c: db 0x89, 0x44, 0x24, 0x08  ;; mov [esp+0x8],eax  ; filep: stdout.
@@ -8587,7 +8533,10 @@ jmp_ask_for_overwrite_again: equ $-B.code
 ..@0x804a685: db 0x85, 0xc0  ;; test eax,eax
 ..@0x804a687: jz strict near B.code+jmp_operation_cancelled
 ..@0x804a68d: movzx eax, byte [esp+MAIN_LOCAL_PROMPT_FGETS_BUF]  ; First byte of user response.
+%endif  ; TARGET, x
+jmp_check_prompt_response: equ $-B.code
 ..@0x804a695: cmp al, 'N'  ; 'N' reply from the user.
+jmp_jz_to_operation_cancelled: equ $-B.code
 ..@0x804a697: jz strict near B.code+jmp_operation_cancelled
 ..@0x804a69d: cmp al, 'n'  ; 'n' reply from the user.
 ..@0x804a69f: jz strict near B.code+jmp_operation_cancelled
@@ -9538,7 +9487,7 @@ init_my_stdio: equ $-B.code
 ..@0x804b584: call B.code+fdopen
 ..@0x804b589: add esp, strict byte 0x10
 ..@0x804b58c: db 0x89, 0xc6  ;; mov esi,eax
-..@0x804b58e: mov [stdin], esi
+..@0x804b58e: mov [prog_stdin], esi
 ..@0x804b594: sub esp, strict byte 0xc
 ..@0x804b597: push edi
 ..@0x804b598: call B.code+isatty
