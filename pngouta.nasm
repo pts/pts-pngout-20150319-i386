@@ -113,6 +113,20 @@ A.code equ 0
 ;extern strtol  ; Reimplemented.
 ;extern fputc  ; Only for TARGET==x, called by vfprintf(...).
 
+; Here is how std* streams are used by pngout:
+;
+; * stdin: Only used as fgets(..., ..., stdin) from one code location,
+;   when reading a yes/no (y/n) response from the user at a prompt.
+; * stdout: message_printf (sometimes indirectly funcptr_printf) prints to
+;   it iff flag "-q" wasn't specified. Also, maybe_prog_printf (much less
+;   frequent than message_printf) prints to it. Sometimes fflush(stdout) is
+;   called explicitly, but not always, e.g. after
+;   str_message_already_ask_overwrite was printed (without trailing \n), a
+;   direct call to fgets(..., ..., stdin) is issued, and it is expected
+;   that the libc flushes before blocking on read within fgets(...).
+; * stderr: message_printf (sometimes indirectly funcptr_printf) prints to
+;   it at program initialization time. Later it switches over to stdout.
+
 %ifdef MDEBUG
   %ifidn TARGET, x
     %define prog_malloc debug_malloc
