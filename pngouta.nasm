@@ -74,44 +74,52 @@ A.code equ 0
 ;extern stdout  ; FILE*.
 ;extern stderr  ; FILE*.
 
-; libc functions used.
-;extern log  ; Reimplemented.
-;extern read  ; Linux syscall.
+; libc stdio functions used.
+;extern fopen
+;extern fclose  ; Not used with stdin/stdout/stderr.
+;extern fread  ; Not used with stdin/stdout/stderr.
+;extern fwrite  ; Not used with stdin/stdout/stderr.
+;extern fseek  ; Not used with stdin/stdout/stderr.
+;extern ftell  ; Not used with stdin/stdout/stderr.
+;extern fgetc  ; Not used with stdin/stdout/stderr.
 ;extern printf  ; Not used anymore in pngoutl, pngoutd or pngoutx. TODO(pts): Relink pngoutl with a shorter .plt etc. after all libc functions have been replaced.
-;extern fflush
-;extern memmove
-;extern free
-;extern memcpy
-;extern fgets  ; Reimplemented and caller code changed to progx_getchar. The only caller was jmp_read_prompt_response.
-;extern fclose
-;extern time  ; Linux syscall.
-;extern gettimeofday  ; Linux syscall.
-;extern stpcpy
-;extern fseek
-;extern fwrite
-;extern strcat
-;extern fread
-;extern strcpy
-;extern realloc
-;extern malloc
+;extern vfprintf  ; Reimplemented in pngoutx.
+;extern fflush  ; Reimplemented in pngoutx. Only used with stdout+stderr.
+;extern fgets  ; In pngoutx, reimplemented and caller code changed to progx_getchar. The only caller was jmp_read_prompt_response.
 ;extern puts  ; Not used anymore in pngoutl and pngoutx.
-;extern exit  ; There is a corresponding Linux syscall _exit.
-;extern srand  ; Reimplemented.
+;extern fileno  ; Not used anymore in pngoutl, pngoutd or pngoutx.
+
+; libc malloc functions used.
+;extern malloc
+;extern realloc
+;extern free
+
+; libc string functions used.
+;extern memmove
+;extern memcpy
+;extern memset
+;extern stpcpy
+;extern strcat
+;extern strcpy
 ;extern strchr  ; Reimplemented.
 ;extern strlen  ; Reimplemented.
 ;extern strcasecmp  ; Reimplemented.
-;extern ftell
-;extern fopen
-;extern memset
-;extern fileno  ; Not used anymore in pngoutl, pngoutd or pngoutx.
-;extern strtod  ; Reimplemented.
-;extern fgetc  ; Needs read buffering, not from stdin.
 ;extern strncasecmp  ; Reimplemented.
-;extern rand  ; Reimplemented.
-;extern strtok
-;extern vfprintf  ; Reimplemented.
+;extern strtok  ; Reimplemented.
 ;extern strtol  ; Reimplemented.
-;extern fputc  ; Only for TARGET==x, called by vfprintf(...).
+;extern strtod  ; Reimplemented.
+
+; libc misc functions used.
+;... _start
+;extern exit  ; It calls fflush(stdout) etc. There is a corresponding Linux syscall _exit, which doesn't flush.
+;extern log  ; Reimplemented.
+;extern srand  ; Reimplemented.
+;extern rand  ; Reimplemented.
+
+; libc syscall functions used.
+;extern read  ; Linux syscall.
+;extern time  ; Linux syscall.
+;extern gettimeofday  ; Linux syscall.
 
 ; Here is how std* streams are used by pngout:
 ;
