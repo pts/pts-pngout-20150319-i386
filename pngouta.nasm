@@ -1040,8 +1040,6 @@ __stdio_seek: equ $-B.code
 ..@0x80445dc: pop ecx
 ..@0x80445dd: pop ebx
 ..@0x80445de: ret
-unused_old_vfprintf: equ $-B.code
-..@0x80445df: times 0x8044707-0x80445df hlt  ; Unused, 0x128 bytes.
 vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list ap);
 ; uClibc function replaced with manually optimized shorter (and simpler)
 ; implementation, which doesn't support floats. Uses str_null.
