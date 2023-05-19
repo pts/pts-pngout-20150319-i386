@@ -96,7 +96,7 @@ A.code equ 0
 
 ; libc string functions used.
 ;extern memmove
-;extern memcpy
+;extern memcpy  ; Reimplemented.
 ;extern memset
 ;extern stpcpy
 ;extern strcat
@@ -1599,7 +1599,21 @@ rand: equ $-B.code  ; uClibc function replaced with manually optimized shorter (
 		pop edi
 		ret
 ;
-		times $$+0x8045279-$+B.code hlt  ; Unused, 0x64 bytes.
+memcpy: equ $-B.code  ; void *memcpy(void *dest, const void *src, size_t n);
+		; TODO(pts): Add it to minilibc686.
+		push edi
+		push esi
+		mov ecx, [esp+0x14]
+		mov esi, [esp+0x10]
+		mov edi, [esp+0xc]
+		push edi
+		rep movsb
+		pop eax  ; Result: pointer to dest.
+		pop esi
+		pop edi
+		ret
+;
+		times $$+0x8045279-$+B.code hlt  ; Padding.
 fflush: equ $-B.code
 ..@0x8045279: push edi
 ..@0x804527a: push esi
@@ -2229,25 +2243,8 @@ fwrite_unlocked: equ $-B.code
 ..@0x8045b09: pop esi
 ..@0x8045b0a: pop edi
 ..@0x8045b0b: ret
-memcpy: equ $-B.code
-..@0x8045b0c: push edi
-..@0x8045b0d: push esi
-..@0x8045b0e: db 0x8b, 0x44, 0x24, 0x14  ;; mov eax,[esp+0x14]
-..@0x8045b12: db 0x8b, 0x74, 0x24, 0x10  ;; mov esi,[esp+0x10]
-..@0x8045b16: db 0x8b, 0x7c, 0x24, 0x0c  ;; mov edi,[esp+0xc]
-..@0x8045b1a: db 0x89, 0xc1  ;; mov ecx,eax
-..@0x8045b1c: db 0xc1, 0xe9, 0x02  ;; shr ecx,byte 0x2
-..@0x8045b1f: db 0xf3, 0xa5  ;; rep movsd
-..@0x8045b21: db 0xa8, 0x02  ;; test al,0x2
-..@0x8045b23: db 0x74, 0x02  ;; jz 0x8045b27
-..@0x8045b25: db 0x66, 0xa5  ;; movsw
-..@0x8045b27: db 0xa8, 0x01  ;; test al,0x1
-..@0x8045b29: db 0x74, 0x01  ;; jz 0x8045b2c
-..@0x8045b2b: movsb
-..@0x8045b2c: db 0x8b, 0x44, 0x24, 0x0c  ;; mov eax,[esp+0xc]
-..@0x8045b30: pop esi
-..@0x8045b31: pop edi
-..@0x8045b32: ret
+unused_memcpy: equ $-B.code
+..@0x8045b0c: times 0x8045b33-0x8045b0c hlt  ; Padding.
 memmove: equ $-B.code
 ..@0x8045b33: push edi
 ..@0x8045b34: push esi
