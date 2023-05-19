@@ -2525,13 +2525,16 @@ unused_strtok: equ $-B.code
 ..@0x8045d53: times 0x8045d6c-0x8045d53 hlt  ; Padding.
 ..@0x8045d6c:
 isatty: equ $-B.code  ; int isatty(int fd);
+		push ebx
 		sub esp, strict byte 0x24
-		push esp
-		push strict dword 0x5401  ; TCGETS.
-		push dword [esp+0x30]  ; fd argument of ioctl.
-		call B.code+ioctl  ; __NR_ioctl == 54.
-		add esp, strict byte 0x24+3*4
-		; Noew convert EAX: 0 to 1, everything else to 0.
+		mov eax, 54  ; __NR_ioctl.
+		mov ebx, [esp+0x24+4+4]  ; fd argument of ioctl.
+		mov ecx, 0x5401  ; TCGETS.
+		mov edx, esp
+		int 0x80  ; Linux i386 syscall.
+		add esp, strict byte 0x24
+		pop ebx
+		; Now convert EAX: 0 to 1, everything else to 0.
 		cmp eax, byte 1
 		sbb eax, eax
 		neg eax
