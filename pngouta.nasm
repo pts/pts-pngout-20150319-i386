@@ -117,9 +117,12 @@ A.code equ 0
 ;extern rand  ; Reimplemented.
 
 ; libc syscall functions used.
-;extern read  ; Linux syscall.
-;extern time  ; Linux syscall.
-;extern gettimeofday  ; Linux syscall.
+;... _exit: Reimplemented. Only implicitly used.
+;... ioctl: Reimplemented. Only implicitly used.
+;extern read  ; Reimplemented.
+;... write  ; Reimplemented. Only implicitly used.
+;extern time  ; Reimplemented.
+;extern gettimeofday  ; Reimplemented.
 
 ; Here is how std* streams are used by pngout:
 ;
@@ -335,14 +338,10 @@ FAKE_main: equ $-B.code
 ..@0x8043aff: times 3 nop
 %endif
 ..@0x8043b02: dw 0x9066  ;; o16 nop == xchg ax, ax
-__restore_rt: equ $-B.code
-..@0x8043b04: db 0xb8, 0xad, 0x00, 0x00, 0x00  ;; mov eax,0xad
-..@0x8043b09: int 0x80  ; Linux i386 syscall.
-__restore: equ $-B.code
-..@0x8043b0b: pop eax
-..@0x8043b0c: db 0xb8, 0x77, 0x00, 0x00, 0x00  ;; mov eax,0x77
-..@0x8043b11: int 0x80  ; Linux i386 syscall.
-..@0x8043b13: nop
+unused___restore_rt: equ $-B.code
+..@0x8043b04: times 0x8043b0b-0x8043b04 hlt  ; Padding.
+unused___restore: equ $-B.code
+..@0x8043b0b: times 0x8043b14-0x8043b0b hlt  ; Padding.
 mmap: equ $-B.code
 ..@0x8043b14: db 0x89, 0xda  ;; mov edx,ebx
 ..@0x8043b16: db 0xb8, 0x5a, 0x00, 0x00, 0x00  ;; mov eax,0x5a
@@ -361,71 +360,12 @@ log: equ $-B.code  ; This needs an >=586 CPU, or a 386+387, or a 486+387. Linux,
 ..@0x8043b3c: fld qword [esp+4]
 ..@0x8043b40: ret
 ..@0x8043b41: times 0x8043d57-0x8043b41 hlt  ; Unused, 0x216 bytes.
-gettimeofday: equ $-B.code
-..@0x8043d57: push ebx
-..@0x8043d58: sub esp, strict byte 0x8
-..@0x8043d5b: db 0x8b, 0x54, 0x24, 0x10  ;; mov edx,[esp+0x10]
-..@0x8043d5f: db 0x8b, 0x4c, 0x24, 0x14  ;; mov ecx,[esp+0x14]
-..@0x8043d63: db 0x87, 0xd3  ;; xchg edx,ebx
-..@0x8043d65: db 0xb8, 0x4e, 0x00, 0x00, 0x00  ;; mov eax,0x4e
-..@0x8043d6a: int 0x80  ; Linux i386 syscall.
-..@0x8043d6c: db 0x87, 0xd3  ;; xchg edx,ebx
-..@0x8043d6e: db 0x3d, 0x00, 0xf0, 0xff, 0xff  ;; cmp eax,0xfffff000
-..@0x8043d73: db 0x89, 0xc3  ;; mov ebx,eax
-..@0x8043d75: db 0x76, 0x0c  ;; jna 0x8043d83
-..@0x8043d77: call B.code+__errno_location
-..@0x8043d7c: db 0xf7, 0xdb  ;; neg ebx
-..@0x8043d7e: db 0x89, 0x18  ;; mov [eax],ebx
-..@0x8043d80: or ebx, strict byte -0x1
-..@0x8043d83: pop edx
-..@0x8043d84: db 0x89, 0xd8  ;; mov eax,ebx
-..@0x8043d86: pop ecx
-..@0x8043d87: pop ebx
-..@0x8043d88: ret
-read: equ $-B.code
-..@0x8043d89: push edi
-..@0x8043d8a: sub esp, strict byte 0x8
-..@0x8043d8d: db 0x8b, 0x7c, 0x24, 0x10  ;; mov edi,[esp+0x10]
-..@0x8043d91: db 0x8b, 0x4c, 0x24, 0x14  ;; mov ecx,[esp+0x14]
-..@0x8043d95: db 0x8b, 0x54, 0x24, 0x18  ;; mov edx,[esp+0x18]
-..@0x8043d99: push ebx
-..@0x8043d9a: db 0x89, 0xfb  ;; mov ebx,edi
-..@0x8043d9c: db 0xb8, 0x03, 0x00, 0x00, 0x00  ;; mov eax,0x3
-..@0x8043da1: int 0x80  ; Linux i386 syscall.
-..@0x8043da3: pop ebx
-..@0x8043da4: db 0x3d, 0x00, 0xf0, 0xff, 0xff  ;; cmp eax,0xfffff000
-..@0x8043da9: db 0x89, 0xc7  ;; mov edi,eax
-..@0x8043dab: db 0x76, 0x0c  ;; jna 0x8043db9
-..@0x8043dad: call B.code+__errno_location
-..@0x8043db2: db 0xf7, 0xdf  ;; neg edi
-..@0x8043db4: db 0x89, 0x38  ;; mov [eax],edi
-..@0x8043db6: or edi, strict byte -0x1
-..@0x8043db9: pop edx
-..@0x8043dba: db 0x89, 0xf8  ;; mov eax,edi
-..@0x8043dbc: pop ecx
-..@0x8043dbd: pop edi
-..@0x8043dbe: ret
-time: equ $-B.code
-..@0x8043dbf: push edi
-..@0x8043dc0: sub esp, strict byte 0x8
-..@0x8043dc3: db 0x8b, 0x7c, 0x24, 0x10  ;; mov edi,[esp+0x10]
-..@0x8043dc7: push ebx
-..@0x8043dc8: db 0x89, 0xfb  ;; mov ebx,edi
-..@0x8043dca: db 0xb8, 0x0d, 0x00, 0x00, 0x00  ;; mov eax,0xd
-..@0x8043dcf: int 0x80  ; Linux i386 syscall.
-..@0x8043dd1: pop ebx
-..@0x8043dd2: db 0x3d, 0x00, 0xf0, 0xff, 0xff  ;; cmp eax,0xfffff000
-..@0x8043dd7: db 0x89, 0xc7  ;; mov edi,eax
-..@0x8043dd9: db 0x76, 0x0c  ;; jna 0x8043de7
-..@0x8043ddb: call B.code+__errno_location
-..@0x8043de0: db 0xf7, 0xdf  ;; neg edi
-..@0x8043de2: db 0x89, 0x38  ;; mov [eax],edi
-..@0x8043de4: or edi, strict byte -0x1
-..@0x8043de7: pop edx
-..@0x8043de8: db 0x89, 0xf8  ;; mov eax,edi
-..@0x8043dea: pop ecx
-..@0x8043deb: pop edi
-..@0x8043dec: ret
+unused_gettimeofday: equ $-B.code
+..@0x8043d57: times 0x8043d89-0x8043d57 hlt  ; Padding.
+unused_read: equ $-B.code
+..@0x8043d89: times 0x8043dbf-0x8043d89 hlt  ; Padding.
+unused_time: equ $-B.code
+..@0x8043dbf: times 0x8043ded-0x8043dbf hlt  ; Padding.
 __errno_location: equ $-B.code
 ..@0x8043ded: db 0xb8, 0x84, 0xea, 0x87, 0x09  ;; mov eax,errno
 ..@0x8043df2: ret
@@ -1552,6 +1492,63 @@ progx_getchar: equ $-B.code  ; int progx_getchar(void);
 		mov [progx_read_buf_ptr], edx  ; We could combine this with `inc edx' above, but we don't want read-write memory operations, because a write-only is faster (?).
 		ret  ; Return EAX: 0..255 byte value read.
 ;
+; Unconverted syscalls:
+; fcntl 55
+; fcntl64 221
+; open 5
+; close 6
+; lseek 19
+; lseek64 140
+; mmap 90
+; mremap 163
+; munmap 91
+; brk 45
+; sigprocmask 126 (deprecated in favor of rt_sigprocmask)
+; signal 48
+; rt_sigprocmask 175
+; kill 37
+read: equ $-B.code
+		mov al, 3  ; __NR_read.
+		jmp strict short B.code+progx_syscall3
+write: equ $-B.code
+		mov al, 4  ; __NR_write.
+		jmp strict short B.code+progx_syscall3
+time: equ $-B.code
+		mov al, 13  ; __NR_time.
+		jmp strict short B.code+progx_syscall3
+ioctl: equ $-B.code
+		mov al, 54  ; __NR_ioctl.
+		jmp strict short B.code+progx_syscall3
+gettimeofday: equ $-B.code
+		mov al, 78  ; __NR_gettimeofday.
+		jmp strict short B.code+progx_syscall3
+_exit: equ $-B.code
+		mov al, 1  ; __NR_exit.
+		; Fall through to progx_syscall3.
+progx_syscall3: equ $-B.code  ; TODO(pts): Add this to minilibc686.
+; Calls syscall(number, arg1, arg2, arg3).
+;
+; It takes the syscall number from AL (8 bits only!), arg1 (optional) from
+; [esp+4], arg2 (optional) from [esp+8], arg3 (optional) from [esp+0xc]. It
+; keeps these args on the stack.
+;
+; It can EAX, EDX and ECX as scratch.
+;
+; It returns result (or -1 as error) in EAX.
+		push ebx  ; Save it, it's not a scratch register.
+		movzx eax, al  ; number.
+		mov ebx, [esp+8]  ; arg1.
+		mov ecx, [esp+0xc]  ; arg2.
+		mov edx, [esp+0x10]  ; arg3.
+		int 0x80  ; Linux i386 syscall.
+		; test eax, eax
+		; jns .final_result
+		cmp eax, -0x100  ; TODO(pts): Treat very large (e.g. <-0x100; with Linux 5.4.0, 0x85 seems to be the smallest) non-negative return values as success rather than errno. This is needed by time(2) when it returns a negative timestamp. uClibc has -0x1000 here.
+		jna .final_result
+		or eax, byte -1  ; EAX := -1 (error).
+.final_result:	pop ebx
+		ret
+;
 progx_main: equ $-B.code
 		push strict dword 1  ; STDOUT_FILENO (stdout).
 		call B.code+isatty
@@ -2348,16 +2345,13 @@ unused_strtok: equ $-B.code
 ..@0x8045d53: times 0x8045d6c-0x8045d53 hlt  ; Padding.
 ..@0x8045d6c:
 isatty: equ $-B.code  ; int isatty(int fd);
-		push ebx
 		sub esp, strict byte 0x24
-		mov eax, 54  ; __NR_ioctl.
-		mov ebx, [esp+0x24+4+4]  ; fd argument of ioctl.
-		mov ecx, 0x5401  ; TCGETS.
-		mov edx, esp
-		int 0x80  ; Linux i386 syscall.
-		add esp, strict byte 0x24
-		pop ebx
-		; Now convert EAX: 0 to 1, everything else to 0.
+		push esp  ; 3rd argument of ioctl TCGETS.
+		push strict dword 0x5401  ; TCGETS.
+		push dword [esp+0x24+4+2*4]  ; fd argument of ioctl.
+		call B.code+ioctl
+		add esp, strict byte 0x24+3*4  ; Clean up everything pushed.
+		; Now convert result EAX: 0 to 1, everything else to 0.
 		cmp eax, byte 1
 		sbb eax, eax
 		neg eax
@@ -4164,7 +4158,8 @@ exit: equ $-B.code
 ..@0x80475ab: call B.code+_stdio_term
 ..@0x80475b0: sub esp, strict byte 0xc
 ..@0x80475b3: push esi
-..@0x80475b4: call B.code+_exit
+..@0x80475b4: call B.code+_exit  ; Never returns.
+              ; Not reached.
 unused_sysconf: equ $-B.code
 ..@0x80475b9: times 0x80476fe-0x80475b9 hlt
 __uClibc_fini: equ $-B.code
@@ -4433,23 +4428,8 @@ fcntl64: equ $-B.code
 ..@0x8047adf: ret
 unused___syscall_rt_sigaction: equ $-B.code
 ..@0x8047ae0: times 0x8047b1b-0x8047ae0 hlt  ; Padding.
-_exit: equ $-B.code
-..@0x8047b1b: push edi
-..@0x8047b1c: push ebx
-..@0x8047b1d: sub esp, strict byte 0x4
-..@0x8047b20: db 0x8b, 0x7c, 0x24, 0x10  ;; mov edi,[esp+0x10]
-..@0x8047b24: push ebx
-..@0x8047b25: db 0x89, 0xfb  ;; mov ebx,edi
-..@0x8047b27: db 0xb8, 0x01, 0x00, 0x00, 0x00  ;; mov eax,0x1
-..@0x8047b2c: int 0x80  ; Linux i386 syscall.
-..@0x8047b2e: pop ebx
-..@0x8047b2f: db 0x3d, 0x00, 0xf0, 0xff, 0xff  ;; cmp eax,0xfffff000
-..@0x8047b34: db 0x89, 0xc3  ;; mov ebx,eax
-..@0x8047b36: db 0x76, 0xec  ;; jna 0x8047b24
-..@0x8047b38: call B.code+__errno_location
-..@0x8047b3d: db 0xf7, 0xdb  ;; neg ebx
-..@0x8047b3f: db 0x89, 0x18  ;; mov [eax],ebx
-..@0x8047b41: db 0xeb, 0xe1  ;; jmp short 0x8047b24
+unused__exit: equ $-B.code
+..@0x8047b1b: times 0x8047b43-0x8047b1b hlt  ; Padding.
 unused_clock_getres: equ $-B.code
 ..@0x8047b43: times 0x8047b75-0x8047b43 hlt  ; Padding.
 close: equ $-B.code
@@ -4547,30 +4527,8 @@ getuid: equ $-B.code
 ..@0x8047ca0: pop ecx
 ..@0x8047ca1: pop ebx
 ..@0x8047ca2: ret
-ioctl: equ $-B.code
-..@0x8047ca3: push edi
-..@0x8047ca4: sub esp, strict byte 0x18
-..@0x8047ca7: db 0x8d, 0x44, 0x24, 0x2c  ;; lea eax,[esp+0x2c]
-..@0x8047cab: db 0x8b, 0x7c, 0x24, 0x20  ;; mov edi,[esp+0x20]
-..@0x8047caf: db 0x8b, 0x4c, 0x24, 0x24  ;; mov ecx,[esp+0x24]
-..@0x8047cb3: db 0x89, 0x44, 0x24, 0x14  ;; mov [esp+0x14],eax
-..@0x8047cb7: db 0x8b, 0x54, 0x24, 0x28  ;; mov edx,[esp+0x28]
-..@0x8047cbb: push ebx
-..@0x8047cbc: db 0x89, 0xfb  ;; mov ebx,edi
-..@0x8047cbe: db 0xb8, 0x36, 0x00, 0x00, 0x00  ;; mov eax,0x36
-..@0x8047cc3: int 0x80  ; Linux i386 syscall.
-..@0x8047cc5: pop ebx
-..@0x8047cc6: db 0x3d, 0x00, 0xf0, 0xff, 0xff  ;; cmp eax,0xfffff000
-..@0x8047ccb: db 0x89, 0xc7  ;; mov edi,eax
-..@0x8047ccd: db 0x76, 0x0c  ;; jna 0x8047cdb
-..@0x8047ccf: call B.code+__errno_location
-..@0x8047cd4: db 0xf7, 0xdf  ;; neg edi
-..@0x8047cd6: db 0x89, 0x38  ;; mov [eax],edi
-..@0x8047cd8: or edi, strict byte -0x1
-..@0x8047cdb: add esp, strict byte 0x18
-..@0x8047cde: db 0x89, 0xf8  ;; mov eax,edi
-..@0x8047ce0: pop edi
-..@0x8047ce1: ret
+unused_ioctl: equ $-B.code
+..@0x8047ca3: times 0x8047ce2-0x8047ca3 hlt  ; Padding.
 lseek64: equ $-B.code
 ..@0x8047ce2: push edi
 ..@0x8047ce3: push esi
@@ -5307,29 +5265,8 @@ kill: equ $-B.code
 ..@0x8048c3b: pop ecx
 ..@0x8048c3c: pop ebx
 ..@0x8048c3d: ret
-write: equ $-B.code
-..@0x8048c3e: push edi
-..@0x8048c3f: sub esp, strict byte 0x8
-..@0x8048c42: db 0x8b, 0x7c, 0x24, 0x10  ;; mov edi,[esp+0x10]
-..@0x8048c46: db 0x8b, 0x4c, 0x24, 0x14  ;; mov ecx,[esp+0x14]
-..@0x8048c4a: db 0x8b, 0x54, 0x24, 0x18  ;; mov edx,[esp+0x18]
-..@0x8048c4e: push ebx
-..@0x8048c4f: db 0x89, 0xfb  ;; mov ebx,edi
-..@0x8048c51: db 0xb8, 0x04, 0x00, 0x00, 0x00  ;; mov eax,0x4
-..@0x8048c56: int 0x80  ; Linux i386 syscall.
-..@0x8048c58: pop ebx
-..@0x8048c59: db 0x3d, 0x00, 0xf0, 0xff, 0xff  ;; cmp eax,0xfffff000
-..@0x8048c5e: db 0x89, 0xc7  ;; mov edi,eax
-..@0x8048c60: db 0x76, 0x0c  ;; jna 0x8048c6e
-..@0x8048c62: call B.code+__errno_location
-..@0x8048c67: db 0xf7, 0xdf  ;; neg edi
-..@0x8048c69: db 0x89, 0x38  ;; mov [eax],edi
-..@0x8048c6b: or edi, strict byte -0x1
-..@0x8048c6e: pop edx
-..@0x8048c6f: db 0x89, 0xf8  ;; mov eax,edi
-..@0x8048c71: pop ecx
-..@0x8048c72: pop edi
-..@0x8048c73: ret
+unused_write: equ $-B.code
+..@0x8048c3e: times 0x8048c74-0x8048c3e hlt  ; Padding.
 unused_rawmemchr: equ $-B.code
 ..@0x8048c74: times 0x8048cd7-0x8048c74 hlt  ; Padding.
 unused_strspn: equ $-B.code
