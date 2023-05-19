@@ -1491,7 +1491,6 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 progx_autoflush: equ $-B.code
 ; Flushes the progx buffer to its respective filehandle if buffering rules
 ; require it.
-; !! Only do line buffering on stdout with isatty(1).
 		mov eax, [progx_buf_fd]
 		cmp eax, byte 1  ; stdout.
 		jne strict short B.code+progx_fflush_eax  ; Always flush stderr. If the buffer is unused (progx_buf_fd == 0), also flush just for smaller code (quick no-op).
@@ -2524,66 +2523,20 @@ unused_strcasecmp_and_strncasecmp: equ $-B.code
 ..@0x8045cdc: times 0x8045d53-0x8045cdc hlt  ; Padding
 unused_strtok: equ $-B.code
 ..@0x8045d53: times 0x8045d6c-0x8045d53 hlt  ; Padding.
-isatty: equ $-B.code  ; !! Write size-optimized implementation.
-..@0x8045d6c: sub esp, strict byte 0x54
-..@0x8045d6f: db 0x8d, 0x44, 0x24, 0x18  ;; lea eax,[esp+0x18]
-..@0x8045d73: push eax
-..@0x8045d74: push dword [esp+0x5c]
-..@0x8045d78: call B.code+tcgetattr_used_by_isatty
-..@0x8045d7d: db 0x85, 0xc0  ;; test eax,eax
-..@0x8045d7f: db 0x0f, 0x94, 0xc0  ;; setz al
-..@0x8045d82: add esp, strict byte 0x5c
-..@0x8045d85: db 0x0f, 0xb6, 0xc0  ;; movzx eax,al
-..@0x8045d88: ret
-tcgetattr_used_by_isatty: equ $-B.code
-..@0x8045d89: push esi
-..@0x8045d8a: push ebx
-..@0x8045d8b: sub esp, strict byte 0x38
-..@0x8045d8e: db 0x8d, 0x44, 0x24, 0x14  ;; lea eax,[esp+0x14]
-..@0x8045d92: db 0x8b, 0x5c, 0x24, 0x48  ;; mov ebx,[esp+0x48]  ; !!
-..@0x8045d96: push eax
-..@0x8045d97: push strict dword 0x5401  ; TCGETS.
-..@0x8045d9c: push dword [esp+0x4c]
-..@0x8045da0: call B.code+ioctl
-..@0x8045da5: add esp, strict byte 0x10
-%if 0  ; !!
-..@0x8045da8: pop ebx
-..@0x8045da9: pop esi
-..@0x8045daa: ret
-..@0x8045dab: times 0x8045df9-0x8045dab hlt  ; Padding.
-%else
-..@0x8045da8: db 0x85, 0xc0  ;; test eax,eax
-..@0x8045daa: db 0x89, 0xc6  ;; mov esi,eax
-..@0x8045dac: db 0x75, 0x43  ;; jnz 0x8045df1
-..@0x8045dae: db 0x8b, 0x44, 0x24, 0x10  ;; mov eax,[esp+0x10]
-..@0x8045db2: db 0x89, 0x03  ;; mov [ebx],eax
-..@0x8045db4: db 0x8b, 0x44, 0x24, 0x14  ;; mov eax,[esp+0x14]
-..@0x8045db8: db 0x89, 0x43, 0x04  ;; mov [ebx+0x4],eax
-..@0x8045dbb: db 0x8b, 0x44, 0x24, 0x18  ;; mov eax,[esp+0x18]
-..@0x8045dbf: db 0x89, 0x43, 0x08  ;; mov [ebx+0x8],eax
-..@0x8045dc2: db 0x8b, 0x44, 0x24, 0x1c  ;; mov eax,[esp+0x1c]
-..@0x8045dc6: db 0x89, 0x43, 0x0c  ;; mov [ebx+0xc],eax
-..@0x8045dc9: db 0x8a, 0x44, 0x24, 0x20  ;; mov al,[esp+0x20]
-..@0x8045dcd: db 0x88, 0x43, 0x10  ;; mov [ebx+0x10],al
-..@0x8045dd0: push eax
-..@0x8045dd1: push strict byte 0x13
-..@0x8045dd3: db 0x8d, 0x44, 0x24, 0x29  ;; lea eax,[esp+0x29]
-..@0x8045dd7: push eax
-..@0x8045dd8: db 0x8d, 0x43, 0x11  ;; lea eax,[ebx+0x11]
-..@0x8045ddb: push eax
-..@0x8045ddc: call B.code+mempcpy
-..@0x8045de1: add esp, strict byte 0xc
-..@0x8045de4: push strict byte 0xd
-..@0x8045de6: push strict byte 0x0
-..@0x8045de8: push eax
-..@0x8045de9: call B.code+memset
-..@0x8045dee: add esp, strict byte 0x10
-..@0x8045df1: add esp, strict byte 0x34
-..@0x8045df4: db 0x89, 0xf0  ;; mov eax,esi
-..@0x8045df6: pop ebx
-..@0x8045df7: pop esi
-..@0x8045df8: ret
-%endif
+..@0x8045d6c:
+isatty: equ $-B.code  ; int isatty(int fd);
+		sub esp, strict byte 0x24
+		push esp
+		push strict dword 0x5401  ; TCGETS.
+		push dword [esp+0x30]  ; fd argument of ioctl.
+		call B.code+ioctl  ; __NR_ioctl == 54.
+		add esp, strict byte 0x24+3*4
+		; Noew convert EAX: 0 to 1, everything else to 0.
+		cmp eax, byte 1
+		sbb eax, eax
+		neg eax
+		ret
+		times $$+0x8045df9-$+B.code hlt  ; Unused, 0x64 bytes.
 __malloc_largebin_index: equ $-B.code
 ..@0x8045df9: db 0x89, 0xc2  ;; mov edx,eax
 ..@0x8045dfb: db 0xc1, 0xea, 0x08  ;; shr edx,byte 0x8
