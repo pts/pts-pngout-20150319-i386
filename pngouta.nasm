@@ -99,7 +99,7 @@ A.code equ 0
 ;extern memcpy  ; Reimplemented.
 ;extern memset  ; Reimplemented.
 ;extern stpcpy  ; Reimplemented.
-;extern strcat
+;extern strcat  ; Reimplemented.
 ;extern strcpy
 ;extern strchr  ; Reimplemented.
 ;extern strlen  ; Reimplemented.
@@ -1663,6 +1663,27 @@ stpcpy: equ $-B.code  ; char *stpcpy(char *dest, const char *src);
 		dec eax
 		ret
 ;
+strcat: equ $-B.code
+		; TODO(pts): Add it to minilibc686.
+		; This it untested, it's invoked very rarely.
+		push edi
+		push esi
+		or ecx, byte -1
+		xor eax, eax  ; AL := 0 (== '\0').
+		mov edi, [esp+0xc]  ; Pointer to dest.
+		mov esi, [esp+0x10]
+		push edi
+		repne scasb
+		dec edi
+.next2:		lodsb  ; There is no `repne movsb' instruction, see https://stackoverflow.com/a/40219999
+		stosb
+		test al, al
+		jnz strict short .next2
+		pop eax  ; Result: pointer to dest.
+		pop esi
+		pop edi
+		ret
+;
 		times $$+0x8045279-$+B.code hlt  ; Padding.
 fflush: equ $-B.code
 ..@0x8045279: push edi
@@ -2299,23 +2320,8 @@ unused_memmove: equ $-B.code
 ..@0x8045b33: times 0x8045b5a-0x8045b33 hlt  ; Padding.
 unused_memset: equ $-B.code
 ..@0x8045b5a: times 0x8045b6f-0x8045b5a hlt  ; Padding.
-strcat: equ $-B.code
-..@0x8045b6f: push edi
-..@0x8045b70: db 0x31, 0xc0  ;; xor eax,eax
-..@0x8045b72: push esi
-..@0x8045b73: or ecx, strict byte -0x1
-..@0x8045b76: db 0x8b, 0x74, 0x24, 0x10  ;; mov esi,[esp+0x10]
-..@0x8045b7a: db 0x8b, 0x7c, 0x24, 0x0c  ;; mov edi,[esp+0xc]
-..@0x8045b7e: db 0xf2, 0xae  ;; repne scasb
-..@0x8045b80: dec edi
-..@0x8045b81: lodsb
-..@0x8045b82: stosb
-..@0x8045b83: db 0x84, 0xc0  ;; test al,al
-..@0x8045b85: db 0x75, 0xfa  ;; jnz 0x8045b81
-..@0x8045b87: db 0x8b, 0x44, 0x24, 0x0c  ;; mov eax,[esp+0xc]
-..@0x8045b8b: pop esi
-..@0x8045b8c: pop edi
-..@0x8045b8d: ret
+unused_strcat: equ $-B.code
+..@0x8045b6f: times 0x8045bac-0x8045b6f hlt  ; Padding.
 unused_strchr: times 0x8045bac-0x8045b8e hlt  ; Padding.
 strcpy: equ $-B.code
 ..@0x8045bac: push edi
