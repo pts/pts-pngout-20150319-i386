@@ -1521,18 +1521,28 @@ progx_fflush_eax: equ $-B.code
 ;
 progx_getchar: equ $-B.code  ; int progx_getchar(void);
 ; Reads 1 byte from stdin, and returns it as 0..255, or -1 (on EOF or error).
-		push strict byte 0  ; 1-byte read buffer + 3 high bytes of 0 (important).
-		mov eax, esp  ; EAX := address of 1-byte read buffer.
-		push strict byte 1  ; Count argument of read(...).
-		push eax  ; buf argument of read(...).
+		mov edx, [progx_read_buf_ptr]
+		mov eax, [progx_read_buf_last]
+		sub eax, edx  ; EAX := number of bytes available to read in progx_read_buf.
+		test eax, eax
+		jnz .from_buf
+		push strict dword progx_read_buf.end-progx_read_buf  ; count argument of read(...).
+		push strict dword progx_read_buf  ; buf argument of read(...).
 		push strict byte 0  ; fd argument of read(...): STDIN_FILENO.
-		call B.code+read  ; !! Make this read buffered.
+		call B.code+read
+		add esp, byte 3*4  ; Clean up arguments of read(...) above from the stack.
 		cmp eax, byte 1
-		mov eax, [esp+0xc]  ; Byte in the 1-byte read buffer.
-		jge .got_byte  ; No jump if result < 0 (error) or result == 0 (EOF).
+		jge .got_more  ; No jump if result < 0 (error) or result == 0 (EOF).
 		or eax, byte -1  ; EAX := -1 (EOF).
-.got_byte:	add esp, byte 4*4  ; Clean up arguments of read(...) above from the stack.
-		ret  ; Return EAX: 0..255 (high bytes of 0 above are import) or -1 (EOF).
+		ret  ; Return EOF.
+.got_more:	mov edx, progx_read_buf
+		add eax, edx
+		mov [progx_read_buf_last], eax
+		mov [progx_read_buf_ptr], edx
+.from_buf:	movzx eax, byte [edx]  ; Read 1 byte from progx_read_buf.
+		inc edx
+		mov [progx_read_buf_ptr], edx  ; We could combine this with `inc edx' above, but we don't want read-write memory operations, because a write-only is faster (?).
+		ret  ; Return EAX: 0..255 byte value read.
 ;
 progx_main: equ $-B.code
 		push strict dword 1  ; STDOUT_FILENO (stdout).
@@ -25920,10 +25930,14 @@ progx_buf_ptr: equ $-B.data ; Next byte to write to buffer.
 progx_buf_is_stdout_a_tty: equ $-B.data
 ..@0x805d1a0: db 1  ; It's safe to do more frequent flushes.
               times 3 db 0  ; Padding.
+progx_read_buf_ptr: equ $-B.data ; Next byte to read from progx_read_buf.
+..@0x805d1a4: dd progx_read_buf
+progx_read_buf_last: equ $-B.data ; Last byte avialble to read in progx_read_buf.
+..@0x805d1a8: dd progx_read_buf
 
-X.gap7:      ;0x1a1a4..0x1a1c4  +0x00028    @0x805d19c...0x805d1c4
-..@0x805d1a4:
-times +0x00020 db 0
+X.gap7:      ;0x1a1ac..0x1a1c4  +0x00028    @0x805d19c...0x805d1c4
+..@0x805d1ac:
+times +0x00018 db 0
 %endif  ; TARGET, x
 
 $DT:  ; Symbolic constants for ELF DT_... (dynamic type).
@@ -26924,6 +26938,8 @@ seed: equ $-B.data
 ..@0x987ca58: resb 8
 _fixed_buffers: equ $-B.data
 buf_stdin: equ $-B.data
+progx_read_buf: equ $-B.data  ; We reuse buf_stdin, since it won't be used by regular calls.
+progx_read_buf.end: equ progx_read_buf+0x400  ; We could make it even shorter for PNGOUT, as short as 0x80 bytes would still be efficient. PNGOUT uses it only for reading the prompt response (jmp_read_prompt_response).
 ..@0x987ca60: resb +0x1000
 buf_stdin.end: equ $-B.data
 buf_stdout: equ $-B.data
