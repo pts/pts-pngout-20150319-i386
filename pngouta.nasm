@@ -25286,7 +25286,7 @@ str_fmt_in_bytes: equ $-B.code
 ..@0x805b15d: db 0x0d, ' In:%8d bytes', 0x0a, 0
 ..@0x805b16d: db 0x0d, ' In: (Windows clipboard)', 0x0a, 0
 str_fopen_wb: equ $-B.code
-..@str_fopen_wb: db 'wb', 0
+..@0x805b188: db 'wb', 0
 ..@0x805b18b: db 'ERROR writing to file!', 0x0a, 0
 str_message_unable_to_compress_further: equ $-B.code
 ..@0x805b1a3: db 'Unable to compress further', 0x0a, 0
