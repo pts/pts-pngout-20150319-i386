@@ -90,9 +90,9 @@ A.code equ 0
 ;extern fileno  ; Not used anymore in pngoutl, pngoutd or pngoutx.
 
 ; libc malloc functions used.
-;extern malloc
-;extern realloc
-;extern free
+;extern malloc  ; Reimplemented.
+;extern realloc  ; Reimplemented.
+;extern free  ; Reimplemented.
 
 ; libc string functions used.
 ;extern memmove  ; Reimplemented.
@@ -685,7 +685,7 @@ Q_stdio_fopen: equ $-B.code
 ..@0x8044287: sub esp, strict byte 0xc
 ..@0x804428a: push ebp
 ..@0x804428b: db 0x31, 0xed  ;; xor ebp,ebp
-..@0x804428d: call B.code+free
+..@0x804428d: call B.code+Qfree
 ..@0x8044292: jmp strict near R.code+0x804446e
 ..@0x8044297: db 0x31, 0xdb  ;; xor ebx,ebx
 ..@0x8044299: db 0x80, 0x7a, 0x01, 0x62  ;; cmp byte [edx+0x1],0x62
@@ -701,7 +701,7 @@ Q_stdio_fopen: equ $-B.code
 ..@0x80442b4: db 0x75, 0x32  ;; jnz 0x80442e8
 ..@0x80442b6: sub esp, strict byte 0xc
 ..@0x80442b9: push strict byte 0x50
-..@0x80442bb: call B.code+malloc
+..@0x80442bb: call B.code+Qmalloc
 ..@0x80442c0: add esp, strict byte 0x10
 ..@0x80442c3: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80442c5: db 0x89, 0xc5  ;; mov ebp,eax
@@ -781,7 +781,7 @@ Q_stdio_fopen: equ $-B.code
 ..@0x80443ac: db 0x75, 0x32  ;; jnz 0x80443e0
 ..@0x80443ae: sub esp, strict byte 0xc
 ..@0x80443b1: push strict dword BUFSIZ
-..@0x80443b6: call B.code+malloc
+..@0x80443b6: call B.code+Qmalloc
 ..@0x80443bb: add esp, strict byte 0x10
 ..@0x80443be: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80443c0: db 0x89, 0x45, 0x08  ;; mov [ebp+0x8],eax
@@ -1743,6 +1743,98 @@ fgetc: equ $-B.code
 .77:		pop ecx  ; Value overwritten by fileio_fread above. That's fine, ECX is a scratch register.
 		ret
 ;
+PROT:  ; Symbolic constants.
+.READ: equ 1
+.WRITE: equ 2
+;
+MAP:  ; Symbolic constants.
+.PRIVATE: equ 2
+.ANONYMOUS: equ 0x20
+;
+MREMAP:  ; Symbolic constants.
+.MAYMOVE: equ 1
+;
+malloc: equ $-B.code  ; void *malloc(size_t size);
+; Limitations:
+;
+; * Each memory allocation has system call overhead and extra overhead
+;   because the page table is updated.
+; * Each memory allocation uses at last 0x1000 bytes (4 KiB) of memory, all
+;   of them are rounded up to the page size.
+; * There is 0x10 bytes of overhead per allocation, so if you call
+;   malloc(0x1000), it will use 8 KiB instead of 4 KiB.
+		; We return a valid (non-NULL) pointer even if size == 0. uClibc malloc(3) does the same.
+		push ebx
+		push esi
+		push edi
+		push ebp
+		xor eax, eax
+		mov al, 192  ; __NR_mmap2.
+		xor ebx, ebx  ; addr argument to mmap2(2).
+		mov ecx, [esp+4+0x10]
+		add ecx, byte 0x10  ; length argument of mmap2(2). The kernel will round it up to page boundary. We add 0x10 to have room (4 bytes) for the size of the mapping, plus alignment.
+		push byte PROT.READ|PROT.WRITE  ; prot argument of mmap2(2).
+		pop edx
+		push byte MAP.PRIVATE|MAP.ANONYMOUS  ; flags argument of mmap2(2).
+		pop esi
+		or edi, byte -1  ; fd argument of mmap2(2).
+		xor ebp, ebp  ; offset argument of mmap2(2). The file offset is arg << 12, but we don't care, because this is an anonymous mapping.
+		int 0x80  ; Linux i386 syscall.
+		cmp eax, -0x100  ; Error? uClibc has -0x1000 here.
+		ja .merror
+		mov [eax], ecx  ; Save the size of the mapping.
+		add eax, byte 0x10
+.mdone:		pop ebp
+		pop edi
+		pop esi
+		pop ebx
+		ret
+.merror:	xor eax, eax  ; EAX := 0 (== NULL, error).
+		jmp short .mdone
+;
+realloc: equ $-B.code  ; void *realloc(void *ptr, size_t size);
+		mov eax, [esp+4]
+		test eax, eax
+		jnz .existing
+		push dword [esp+8]  ; size.
+		call B.code+malloc  ; realloc(NULL, size) is equivalent to It's a no-op to free(NULL).
+		pop edx  ; Value doesn't matter.
+		ret
+.existing:	push ebx
+		push esi
+		lea ebx, [eax-0x10]  ; old_address argument of mremap(2).
+		mov ecx, [ebx]  ; old_size argument of mremap(2).
+		mov edx, [esp+8+8]  ; new_size argument of mremap(2).
+		add edx, byte 0x10
+		push byte MREMAP.MAYMOVE  ; flags argument of mremap(2).
+		pop esi
+		xor eax, eax
+		mov al, 163  ; __NR_mremap.
+		int 0x80  ; Linux i386 syscall.
+		cmp eax, -0x100  ; Error? uClibc has -0x1000 here.
+		ja .rerror
+		mov [eax], edx  ; Save the new size of the mapping.
+		add eax, byte 0x10
+.rdone:		pop esi
+		pop ebx
+		ret
+.rerror:	xor eax, eax  ; EAX := 0 (== NULL, error).
+		jmp short .rdone
+;		
+free: equ $-B.code  ; void free(void *ptr);
+		mov eax, [esp+4]
+		test eax, eax
+		jz .fdone  ; It's a no-op to free(NULL).
+		push ebx
+		lea ebx, [eax-0x10]  ; addr argument of munmap(2).
+		xor eax, eax
+		push byte 91  ; __NR_munmap.
+		pop eax
+		mov ecx, [ebx]  ; length argument of munmap(2).
+		int 0x80  ; TODO(pts): abort() on failure.
+		pop ebx
+.fdone:		ret
+;
 ; Unconverted syscalls:
 ; fcntl 55
 ; fcntl64 221
@@ -2202,7 +2294,7 @@ Q_stdio_openlist_dec_use: equ $-B.code
 ..@0x8045590: db 0x74, 0x0c  ;; jz 0x804559e
 ..@0x8045592: sub esp, strict byte 0xc
 ..@0x8045595: push edx
-..@0x8045596: call B.code+free  ; __STDIO_STREAM_FREE_FILE(stream);
+..@0x8045596: call B.code+Qfree  ; __STDIO_STREAM_FREE_FILE(stream);
 ..@0x804559b: add esp, strict byte 0x10
 ..@0x804559e: db 0x89, 0xda  ;; mov edx,ebx
 ..@0x80455a0: db 0x85, 0xd2  ;; test edx,edx
@@ -2663,7 +2755,7 @@ __malloc_largebin_index: equ $-B.code
 ..@0x8045e19: db 0x8d, 0x44, 0x83, 0x20  ;; lea eax,[ebx+eax*4+0x20]
 ..@0x8045e1d: pop ebx
 ..@0x8045e1e: ret
-malloc: equ $-B.code
+Qmalloc: equ $-B.code
 ..@0x8045e1f: push ebp
 ..@0x8045e20: push edi
 ..@0x8045e21: push esi
@@ -2934,7 +3026,7 @@ malloc: equ $-B.code
 ..@0x80461da: db 0x8b, 0x44, 0x24, 0x20  ;; mov eax,[esp+0x20]
 ..@0x80461de: sub eax, strict byte 0x7
 ..@0x80461e1: push eax
-..@0x80461e2: call B.code+malloc
+..@0x80461e2: call B.code+Qmalloc
 ..@0x80461e7: add esp, strict byte 0x10
 ..@0x80461ea: db 0x89, 0xc3  ;; mov ebx,eax
 ..@0x80461ec: jmp strict near R.code+0x80465a6
@@ -3159,7 +3251,7 @@ malloc: equ $-B.code
 ..@0x80464c2: push eax
 ..@0x80464c3: db 0xc7, 0x05, 0xe4, 0xed, 0x87, 0x09, 0xff, 0xff  ;; mov dword [0x987ede4],0xffffffff
 ..@0x80464cb: db 0xff, 0xff
-..@0x80464cd: call B.code+free
+..@0x80464cd: call B.code+Qfree
 ..@0x80464d2: add esp, strict byte 0x10
 ..@0x80464d5: db 0x89, 0x1d, 0xe4, 0xed, 0x87, 0x09  ;; mov [0x987ede4],ebx
 ..@0x80464db: db 0xa1, 0x08, 0xee, 0x87, 0x09  ;; mov eax,[0x987ee08]
@@ -3227,7 +3319,7 @@ malloc: equ $-B.code
 ..@0x80465be: pop edi
 ..@0x80465bf: pop ebp
 ..@0x80465c0: ret
-realloc: equ $-B.code
+Qrealloc: equ $-B.code
 ..@0x80465c1: push ebp
 ..@0x80465c2: push edi
 ..@0x80465c3: push esi
@@ -3238,14 +3330,14 @@ realloc: equ $-B.code
 ..@0x80465d1: db 0x75, 0x10  ;; jnz 0x80465e3
 ..@0x80465d3: sub esp, strict byte 0xc
 ..@0x80465d6: push ebx
-..@0x80465d7: call B.code+malloc
+..@0x80465d7: call B.code+Qmalloc
 ..@0x80465dc: db 0x89, 0xc3  ;; mov ebx,eax
 ..@0x80465de: jmp strict near R.code+0x80468ea
 ..@0x80465e3: db 0x85, 0xdb  ;; test ebx,ebx
 ..@0x80465e5: db 0x75, 0x11  ;; jnz 0x80465f8
 ..@0x80465e7: sub esp, strict byte 0xc
 ..@0x80465ea: push dword [esp+0x3c]
-..@0x80465ee: call B.code+free
+..@0x80465ee: call B.code+Qfree
 ..@0x80465f3: jmp strict near R.code+0x80468ea
 ..@0x80465f8: push edi
 ..@0x80465f9: push strict dword __malloc_lock
@@ -3325,7 +3417,7 @@ realloc: equ $-B.code
 ..@0x80466f8: db 0x8b, 0x44, 0x24, 0x10  ;; mov eax,[esp+0x10]
 ..@0x80466fc: sub eax, strict byte 0x7
 ..@0x80466ff: push eax
-..@0x8046700: call B.code+malloc
+..@0x8046700: call B.code+Qmalloc
 ..@0x8046705: add esp, strict byte 0x10
 ..@0x8046708: db 0x85, 0xc0  ;; test eax,eax
 ..@0x804670a: db 0x89, 0xc2  ;; mov edx,eax
@@ -3379,7 +3471,7 @@ realloc: equ $-B.code
 ..@0x8046791: sub esp, strict byte 0xc
 ..@0x8046794: add ebx, strict byte 0x8
 ..@0x8046797: push dword [esp+0x3c]
-..@0x804679b: call B.code+free
+..@0x804679b: call B.code+Qfree
 ..@0x80467a0: jmp strict near R.code+0x80468cf
 ..@0x80467a5: db 0x89, 0xd9  ;; mov ecx,ebx
 ..@0x80467a7: db 0x2b, 0x4c, 0x24, 0x04  ;; sub ecx,[esp+0x4]
@@ -3404,7 +3496,7 @@ realloc: equ $-B.code
 ..@0x80467e1: db 0x83, 0x4c, 0x08, 0x04, 0x01  ;; or dword [eax+ecx+0x4],byte +0x1
 ..@0x80467e6: add eax, strict byte 0x8
 ..@0x80467e9: push eax
-..@0x80467ea: call B.code+free
+..@0x80467ea: call B.code+Qfree
 ..@0x80467ef: add esp, strict byte 0x10
 ..@0x80467f2: db 0x8d, 0x5f, 0x08  ;; lea ebx,[edi+0x8]
 ..@0x80467f5: jmp strict near R.code+0x80468dc
@@ -3458,7 +3550,7 @@ realloc: equ $-B.code
 ..@0x804689c: db 0x8b, 0x44, 0x24, 0x10  ;; mov eax,[esp+0x10]
 ..@0x80468a0: sub eax, strict byte 0x7
 ..@0x80468a3: push eax
-..@0x80468a4: call B.code+malloc
+..@0x80468a4: call B.code+Qmalloc
 ..@0x80468a9: add esp, strict byte 0x10
 ..@0x80468ac: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80468ae: db 0x89, 0xc3  ;; mov ebx,eax
@@ -3472,7 +3564,7 @@ realloc: equ $-B.code
 ..@0x80468c0: call B.code+memcpy
 ..@0x80468c5: pop edx
 ..@0x80468c6: push dword [esp+0x3c]
-..@0x80468ca: call B.code+free
+..@0x80468ca: call B.code+Qfree
 ..@0x80468cf: add esp, strict byte 0x10
 ..@0x80468d2: db 0xeb, 0x08  ;; jmp short 0x80468dc
 ..@0x80468d4: db 0x31, 0xdb  ;; xor ebx,ebx
@@ -3684,7 +3776,7 @@ __malloc_consolidate: equ $-B.code
 ..@0x8046b29: pop edi
 ..@0x8046b2a: pop ebp
 ..@0x8046b2b: ret
-free: equ $-B.code
+Qfree: equ $-B.code
 ..@0x8046b2c: push ebp
 ..@0x8046b2d: push edi
 ..@0x8046b2e: push esi
