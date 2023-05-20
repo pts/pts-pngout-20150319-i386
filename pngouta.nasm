@@ -28,7 +28,7 @@
 %endif
 
 %ifidn TARGET, x  ; statically linked for Linux i386 using a custom libc.
-  B.code equ -0x8042000
+  B.code equ -0x8046000  ; !! Where are the big paddings? Can we remove them?
   B.data equ B.code-0x1000
 %elifidn TARGET, l  ; dynamically linked for Linux i386 against glibc, remastered
   ; Originally created with glibc 2.19.
@@ -261,88 +261,19 @@ phdr2:					; Elf32_Phdr
 		dd 0			;   p_align
 X.ELF_phdr.end:
 
-X.gap1:      ;0x00094..0x004c0  +0x0042c    ---
-times +0x0042c db 0
-
-X.mcrodata:  ;0x004c0..0x01adc  +0x0161c    @0x80424c0...0x8043adc
-times -($-$$+0x8042000)+0x80424c0 times 0 nop  ; Assert.
-times +($-$$+0x8042000)-0x80424c0 times 0 nop  ; Assert.
-; !! Remove most of this.
+X.mcrodata:  ; ...0x8043ae0
 BUFSIZ equ 0x1000  ; Buffer size for stdin, stdout and newly fopen()ed files.
-ucrodata_unknown1: equ $-B.code  ; No labels here.
-..@0x80424c0: db 0x00, 0x00, 0x80, 0xda, 0x00, 0x00, 0x80, 0x5a, 0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0x00, 0x40
-unused_f32_10: equ $-B.code
-..@0x80424d0: dd 0
-f32_0.25: equ $-B.code
-..@0x80424d4: dd 0x3e800000  ; 32-bit (float)0.25.
-ucrodata_unknown4: equ $-B.code  ; No labels here.
-  ..@0x80424d8: db 0x20, 0xbc, 0xbe, 0x4c, 0x28, 0x6b, 0x6e, 0x4e
-  ..@0x80424e0: db 0x00, 0x00, 0xe0, 0xfe, 0x42, 0x2e, 0xe6, 0x3f, 0x76, 0x3c, 0x79, 0x35, 0xef, 0x39, 0xea, 0x3d
-  ..@0x80424f0: db 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0xd5, 0xbf, 0x76, 0x3c, 0x79, 0x35, 0xef, 0x39, 0xea, 0xbd
-  ..@0x8042500: db 0x44, 0x52, 0x3e, 0xdf, 0x12, 0xf1, 0xc2, 0x3f, 0xde, 0x03, 0xcb, 0x96, 0x64, 0x46, 0xc7, 0x3f
-  ..@0x8042510: db 0x59, 0x93, 0x22, 0x94, 0x24, 0x49, 0xd2, 0x3f, 0x93, 0x55, 0x55, 0x55, 0x55, 0x55, 0xe5, 0x3f
-  ..@0x8042520: db 0x9f, 0xc6, 0x78, 0xd0, 0x09, 0x9a, 0xc3, 0x3f, 0xaf, 0x78, 0x8e, 0x1d, 0xc5, 0x71, 0xcc, 0x3f
-  ..@0x8042530: db 0x04, 0xfa, 0x97, 0x99, 0x99, 0x99, 0xd9, 0x3f
-f64_0: equ $-B.code:
-..@0x8042538: dd 0, 0  ; 32-bit (float)0.0.
-ucrodata_unknown5: equ $-B.code  ; No labels here.
-  ..@0x8042540: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f
-Q__stdio_mutex_initializer.4160: equ $-B.code
-..@0x8042548: dd 0, 0, 0, 1, 0, 0  ; All uClibc locks look like this initially.
-str_nil: equ $-B.code  ; No labels here.
-..@0x8042560: db '(nil)', 0
-str_null: equ $-B.code  ; No labels here.
-..@0x8042566: db '(null)', 0
-str_dev_null: equ $-B.code  ; No labels here.
-..@0x804256d: db '/dev/null', 0
-prefix.4371: equ $-B.code
-..@0x8042577: db 0x2b, 0x00, 0x2d, 0x00, 0x20, 0x00, 0x30, 0x78, 0x00
-  ..@0x8042580: db 0x30, 0x58, 0x00
-spec_base.4370: equ $-B.code
-..@0x8042583: db 0x10, 0x10, 0x10, 0x08, 0x0a, 0x0a, 0x0a
-qual_chars.4377: equ $-B.code
-..@0x804258a: db 'hlLjztqZ', 0
-ucrodata_unknown2: equ $-B.code  ; No labels here.
-..@0x8042593: db 0x02, 0x04, 0x08, 0x08, 0x00, 0x00, 0x08, 0x00, 0x00, 0x01, 0x08
-spec_and_mask.4376: equ $-B.code
-..@0x804259e: db 0x00, 0x1f
-  ..@0x80425a0: db 0x05, 0x00, 0x00, 0x0f, 0x07, 0x08, 0x02, 0x00, 0x04, 0x00, 0x01, 0x00, 0x03, 0x00
-spec_or_mask.4375: equ $-B.code
-..@0x80425ae: db 0x00, 0x10
-  ..@0x80425b0: db 0x05, 0x00, 0x00, 0x00, 0x07, 0x00, 0x02, 0x00, 0x04, 0x00, 0x01, 0x00, 0x03, 0x00
-spec_ranges.4374: equ $-B.code
-..@0x80425be: db 0x00, 0x01
-  ..@0x80425c0: db 0x07, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x15
-spec_chars.4373: equ $-B.code
-..@0x80425c7: db 'npxXoudifFeEgGaACScs', 0
-spec_flags.4372: equ $-B.code
-..@0x80425dc: db ' +0-#', 0x27, 'I', 0
-type_codes: equ $-B.code
-..@0x80425e4: db 0x08, 0x00, 0x05, 0x00, 0x03, 0x00, 0x04, 0x00, 0x01, 0x00, 0x00, 0x02
-  ..@0x80425f0: db 0x00, 0x00, 0x00, 0x04, 0x00, 0x08, 0x02, 0x00, 0x07, 0x00, 0x07, 0x08
-type_sizes: equ $-B.code
-..@0x80425fc: db 0x00, 0x01, 0x01, 0x01
-  ..@0x8042600: db 0x04, 0x02, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01
-unused_error_messages: equ $-B.code
-..@0x8042608: times 0x80431a8-0x8042608 db 0  ; Padding of 0xba0 bytes.
-nan_inf_str: equ $-B.code  ; 0x15 bytes. static char nan_inf_str[] in __strtofpmax.
-..@0x80431a8: db 5, 'nan', 0, 0xa, 'infinity', 0, 5, 'inf', 0, 0
-ucrodata_unknown3: equ $-B.code  ; Probably just padding.
-..@0x80431bd: times 3 db 0
-unused_sysconf_jump_table: equ $-B.code  ; Contains code pointers, for sysconf(i), there is a jump to pointer number i in thistable.
-..@0x80431c0: times 0x8043420-0x80431c0 db 0
-unused_ctype_data: equ $-B.code  ; 0x600 bytes.
-..@0x8043420: times 0x600 db 0
-unused_fmts: equ $-B.code  ; 0x9c bytes.
-..@0x8043a20: times 0x8043adc-0x8043a20 db 0
-
-X.gap2:      ;0x01adc..0x01ae0  +0x00004    @0x8043adc...0x8043ae0
-times +0x00004 db 0
+str_null: equ $-B.code
+		db '(null)', 0
+nan_inf_str: equ $-B.code  ; 0x15 bytes. static char nan_inf_str[] in strtod(...).
+		db 5, 'nan', 0, 0xa, 'infinity', 0, 5, 'inf', 0, 0
+;
+		times $$+0x8047ae0 -$+B.code db 0   ; Padding.
 
 X.mctext:    ;0x01ae0..0x06d09  +0x05229    @0x8043ae0...0x8048d09
-times -($-$$+0x8042000)+0x8043ae0 times 0 nop  ; Assert.
-times +($-$$+0x8042000)-0x8043ae0 times 0 nop  ; Assert.
-; !! Remove most of this.
+times -($-$$+0x8046000)+0x8047ae0 times 0 nop  ; Assert.
+times +($-$$+0x8046000)-0x8047ae0 times 0 nop  ; Assert.
+..@0x8043ae0:
 _start: equ $-B.code  ; Entry point (_start) of the Linux i386 executable.
 		; Now the stack looks like (from top to bottom):
 		;   dword [esp]: argc
@@ -1061,7 +992,7 @@ fread: equ $-B.code
 		add [ebx+0x10], edx
 		mov [ebx+0xc], eax
 		mov [ebx+0x8], eax
-		push dword 0x1000
+		push dword BUFSIZ
 		push eax
 		push dword [ebx+0x4]
 		call B.code+fileio_read
@@ -1101,9 +1032,9 @@ fwrite: equ $-B.code
 		mov ebx, ebp
 		cmp [esi+0x8], eax
 		jne .53
-		cmp edi, 0xfff
+		cmp edi, BUFSIZ-1
 		ja .44
-.53:		lea ecx, [esi+0x1014]
+.53:		lea ecx, [esi+0x14+BUFSIZ]
 .46:		mov edx, [esi+0x8]
 		cmp edx, ecx
 		je .44
@@ -1968,7 +1899,7 @@ strtok_labels:
 		pop ebx
 		ret
 ;
-		times $$+0x8048d10-$+B.code hlt   ; Padding.
+		times $$+0x8048d10-$+B.code hlt   ; Padding. 0x79b bytes. !!
 %endif  ; TARGET, x
 
 ; http://www.linker-aliens.org/blogs/ali/entry/gnu_hash_elf_sections/
@@ -22354,99 +22285,16 @@ times +(P.rodata.end-P.rodata)-(0x805ba20-0x805a76c) times 0 nop  ; Assert.
 _rodata.end: equ $-B.code
 
 %ifidn TARGET, x
-X.gap6:      ;0x19a20..0x19f40  +0x00520    @0x805ba20...0x805cf40  memsize=infilesize+0x1000=0x1520, virtual memory gap
-..@0x805ba20:
-times +0x00520 db 0
-
-X.mcdata:    ;0x19f40..0x1a1ac  +0x0026c    @0x805cf40...0x805d1ac
-times -($-$$-B.data)+0x805cf40 times 0 nop  ; Assert.
-times +($-$$-B.data)-0x805cf40 times 0 nop  ; Assert.
+X.mcdata:
 _mcdata: equ $-B.data
-; !! Remove most of this.
-stdin: equ $-B.data  ; FILE*.
-..@0x805cf40: dd filestruct_stdin
-stdout: equ $-B.data  ; FILE*.
-..@0x805cf44: dd filestruct_stdout
-stderr: equ $-B.data  ; FILE*.
-..@0x805cf48: dd filestruct_stderr
-__stdin: equ $-B.data  ; FILE*. Unused by the program.
-..@0x805cf4c: dd filestruct_stdin
-__stdout: equ $-B.data  ; FILE*. Unused by the program.
-..@0x805cf50: dd filestruct_stdout
-_stdio_openlist: equ $-B.data  ; FILE*.
-..@0x805cf54: dd filestruct_stdin  ; Head of linked list via .__nextopen pointers. Initial state: head == filestruct_stdin --> filestruct_stdout --> filestruct_stderr --> NULL. Seems to be unused by fclose(3).
-_stdio_openlist_add_lock: equ $-B.data
-..@0x805cf58: dd 0, 0, 0, 1, 0, 0
-_stdio_openlist_del_lock: equ $-B.data
-..@0x805cf70: dd 0, 0, 0, 1, 0, 0
-_stdio_user_locking: equ $-B.data
-..@0x805cf88: dd 2
-..@0x805cf8c: times 0x14 db 0  ; Padding.
-_stdio_streams: equ $-B.data
-filestruct_stdin: equ $-B.data  ; struct __STDIO_FILE_STRUCT.
-..@0x805cfa0: db 0x20, 0x01, 0x00, 0x00
-filestruct_stdin.__filedes: equ $-B.data
-..@0x805cfa4:   dd 0  ; STDIN_FILENO.
-filestruct_stdin.__bufstart: equ $-B.data
-..@0x805cfa8:   dd buf_stdin
-filestruct_stdin.__bufend: equ $-B.data
-..@0x805cfac:   dd buf_stdin.end
-..@0x805cfb0:   db 0x60, 0xca, 0x87, 0x09, 0x60, 0xca, 0x87, 0x09, 0x60, 0xca, 0x87, 0x09, 0x60, 0xca, 0x87, 0x09
-..@0x805cfc0:   dd filestruct_stdout  ; .__nextopen.
-..@0x805cfc4:   db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-..@0x805cfd0:   db 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-..@0x805cfe0:   db 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-filestruct_stdout: equ $-B.data  ; struct __STDIO_FILE_STRUCT
-..@0x805cff0: db 0x10, 0x01, 0x00, 0x00
-filestruct_stdout.__filedes: equ $-B.data
-..@0x805cff4:   dd 1  ; STDOUT_FILENO
-filestruct_stdout.__bufstart: equ $-B.data
-..@0x805cff8:   dd buf_stdout
-filestruct_stdout.__bufend: equ $-B.data
-..@0x805cffc:   dd buf_stdout+0x400  ; buf_stdout.end  ; Limited to 0x400 == 1024 bytes to match glibc 2.19 on TTY.
-..@0x805d000:   db 0x60, 0xda, 0x87, 0x09, 0x60, 0xda, 0x87, 0x09, 0x60, 0xda, 0x87, 0x09, 0x60, 0xda, 0x87, 0x09
-..@0x805d010:   dd filestruct_stderr  ; .__nextopen.
-..@ox805d014:   db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-..@0x805d020:   db 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-..@0x805d030:   db 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-filestruct_stderr: equ $-B.data  ; struct __STDIO_FILE_STRUCT
-..@0x805d040: db 0x10, 0x02, 0x00, 0x00
-filestruct_stderr.__filedes: equ $-B.data
-..@0x805d044:   dd 2  ; STDERR_FILENO.
-filestruct_stderr.__bufstart: equ $-B.data
-..@0x805d048:   dd 0  ; Unbuffered.
-filestruct_stderr.__bufend: equ $-B.data
-..@0x805d04c:   dd 0  ; Unbuffered.
-..@0x805d050:   db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-..@0x805d060:   dd 0  ; .__nextopen.
-..@0x805d064:   db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-..@0x805d070:   db 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-..@0x805d080:   db 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-_stdio_streams.end: equ $-B.data
-__malloc_lock: equ $-B.data
-..@0x805d090: dd 0, 0, 0, 1, 0, 0
-__mylock1: equ $-B.data
-..@0x805d0a8: dd 0, 0, 0, 1, 0, 0
-__mylock2: equ $-B.data
-..@0x805d0c0: dd 0, 0, 0, 1, 0, 0
-unsafe_state: equ $-B.data  ; 0x1c bytes.
-..@0x805d0d8: dd 0x805d110, 0x805d104, 0x805d104, 3, 0x1f, 3, 0x805d180
-..@0x805d0f4: times 0xc db 0
-..@0x805d100: times 0x805d180-0x805d100 db 0  ; Padding.
-__atexit_lock: equ $-B.data
-..@0x805d180: dd 0, 0, 0, 1, 0, 0
-__uclibc_progname: equ $-B.data
-..@0x805d198: dd 0x8042565
 stdstream_buf_ptr: equ $-B.data ; Next byte to write to buffer.
 ..@0x805d19c: dd stdstream_buf
 stdstream_read_buf_ptr: equ $-B.data ; Next byte to read from stdstream_read_buf.
 ..@0x805d1a0: dd stdstream_read_buf
 stdstream_read_buf_last: equ $-B.data ; Last byte avialble to read in stdstream_read_buf.
 ..@0x805d1a4: dd stdstream_read_buf
-
-X.gap7:      ;0x1a1a8..0x1a1c4  +0x00028    @0x805d19c...0x805d1c4
-..@0x805d1a8:
-times +0x0001c db 0
+;
+              times $$+0x805d1c4-$+B.data db 0  ; Padding.
 %endif  ; TARGET, x
 
 $DT:  ; Symbolic constants for ELF DT_... (dynamic type).
@@ -23083,6 +22931,7 @@ opendir@GLIBC_2.0@got: equ $-B.code
 P.data:      ;0x1a1c4..0x1a1f0  +0x0002c    @0x805d1c4...0x805d1f0  file_size=end_off=0x1a1f0=106992 (previous attempt was 122880 bytes)
 times -(P.data-B.data-$$)+0x805d1c4 times 0 nop  ; Assert.
 times +(P.data-B.data-$$)-0x805d1c4 times 0 nop  ; Assert.
+; !! Move these variables closer to the code for TARGET==x.
 ..@0x805d1c4: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 code_ptr_0x805d1cc: equ $-B.data
 ..@0x805d1cc: dd unknown_func1
@@ -23095,10 +22944,8 @@ times -(P.data.end-P.data)+(0x805d1f0-0x805d1c4) times 0 nop  ; Assert.
 times +(P.data.end-P.data)-(0x805d1f0-0x805d1c4) times 0 nop  ; Assert.
 
 %ifidn TARGET, x
-times (+($-$$)-0x1a1f0) times 0 nop  ; Assert on file size.
-times (-($-$$)+0x1a1f0) times 0 nop  ; Assert on file size.
-
-X.gap8:      ;---               +0x35       @0x805d1f0...0x805d225
+times (+($-$$)-0x161f0) times 0 nop  ; Assert on file size.
+times (-($-$$)+0x161f0) times 0 nop  ; Assert on file size.
 absolute $
 ..@0x805d1f0: resb +0x35
 %endif  ; TARGET, x
@@ -23437,68 +23284,25 @@ times -(P.bss.end-P.bss)+(0x987ca50-0x805d225) times 0 nop  ; Assert.
 times +(P.bss.end-P.bss)-(0x987ca50-0x805d225) times 0 nop  ; Assert.
 
 %ifidn TARGET, x
-X.mcbss:     ;---               +0x023e0    @0x987ca50...0x987ee20
-; !! Remove most of this.
-_stdio_openlist_use_count: equ $-B.data
-..@0x987ca50: resb 4
-_stdio_openlist_del_count: equ $-B.data
-..@0x987ca54: resb 4
+X.mcbss:     ;---               +0x023e0    @0x987ca50...*
 seed: equ $-B.data
-..@0x987ca58: resb 8
-_fixed_buffers: equ $-B.data
-buf_stdin: equ $-B.data
-stdstream_read_buf: equ $-B.data  ; We reuse buf_stdin, since it won't be used by regular calls.
-stdstream_read_buf.end: equ stdstream_read_buf+0x400  ; We could make it even shorter for PNGOUT, as short as 0x80 bytes would still be efficient. PNGOUT uses it only for reading the prompt response (jmp_read_prompt_response).
-..@0x987ca60: resb +BUFSIZ
-buf_stdin.end: equ $-B.data
-buf_stdout: equ $-B.data
-stdstream_buf: equ $-B.data  ; We reuse buf_stdout, since it won't be used by regular calls.
-stdstream_buf.end: equ stdstream_buf+0x400  ; Match glibc 2.19 stdout buffer size on a TTY.
-..@0x987da60: resb +BUFSIZ
-buf_stdout.end: equ $-B.data
+		resb 8
 strtok_global_ptr: equ $-B.data
-..@0x987ea60: resb 4
-been_there_done_that: equ $-B.data
-..@0x987ea64: resb 1
-..@0x987ea65: resb 3
-unused___exit_cleanup: equ $-B.data
-..@0x987ea68: resb 4
-__libc_stack_end: equ $-B.data
-..@0x987ea6c: resb 4
-environ: equ $-B.data
-..@0x987ea70: resb 4
-__pagesize: equ $-B.data
-..@0x987ea74: resb 4
-__app_fini: equ $-B.data
-..@0x987ea78: resb 4
-__rtld_fini: equ $-B.data
-..@0x987ea7c: resb 4
-is_uClibc_init_called: equ $-B.data  ; Not an official uClibc symbol.
-been_there_done_that.3001: equ $-B.data
-..@0x987ea80: resb 1
-..@0x987ea81: resb 3
-errno: equ $-B.data
-..@0x987ea84: resb 4
-h_errno: equ $-B.data
-stdstream_buf_fd: equ $-B.data  ; Reuse h_errno (otherwise unused) for printf output buffering.
-..@0x987ea88: resb 4
-__curbrk: equ $-B.data
-..@0x987ea8c: resb 4
-..@0x987ea90: resb 0x10
-__malloc_state: equ $-B.data
-..@0x987eaa0: resb 0x378
-_dl_phdr: equ $-B.data
-..@0x987ee18: resb 4
-_dl_phnum: equ $-B.data
-..@0x987ee1c: resb 4
+		resb 4
+stdstream_read_buf: equ $-B.data  ; We reuse buf_stdin, since it won't be used by regular calls.
+		resb 0x400
+stdstream_read_buf.end: equ $-B.data  ; We could make it even shorter for PNGOUT, as short as 0x80 bytes would still be efficient. PNGOUT uses it only for reading the prompt response (jmp_read_prompt_response).
+stdstream_buf: equ $-B.data  ; We reuse buf_stdout, since it won't be used by regular calls.
+		resb 0x400
+stdstream_buf.end: equ $-B.data  ; Match glibc 2.19 stdout buffer size on a TTY.
 fileio_files: equ $-B.data
-..@0x987ee20: resb 2*0x1014  ; Contains 2 `struct _SFS_FILE()s, reserved for allocation by fileio_fopen(...). TODO(pts): Is 2 _SFS_FILE enough?
+		resb 2*(0x14+BUFSIZ)  ; Contains 2 `struct _SFS_FILE()s, reserved for allocation by fileio_fopen(...). TODO(pts): Is 2 _SFS_FILE enough?
+stdstream_buf_fd: equ $-B.data  ; Reuse h_errno (otherwise unused) for printf output buffering.
+		resb 4
 stdstream_buf_is_stdout_a_tty: equ $-B.data
               resb 1  ; By default it's 0 (false).
 X.mcbss.end:
 _mcbss.end: equ $-B.data
-times -(X.mcbss.end-X.mcbss)+(0x987ee20-0x987ca50+2*0x1014+1) times 0 nop  ; Assert.
-times +(X.mcbss.end-X.mcbss)-(0x987ee20-0x987ca50+2*0x1014+1) times 0 nop  ; Assert.
 %endif  ; TARGET, x
 
 %ifidn TARGET, d
