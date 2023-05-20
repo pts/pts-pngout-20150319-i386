@@ -205,20 +205,20 @@ X.ELF_phdr:  ;0x00034..0x00094  +0x00060    ---
 phdr0:					; Elf32_Phdr
 		dd PT.LOAD		;   p_type
 		dd 0			;   p_offset
-		dd 0x8042000		;   p_vaddr
-		dd 0x8042000		;   p_paddr
-		dd +0x19a20		;   p_filesz
-		dd +0x19a20		;   p_memsz
+		dd -B.code		;   p_vaddr
+		dd -B.code		;   p_paddr
+		dd +_rodata.end+B.code	;   p_filesz
+		dd +_rodata.end+B.code	;   p_memsz
 		dd 5			;   p_flags: r-x: read and execute, no write
 		dd 0x1000		;   p_align
 .size		equ $-phdr0
 phdr1:					; Elf32_Phdr
 		dd PT.LOAD		;   p_type
-		dd 0x19f40		;   p_offset
-		dd 0x805cf40		;   p_vaddr
-		dd 0x805cf40		;   p_paddr
-		dd +0x002b0		;   p_filesz
-		dd +0x1821ee0		;   p_memsz
+		dd _ucdata+B.data	;   p_offset
+		dd _ucdata		;   p_vaddr
+		dd _ucdata		;   p_paddr
+		dd +_data.end-_ucdata	;   p_filesz
+		dd +_ucbss.end-_ucdata	;   p_memsz
 		dd 6			;   p_flags: rw-: read and write, no execute
 		dd 0x1000		;   p_align
 phdr2:					; Elf32_Phdr
@@ -25681,6 +25681,7 @@ code_ptr_0x805b88c: equ $-B.code
 P.rodata.end:
 times -(P.rodata.end-P.rodata)+(0x805ba20-0x805a76c) times 0 nop  ; Assert.
 times +(P.rodata.end-P.rodata)-(0x805ba20-0x805a76c) times 0 nop  ; Assert.
+_rodata.end: equ $-B.code
 
 %ifidn TARGET, x
 X.gap6:      ;0x19a20..0x19f40  +0x00520    @0x805ba20...0x805cf40  memsize=infilesize+0x1000=0x1520, virtual memory gap
@@ -25690,6 +25691,7 @@ times +0x00520 db 0
 X.ucdata:    ;0x19f40..0x1a1ac  +0x0026c    @0x805cf40...0x805d1ac
 times -($-$$-B.data)+0x805cf40 times 0 nop  ; Assert.
 times +($-$$-B.data)-0x805cf40 times 0 nop  ; Assert.
+_ucdata: equ $-B.data
 stdin: equ $-B.data  ; FILE*.
 ..@0x805cf40: dd filestruct_stdin
 stdout: equ $-B.data  ; FILE*.
@@ -26420,6 +26422,7 @@ code_ptr_0x805d1cc: equ $-B.data
 ..@0x805d1e0: db 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 ;..@0x805d1f0:
 P.data.end:
+_data.end: equ $-B.data
 times -(P.data.end-P.data)+(0x805d1f0-0x805d1c4) times 0 nop  ; Assert.
 times +(P.data.end-P.data)-(0x805d1f0-0x805d1c4) times 0 nop  ; Assert.
 
@@ -26821,6 +26824,7 @@ _dl_phnum: equ $-B.data
 ..@0x987ee1c: resb 4
 ..@0x987ee20:
 X.ucbss.end:
+_ucbss.end: equ $-B.data
 times -(X.ucbss.end-X.ucbss)+(0x987ee20-0x987ca50) times 0 nop  ; Assert.
 times +(X.ucbss.end-X.ucbss)-(0x987ee20-0x987ca50) times 0 nop  ; Assert.
 %endif  ; TARGET, x
