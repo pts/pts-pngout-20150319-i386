@@ -75,17 +75,17 @@ A.code equ 0
 ;extern stderr  ; FILE*.
 
 ; libc stdio functions used.
-;extern fopen
-;extern fclose  ; Not used with stdin/stdout/stderr.
-;extern fread  ; Not used with stdin/stdout/stderr.
-;extern fwrite  ; Not used with stdin/stdout/stderr.
-;extern fseek  ; Not used with stdin/stdout/stderr.
-;extern ftell  ; Not used with stdin/stdout/stderr.
-;extern fgetc  ; Not used with stdin/stdout/stderr.
-;extern printf  ; Not used anymore in pngoutl, pngoutd or pngoutx. TODO(pts): Relink pngoutl with a shorter .plt etc. after all libc functions have been replaced.
+;extern fopen  ; Reimplemented.
+;extern fclose  ; Reimplemented. Not used with stdin/stdout/stderr.
+;extern fread  ; Reimplemented. Not used with stdin/stdout/stderr.
+;extern fwrite  ; Reimplemented. Not used with stdin/stdout/stderr.
+;extern fseek  ; Reimplemented. Not used with stdin/stdout/stderr.
+;extern ftell  ; Reimplemented. Not used with stdin/stdout/stderr.
+;extern fgetc  ; Reimplemented. Not used with stdin/stdout/stderr.
+;extern printf  ; Reimplemented. Not used anymore in pngoutl, pngoutd or pngoutx. TODO(pts): Relink pngoutl with a shorter .plt etc. after all libc functions have been replaced.
 ;extern vfprintf  ; Reimplemented in pngoutx.
 ;extern fflush  ; Reimplemented in pngoutx. Only used with stdout+stderr.
-;extern fgets  ; In pngoutx, reimplemented and caller code changed to progx_getchar. The only caller was jmp_read_prompt_response.
+;extern fgets  ; In pngoutx, reimplemented and caller code changed to stdstream_getchar. The only caller was jmp_read_prompt_response.
 ;extern puts  ; Not used anymore in pngoutl and pngoutx.
 ;extern fileno  ; Not used anymore in pngoutl, pngoutd or pngoutx.
 
@@ -153,9 +153,39 @@ A.code equ 0
 %endif
 
 %ifidn TARGET, x  ; libc-specific stdio.
-  %define MOV_EAX_PROG_STDOUT_REF mov eax, 1  ; Same number of bytes as `mov eax, [stdout]'. Good.
-  %define MOV_EAX_PROG_STDERR_REF mov eax, 2
-  %define prog_fflush progx_fflush
+  ; TARGET==x provides the following byte-based I/O facilities:
+  ;
+  ;   /* stdin, stdout and stderr. */
+  ;   struct _STS_FILE *stdstream_FILE;
+  ;   const stdstream_FILE *stdstream_stdout = (FILE*)1;
+  ;   const stdstream_FILE *stdstream_stderr = (FILE*)2;
+  ;   int stdstream_getchar(void);  /* Uses stdstream_stdin implicitly. */
+  ;   int stdstream_vfprintf(stdstream_FILE *filep, const char *format, va_list ap);  
+  ;   void stdstream_autoflush(void);
+  ;   void stdstream_flushall(void); 
+  ;   void stdstream_flush(stdstream_FILE*); /* Always called with stdout. Flushes may happen more often than explcitly called. */
+  ;   void stdstream_init_stdin_linebuf();  /* Autodetects and sets stdstream_buf_is_stdout_a_tty (false by default), which determines output buffering for stdout. */
+  ;   void stdstream_and_fileio_flushall(void);
+  ;
+  ;   /* Files opened explicitly. */
+  ;   /* Buffered I/O, 0x1000 bytes buffer size per file, 2 buffers preallocated. */
+  ;   struct _SFS_FILE *fileio_FILE;
+  ;   fileio_FILE *fileio_fopen(const char *pathname, const char *mode);
+  ;   int fileio_fflush(fileio_FILE *filep);
+  ;   int fileio_fclose(fileio_FILE *filep);
+  ;   size_t fileio_fread(void *ptr, size_t size, size_t nmemb, fileio_FILE *filep);
+  ;   size_t fileio_fwrite(const void *ptr, size_t size, size_t nmemb, fileio_FILE *filep);
+  ;   int fileio_fseek(fileio_FILE *filep, off_t offset, int whence);  /* Only 32-bit off_t. */
+  ;   off_t fileio_ftell(fileio_FILE *filep);  /* Only 32-bit off_t */
+  ;   int fileio_fgetc(fileio_FILE *filep);
+  ;   void fileio_flushall(void);
+  ;   void stdstream_and_fileio_flushall(void);
+  ;
+  %define stdstream_stdout_val 1  ; Same as the file descriptor (fd).
+  %define stdstream_stderr_val 2  ; Same as the file descriptor (fd).
+  %define MOV_EAX_PROG_STDOUT_REF mov eax, stdstream_stdout_val  ; Same number of bytes as `mov eax, [stdout]'. Good.
+  %define MOV_EAX_PROG_STDERR_REF mov eax, stdstream_stderr_val
+  %define prog_fflush stdstream_flush  ; Always called with stdout.
   %define prog_fgets progx_fgets_missing  ; It's an error to use it.
   %define prog_stdin progx_stdin_missing  ; It's an error to use it.
 %else  ; TARGET, x
@@ -257,7 +287,7 @@ f64_0: equ $-B.code:
 ..@0x8042538: dd 0, 0  ; 32-bit (float)0.0.
 ucrodata_unknown5: equ $-B.code  ; No labels here.
   ..@0x8042540: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf0, 0x3f
-__stdio_mutex_initializer.4160: equ $-B.code
+Q__stdio_mutex_initializer.4160: equ $-B.code
 ..@0x8042548: dd 0, 0, 0, 1, 0, 0  ; All uClibc locks look like this initially.
 str_nil: equ $-B.code  ; No labels here.
 ..@0x8042560: db '(nil)', 0
@@ -327,7 +357,7 @@ _start: equ $-B.code
 ..@0x8043af0: push ebp  ; No-op __libc_csu_init, pointing to dummy_init_and_fini.
 ..@0x8043af1: push ecx
 ..@0x8043af2: push esi
-..@0x8043af3: push strict dword progx_main
+..@0x8043af3: push strict dword stdstream_main
 ..@0x8043af8: db 0x31, 0xed  ; xor ebp, ebp
 ..@0x8043afa: call B.code+__uClibc_main
               ; Not reached, __uClibc_main never returns.
@@ -370,110 +400,13 @@ unused_time: equ $-B.code
 __errno_location: equ $-B.code
 ..@0x8043ded: db 0xb8, 0x84, 0xea, 0x87, 0x09  ;; mov eax,errno
 ..@0x8043df2: ret
-fclose: equ $-B.code
-..@0x8043df3: push ebp
-..@0x8043df4: push edi
-..@0x8043df5: push esi
-..@0x8043df6: push ebx
-; The lack of _stdio_openlist here proves defined(__UCLIBC_HAS_THREADS__) and defined(__STDIO_BUFFERS).
-..@0x8043df7: sub esp, strict byte 0x2c
-..@0x8043dfa: db 0x8b, 0x74, 0x24, 0x40  ;; mov esi,[esp+0x40]
-..@0x8043dfe: db 0x8b, 0x6e, 0x34  ;; mov ebp,[esi+0x34]
-..@0x8043e01: db 0x85, 0xed  ;; test ebp,ebp
-..@0x8043e03: db 0x75, 0x1f  ;; jnz 0x8043e24
-..@0x8043e05: db 0x8d, 0x5e, 0x38  ;; lea ebx,[esi+0x38]
-..@0x8043e08: push ecx
-..@0x8043e09: push ebx
-..@0x8043e0a: push strict dword __pthread_return_0
-..@0x8043e0f: db 0x8d, 0x44, 0x24, 0x28  ;; lea eax,[esp+0x28]
-..@0x8043e13: push eax
-..@0x8043e14: call B.code+__pthread_return_void
-..@0x8043e19: db 0x89, 0x1c, 0x24  ;; mov [esp],ebx
-..@0x8043e1c: call B.code+__pthread_return_0
-..@0x8043e21: add esp, strict byte 0x10
-..@0x8043e24: db 0x31, 0xff  ;; xor edi,edi
-..@0x8043e26: db 0xf6, 0x06, 0x40  ;; test byte [esi],0x40
-..@0x8043e29: db 0x74, 0x0e  ;; jz 0x8043e39  ; Keeps going if __STDIO_STREAM_IS_WRITING(stream).
-..@0x8043e2b: sub esp, strict byte 0xc
-..@0x8043e2e: push esi
-..@0x8043e2f: call B.code+fflush_unlocked
-..@0x8043e34: add esp, strict byte 0x10
-..@0x8043e37: db 0x89, 0xc7  ;; mov edi,eax
-..@0x8043e39: sub esp, strict byte 0xc
-..@0x8043e3c: push dword [esi+0x4]
-..@0x8043e3f: call B.code+close  ; close(stream->__filedes);
-..@0x8043e44: add esp, strict byte 0xc
-..@0x8043e47: db 0xc7, 0x46, 0x04, 0xff, 0xff, 0xff, 0xff  ;; mov dword [esi+0x4],0xffffffff  ; stream->__filedes = -1;
-..@0x8043e4e: push strict dword _stdio_openlist_del_lock
-..@0x8043e53: push strict dword __pthread_return_0
-..@0x8043e58: db 0x8d, 0x5c, 0x24, 0x18  ;; lea ebx,[esp+0x18]
-..@0x8043e5c: push ebx
-..@0x8043e5d: db 0x85, 0xc0  ;; test eax,eax
-..@0x8043e5f: db 0xb8, 0xff, 0xff, 0xff, 0xff  ;; mov eax,0xffffffff
-..@0x8043e64: db 0x0f, 0x48, 0xf8  ;; cmovs edi,eax  ; This needs CPU >= 686 (P6).
-..@0x8043e67: call B.code+__pthread_return_void
-..@0x8043e6c: db 0xc7, 0x04, 0x24, 0x70, 0xcf, 0x05, 0x08  ;; mov dword [esp],_stdio_openlist_del_lock
-..@0x8043e73: call B.code+__pthread_return_0
-..@0x8043e78: db 0xa1, 0x50, 0xca, 0x87, 0x09  ;; mov eax,[_stdio_openlist_use_count]
-..@0x8043e7d: inc eax
-..@0x8043e7e: db 0xa3, 0x50, 0xca, 0x87, 0x09  ;; mov [_stdio_openlist_use_count],eax
-..@0x8043e83: pop eax
-..@0x8043e84: pop edx
-..@0x8043e85: push strict byte 0x1
-..@0x8043e87: push ebx
-..@0x8043e88: call B.code+__pthread_return_void
-..@0x8043e8d: db 0x8b, 0x06  ;; mov eax,[esi]
-..@0x8043e8f: add esp, strict byte 0x10
-..@0x8043e92: db 0x25, 0x00, 0x60, 0x00, 0x00  ;; and eax,0x6000
-..@0x8043e97: or eax, strict byte 0x30
-..@0x8043e9a: db 0x85, 0xed  ;; test ebp,ebp
-..@0x8043e9c: db 0x66, 0x89, 0x06  ;; mov [esi],ax
-..@0x8043e9f: db 0x75, 0x11  ;; jnz 0x8043eb2
-..@0x8043ea1: push ebp
-..@0x8043ea2: push ebp
-..@0x8043ea3: push strict byte 0x1
-..@0x8043ea5: db 0x8d, 0x44, 0x24, 0x28  ;; lea eax,[esp+0x28]
-..@0x8043ea9: push eax
-..@0x8043eaa: call B.code+__pthread_return_void
-..@0x8043eaf: add esp, strict byte 0x10
-..@0x8043eb2: db 0xf6, 0x46, 0x01, 0x40  ;; test byte [esi+0x1],0x40
-..@0x8043eb6: db 0x74, 0x0e  ;; jz 0x8043ec6
-..@0x8043eb8: sub esp, strict byte 0xc
-..@0x8043ebb: push dword [esi+0x8]
-..@0x8043ebe: call B.code+free  ; __STDIO_STREAM_FREE_BUFFER(stream);
-..@0x8043ec3: add esp, strict byte 0x10
-..@0x8043ec6: push ecx
-..@0x8043ec7: push strict dword _stdio_openlist_del_lock
-..@0x8043ecc: push strict dword __pthread_return_0
-..@0x8043ed1: push ebx
-..@0x8043ed2: call B.code+__pthread_return_void
-..@0x8043ed7: db 0xc7, 0x04, 0x24, 0x70, 0xcf, 0x05, 0x08  ;; mov dword [esp],_stdio_openlist_del_lock
-..@0x8043ede: call B.code+__pthread_return_0
-..@0x8043ee3: pop eax
-..@0x8043ee4: db 0xff, 0x05, 0x54, 0xca, 0x87, 0x09  ;; inc dword [_stdio_openlist_del_count]
-..@0x8043eea: pop edx
-..@0x8043eeb: push strict byte 0x1
-..@0x8043eed: push ebx
-..@0x8043eee: call B.code+__pthread_return_void
-..@0x8043ef3: call B.code+_stdio_openlist_dec_use  ; This will call free(stream).
-..@0x8043ef8: add esp, strict byte 0x3c
-..@0x8043efb: db 0x89, 0xf8  ;; mov eax,edi
-..@0x8043efd: pop ebx
-..@0x8043efe: pop esi
-..@0x8043eff: pop edi
-..@0x8043f00: pop ebp
-..@0x8043f01: ret
-fopen: equ $-B.code
-..@0x8043f02: sub esp, strict byte 0xc
-..@0x8043f05: push strict byte -0x1
-..@0x8043f07: push strict byte 0x0
-..@0x8043f09: push dword [esp+0x1c]
-..@0x8043f0d: push dword [esp+0x1c]
-..@0x8043f11: call B.code+_stdio_fopen
-..@0x8043f16: add esp, strict byte 0x1c
+unused_fclose: equ $-B.code
+..@0x8043df3: times 0x8043f02-0x8043df3 hlt  ; Padding.
+Qfopen: equ $-B.code
+..@0x8043f02: times 0x8043f1a-0x8043f02 hlt  ; Padding.
 ..@0x8043f19: ret
-fseek: equ $-B.code
-fseeko: equ $-B.code
+Qfseek: equ $-B.code  ; !! Replace all Q functions with hlt.
+Qfseeko: equ $-B.code
 ..@0x8043f1a: sub esp, strict byte 0xc
 ..@0x8043f1d: push dword [esp+0x18]
 ..@0x8043f21: db 0x8b, 0x44, 0x24, 0x18  ;; mov eax,[esp+0x18]
@@ -481,16 +414,16 @@ fseeko: equ $-B.code
 ..@0x8043f26: push edx
 ..@0x8043f27: push eax
 ..@0x8043f28: push dword [esp+0x1c]
-..@0x8043f2c: call B.code+fseeko64
+..@0x8043f2c: call B.code+Qfseeko64
 ..@0x8043f31: add esp, strict byte 0x1c
 ..@0x8043f34: ret
-ftell: equ $-B.code
-ftello: equ $-B.code
+Qftell: equ $-B.code
+Qftello: equ $-B.code
 ..@0x8043f35: push esi
 ..@0x8043f36: push ebx
 ..@0x8043f37: sub esp, strict byte 0x10
 ..@0x8043f3a: push dword [esp+0x1c]
-..@0x8043f3e: call B.code+ftello64
+..@0x8043f3e: call B.code+Qftello64
 ..@0x8043f43: add esp, strict byte 0x10
 ..@0x8043f46: db 0x89, 0xc3  ;; mov ebx,eax
 ..@0x8043f48: db 0x89, 0xc6  ;; mov esi,eax
@@ -509,7 +442,7 @@ ftello: equ $-B.code
 ..@0x8043f68: ret
 unused_puts_and_printf: equ $-B.code
 ..@0x8043f69: times 0x8044005-0x8043f69 hlt  ; Unused, 0x9c bytes.
-fseeko64: equ $-B.code
+Qfseeko64: equ $-B.code
 ..@0x8044005: push ebp
 ..@0x8044006: push edi
 ..@0x8044007: push esi
@@ -544,7 +477,7 @@ fseeko64: equ $-B.code
 ..@0x8044065: db 0x74, 0x10  ;; jz 0x8044077
 ..@0x8044067: sub esp, strict byte 0xc
 ..@0x804406a: push esi
-..@0x804406b: call B.code+__stdio_wcommit
+..@0x804406b: call B.code+Q__stdio_wcommit
 ..@0x8044070: add esp, strict byte 0x10
 ..@0x8044073: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8044075: db 0x75, 0x53  ;; jnz 0x80440ca
@@ -555,7 +488,7 @@ fseeko64: equ $-B.code
 ..@0x804407e: db 0x8d, 0x44, 0x24, 0x28  ;; lea eax,[esp+0x28]
 ..@0x8044082: push eax
 ..@0x8044083: push esi
-..@0x8044084: call B.code+__stdio_adjust_position
+..@0x8044084: call B.code+Q__stdio_adjust_position
 ..@0x8044089: add esp, strict byte 0x10
 ..@0x804408c: db 0x85, 0xc0  ;; test eax,eax
 ..@0x804408e: db 0x78, 0x3a  ;; js 0x80440ca
@@ -564,7 +497,7 @@ fseeko64: equ $-B.code
 ..@0x8044092: db 0x8d, 0x44, 0x24, 0x28  ;; lea eax,[esp+0x28]
 ..@0x8044096: push eax
 ..@0x8044097: push esi
-..@0x8044098: call B.code+__stdio_seek
+..@0x8044098: call B.code+Q__stdio_seek
 ..@0x804409d: add esp, strict byte 0x10
 ..@0x80440a0: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80440a2: db 0x78, 0x26  ;; js 0x80440ca
@@ -597,7 +530,7 @@ fseeko64: equ $-B.code
 ..@0x80440e9: pop edi
 ..@0x80440ea: pop ebp
 ..@0x80440eb: ret
-ftello64: equ $-B.code
+Qftello64: equ $-B.code
 ..@0x80440ec: push edi
 ..@0x80440ed: push esi
 ..@0x80440ee: push ebx
@@ -629,7 +562,7 @@ ftello64: equ $-B.code
 ..@0x8044142: db 0x8d, 0x5c, 0x24, 0x20  ;; lea ebx,[esp+0x20]
 ..@0x8044146: push ebx
 ..@0x8044147: push esi
-..@0x8044148: call B.code+__stdio_seek
+..@0x8044148: call B.code+Q__stdio_seek
 ..@0x804414d: add esp, strict byte 0x10
 ..@0x8044150: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8044152: db 0x78, 0x10  ;; js 0x8044164
@@ -637,7 +570,7 @@ ftello64: equ $-B.code
 ..@0x8044155: push edx
 ..@0x8044156: push ebx
 ..@0x8044157: push esi
-..@0x8044158: call B.code+__stdio_adjust_position
+..@0x8044158: call B.code+Q__stdio_adjust_position
 ..@0x804415d: add esp, strict byte 0x10
 ..@0x8044160: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8044162: db 0x79, 0x10  ;; jns 0x8044174
@@ -659,7 +592,7 @@ ftello64: equ $-B.code
 ..@0x8044195: pop esi
 ..@0x8044196: pop edi
 ..@0x8044197: ret
-__stdio_adjust_position: equ $-B.code
+Q__stdio_adjust_position: equ $-B.code
 ..@0x8044198: push edi
 ..@0x8044199: db 0x31, 0xd2  ;; xor edx,edx
 ..@0x804419b: push esi
@@ -724,7 +657,7 @@ __stdio_adjust_position: equ $-B.code
 ..@0x8044239: pop esi
 ..@0x804423a: pop edi
 ..@0x804423b: ret
-_stdio_fopen: equ $-B.code
+Q_stdio_fopen: equ $-B.code
 ..@0x804423c: push ebp
 ..@0x804423d: push edi
 ..@0x804423e: push esi
@@ -778,7 +711,7 @@ _stdio_fopen: equ $-B.code
 ..@0x80442d5: db 0xc7, 0x40, 0x08, 0x00, 0x00, 0x00, 0x00  ;; mov dword [eax+0x8],0x0
 ..@0x80442dc: db 0x8d, 0x40, 0x38  ;; lea eax,[eax+0x38]
 ..@0x80442df: push eax
-..@0x80442e0: call B.code+__stdio_init_mutex
+..@0x80442e0: call B.code+Q__stdio_init_mutex
 ..@0x80442e5: add esp, strict byte 0x10
 ..@0x80442e8: db 0x85, 0xff  ;; test edi,edi
 ..@0x80442ea: db 0x78, 0x49  ;; js 0x8044335
@@ -910,7 +843,7 @@ _stdio_fopen: equ $-B.code
 ..@0x804447c: pop edi
 ..@0x804447d: pop ebp
 ..@0x804447e: ret
-_stdio_init: equ $-B.code
+Q_stdio_init: equ $-B.code
 ..@0x804447f: push ebp
 ..@0x8044480: push edi
 ..@0x8044481: push esi
@@ -944,22 +877,22 @@ _stdio_init: equ $-B.code
 ..@0x80444df: pop edi
 ..@0x80444e0: pop ebp
 ..@0x80444e1: ret
-__stdio_init_mutex: equ $-B.code
+Q__stdio_init_mutex: equ $-B.code
 ..@0x80444e2: sub esp, strict byte 0x10
 ..@0x80444e5: push strict byte 0x18
-..@0x80444e7: push strict dword __stdio_mutex_initializer.4160
+..@0x80444e7: push strict dword Q__stdio_mutex_initializer.4160
 ..@0x80444ec: push dword [esp+0x1c]
 ..@0x80444f0: call B.code+memcpy
 ..@0x80444f5: add esp, strict byte 0x1c
 ..@0x80444f8: ret
-_stdio_term: equ $-B.code
+Q_stdio_term: equ $-B.code
 ..@0x80444f9: push esi
 ..@0x80444fa: push ebx
 ..@0x80444fb: sub esp, strict byte 0x10
 ..@0x80444fe: push strict dword _stdio_openlist_add_lock
-..@0x8044503: call B.code+__stdio_init_mutex
+..@0x8044503: call B.code+Q__stdio_init_mutex
 ..@0x8044508: db 0xc7, 0x04, 0x24, 0x70, 0xcf, 0x05, 0x08  ;; mov dword [esp],_stdio_openlist_del_lock
-..@0x804450f: call B.code+__stdio_init_mutex
+..@0x804450f: call B.code+Q__stdio_init_mutex
 ..@0x8044514: db 0x8b, 0x1d, 0x54, 0xcf, 0x05, 0x08  ;; mov ebx,[_stdio_openlist]
 ..@0x804451a: db 0xeb, 0x3a  ;; jmp short 0x8044556
 ..@0x804451c: sub esp, strict byte 0xc
@@ -978,7 +911,7 @@ _stdio_term: equ $-B.code
 ..@0x8044543: sub esp, strict byte 0xc
 ..@0x8044546: db 0xc7, 0x43, 0x34, 0x01, 0x00, 0x00, 0x00  ;; mov dword [ebx+0x34],0x1
 ..@0x804454d: push esi
-..@0x804454e: call B.code+__stdio_init_mutex
+..@0x804454e: call B.code+Q__stdio_init_mutex
 ..@0x8044553: db 0x8b, 0x5b, 0x20  ;; mov ebx,[ebx+0x20]
 ..@0x8044556: add esp, strict byte 0x10
 ..@0x8044559: db 0x85, 0xdb  ;; test ebx,ebx
@@ -989,7 +922,7 @@ _stdio_term: equ $-B.code
 ..@0x8044568: db 0x74, 0x0c  ;; jz 0x8044576
 ..@0x804456a: sub esp, strict byte 0xc
 ..@0x804456d: push ebx
-..@0x804456e: call B.code+__stdio_wcommit
+..@0x804456e: call B.code+Q__stdio_wcommit
 ..@0x8044573: add esp, strict byte 0x10
 ..@0x8044576: db 0x8b, 0x5b, 0x20  ;; mov ebx,[ebx+0x20]
 ..@0x8044579: db 0x85, 0xdb  ;; test ebx,ebx
@@ -998,7 +931,7 @@ _stdio_term: equ $-B.code
 ..@0x804457e: pop ebx
 ..@0x804457f: pop esi
 ..@0x8044580: ret
-__stdio_wcommit: equ $-B.code
+Q__stdio_wcommit: equ $-B.code
 ..@0x8044581: push ebx
 ..@0x8044582: sub esp, strict byte 0x8
 ..@0x8044585: db 0x8b, 0x5c, 0x24, 0x10  ;; mov ebx,[esp+0x10]
@@ -1011,7 +944,7 @@ __stdio_wcommit: equ $-B.code
 ..@0x8044597: push eax
 ..@0x8044598: push edx
 ..@0x8044599: push ebx
-..@0x804459a: call B.code+__stdio_WRITE
+..@0x804459a: call B.code+Q__stdio_WRITE
 ..@0x804459f: add esp, strict byte 0x10
 ..@0x80445a2: db 0x8b, 0x43, 0x10  ;; mov eax,[ebx+0x10]
 ..@0x80445a5: db 0x2b, 0x43, 0x08  ;; sub eax,[ebx+0x8]
@@ -1019,7 +952,7 @@ __stdio_wcommit: equ $-B.code
 ..@0x80445a9: pop ecx
 ..@0x80445aa: pop ebx
 ..@0x80445ab: ret
-__stdio_seek: equ $-B.code
+Q__stdio_seek: equ $-B.code
 ..@0x80445ac: push ebx
 ..@0x80445ad: sub esp, strict byte 0x8
 ..@0x80445b0: db 0x8b, 0x5c, 0x24, 0x14  ;; mov ebx,[esp+0x14]
@@ -1041,6 +974,7 @@ __stdio_seek: equ $-B.code
 ..@0x80445dc: pop ecx
 ..@0x80445dd: pop ebx
 ..@0x80445de: ret
+stdstream_vfprintf: equ $-B.code  ; int stdstream_vfprintf(stdstream_FILE *filep, const char *format, va_list ap);
 vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list ap);
 ; uClibc function replaced with manually optimized shorter (and simpler)
 ; implementation, which doesn't support floats. Uses str_null.
@@ -1056,9 +990,9 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 ; #define PAD_RIGHT 1
 ; #define PAD_ZERO 2
 ; #define PAD_PLUS 4
-; typedef struct _FILE *FILE;
-; extern int mini_fputc(int c, FILE *filep);
-; int mini_vfprintf(FILE *filep, const char *format, va_list args) {
+; typedef struct _STS_FILE *stdstream_FILE;
+; extern int stdstream_fputc(int c, stdstream_FILE *filep);
+; int stdstream_vfprintf(stdstream_FILE *filep, const char *format, va_list args) {
 ;   register unsigned width, pad;
 ;   register unsigned pc = 0;
 ;   /* String buffer large enough for the longest %u and %x. */
@@ -1109,23 +1043,23 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 ;         }
 ;         if (!(pad & PAD_RIGHT)) {
 ;           for (; width > 0; --width) {
-;             mini_fputc(c, filep);
+;             stdstream_fputc(c, filep);
 ;             ++pc;
 ;           }
 ;         }
 ;         for (; *s ; ++s) {
-;           mini_fputc(*s, filep);
+;           stdstream_fputc(*s, filep);
 ;           ++pc;
 ;         }
 ;         for (; width > 0; --width) {
-;           mini_fputc(c, filep);
+;           stdstream_fputc(c, filep);
 ;           ++pc;
 ;         }
 ;       } else if (c == 'c') {
 ;         /* char are converted to int then pushed on the stack */
 ;         s[0] = (char)va_arg(args, int);
 ;         if (width == 0) {  /* Print '\0'. */
-;           mini_fputc(s[0], filep);
+;           stdstream_fputc(s[0], filep);
 ;           ++pc;
 ;         } else {
 ;           s[1] = '\0';
@@ -1165,7 +1099,7 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 ;         } while (u);
 ;         if (neg) {
 ;           if (width && (pad & PAD_ZERO)) {
-;             mini_fputc(neg, filep);
+;             stdstream_fputc(neg, filep);
 ;             ++pc;
 ;             --width;
 ;           } else {
@@ -1175,7 +1109,7 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 ;         goto do_print_s;
 ;       }
 ;     } else { out:
-;       mini_fputc(*format, filep);
+;       stdstream_fputc(*format, filep);
 ;       ++pc;
 ;     }
 ;   }
@@ -1404,7 +1338,7 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 		inc ebx  ; TODO(pts): Swap the role of EBX and ESI, and use lodsb.
 		jmp .1
 .33:
-		call B.code+progx_autoflush
+		call B.code+stdstream_autoflush
 		xchg eax, ebp  ; EAX := number of bytes written; EBP := junk.
 		add esp, byte 0x20
 		pop ebp
@@ -1414,67 +1348,79 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 		ret
 .call_fputc:  ; Input: AL contains the byte to be printed. Can use EAX, EDX and ECX as scratch. Output: byte is written to the buffer, EBP is incremented.
 		mov edx, [esp+0x38]  ; filep. Actually, we use 1 for stdout and 2 for stderr.
-		cmp [progx_buf_fd], edx  ; TODO(pts): For speed, do this comparison only at the beginning of vfprintf(...).
+		cmp [stdstream_buf_fd], edx  ; TODO(pts): For speed, do this comparison only at the beginning of vfprintf(...).
 		je .after_fflush
 .do_fflush:	push eax  ; Save it.
-		call B.code+progx_fflush  ; Flush it if it's a different fd (or missing).
+		call B.code+stdstream_flush  ; Flush it if it's a different fd (or missing).
 		pop eax  ; Restore it.
 		mov edx, [esp+0x38]
-		mov [progx_buf_fd], edx  ; Now progx_buf belongs to our fd (in EDX).
-.after_fflush:	mov edx, [progx_buf_ptr]
-		cmp edx, progx_buf.end
-		je .do_fflush  ; If progx_buf is full, then flush it. It won't happen again.
-		mov [edx], al  ; Write the byte in AL to the end of progx_buf.
+		mov [stdstream_buf_fd], edx  ; Now stdstream_buf belongs to our fd (in EDX).
+.after_fflush:	mov edx, [stdstream_buf_ptr]
+		cmp edx, stdstream_buf.end
+		je .do_fflush  ; If stdstream_buf is full, then flush it. It won't happen again.
+		mov [edx], al  ; Write the byte in AL to the end of stdstream_buf.
 		inc edx
-		mov [progx_buf_ptr], edx  ; We could combine this with `inc edx' above, but we don't want read-write memory operations, because a write-only is faster (?).
+		mov [stdstream_buf_ptr], edx  ; We could combine this with `inc edx' above, but we don't want read-write memory operations, because a write-only is faster (?).
 		cmp al, 10  ; Newline, '\n'.
 		jne .after_nlflush  ; Don't flush if the lastly appended byte is not a newline.
-		cmp dword [progx_buf_fd], strict byte 1
+		cmp dword [stdstream_buf_fd], strict byte 1
 		jne .after_nlflush  ; Don't flush if it's not stdout.
-		cmp byte [progx_buf_is_stdout_a_tty], 0
+		cmp byte [stdstream_buf_is_stdout_a_tty], 0
 		je .after_nlflush  ; Don't flush if stdout isn't a TTY.
-		call B.code+progx_fflush  ; This is a bit slow, because we flush after every newline, but for PNGOUT it's fine, because it doesn't print too many newlines in quick succession.
+		call B.code+stdstream_flush  ; This is a bit slow, because we flush after every newline, but for PNGOUT it's fine, because it doesn't print too many newlines in quick succession.
 .after_nlflush:	inc ebp  ; Our caller requires us to do this.
 		ret
 ;
-progx_autoflush: equ $-B.code
-; Flushes the progx buffer to its respective filehandle if buffering rules
+stdstream_autoflush: equ $-B.code  ; void stdstream_autoflush(void);
+; Flushes the stdstream buffer to its respective filehandle if buffering rules
 ; require it.
-		mov eax, [progx_buf_fd]
+		mov eax, [stdstream_buf_fd]
 		cmp eax, byte 1  ; stdout.
-		jne strict short B.code+progx_fflush_eax  ; Always flush stderr. If the buffer is unused (progx_buf_fd == 0), also flush just for smaller code (quick no-op).
+		jne strict short B.code+stdstream_flush_eax  ; Always flush stderr. If the buffer is unused (stdstream_buf_fd == 0), also flush just for smaller code (quick no-op).
 		ret  ; Don't flush stdout.
-progx_fflush: equ $-B.code
-; Flushes progx_buf buf to its respective filehandle. It is a function entry
+stdstream_and_fileio_flushall: equ $-B.code  ; void stdstream_and_fileio_flushall(void);
+		;call B.code+fileio_flushall
+;fileio_flushall: equ $-B.code  ; void fileio_flushall(void);
+		push dword fileio_files
+		call B.code+fileio_fflush
+		pop eax
+		push dword fileio_files+0x1014
+		call B.code+fileio_fflush
+		pop eax
+		;ret  ; For fileio_flushall(...).
+		; Fall through to stdstream_flush.
+stdstream_flushall: equ $-B.code  ; void stdstream_flushall(void); 
+stdstream_flush: equ $-B.code  ; void stdstream_flush(stdstream_FILE*); /* Always called with stdout. */
+; Flushes stdstream_buf buf to its respective filehandle. It is a function entry
 ; point with the cdecl ABI, so it can use EAX, EDX and ECX as scratch.
-		mov eax, [progx_buf_fd]
-progx_fflush_eax: equ $-B.code
+		mov eax, [stdstream_buf_fd]
+stdstream_flush_eax: equ $-B.code
 		test eax, eax
 		jz strict short .return  ; Buffer currently unused.
-		mov edx, [progx_buf_ptr]
-		mov ecx, progx_buf
+		mov edx, [stdstream_buf_ptr]
+		mov ecx, stdstream_buf
 		sub edx, ecx
 		je strict short .return  ; No data to flush.
 		push ecx  ; Save it.
 		push edx  ; Argument size of write(2).
-		push strict dword progx_buf  ; Argument buf of write(2).
+		push strict dword stdstream_buf  ; Argument buf of write(2).
 		push eax  ; Argument fd (file descriptor) of write(2).
 		call B.code+write
 		times 3 pop eax  ; Ignore return value.
-		pop dword [progx_buf_ptr]  ; Set [progx_buf_ptr] to the beginning of progx_buf.
+		pop dword [stdstream_buf_ptr]  ; Set [stdstream_buf_ptr] to the beginning of stdstream_buf.
 		xor eax, eax
-		mov [progx_buf_fd], eax  ; Indicate that the buffer is unused.
+		mov [stdstream_buf_fd], eax  ; Indicate that the buffer is unused.
 .return:	ret
 ;
-progx_getchar: equ $-B.code  ; int progx_getchar(void);
+stdstream_getchar: equ $-B.code  ; int stdstream_getchar(void);
 ; Reads 1 byte from stdin, and returns it as 0..255, or -1 (on EOF or error).
-		mov edx, [progx_read_buf_ptr]
-		mov eax, [progx_read_buf_last]
-		sub eax, edx  ; EAX := number of bytes available to read in progx_read_buf.
+		mov edx, [stdstream_read_buf_ptr]
+		mov eax, [stdstream_read_buf_last]
+		sub eax, edx  ; EAX := number of bytes available to read in stdstream_read_buf.
 		test eax, eax
 		jnz .from_buf
-		push strict dword progx_read_buf.end-progx_read_buf  ; count argument of read(...).
-		push strict dword progx_read_buf  ; buf argument of read(...).
+		push strict dword stdstream_read_buf.end-stdstream_read_buf  ; count argument of read(...).
+		push strict dword stdstream_read_buf  ; buf argument of read(...).
 		push strict byte 0  ; fd argument of read(...): STDIN_FILENO.
 		call B.code+read
 		add esp, byte 3*4  ; Clean up arguments of read(...) above from the stack.
@@ -1482,14 +1428,320 @@ progx_getchar: equ $-B.code  ; int progx_getchar(void);
 		jge .got_more  ; No jump if result < 0 (error) or result == 0 (EOF).
 		or eax, byte -1  ; EAX := -1 (EOF).
 		ret  ; Return EOF.
-.got_more:	mov edx, progx_read_buf
+.got_more:	mov edx, stdstream_read_buf
 		add eax, edx
-		mov [progx_read_buf_last], eax
-		mov [progx_read_buf_ptr], edx
-.from_buf:	movzx eax, byte [edx]  ; Read 1 byte from progx_read_buf.
+		mov [stdstream_read_buf_last], eax
+		mov [stdstream_read_buf_ptr], edx
+.from_buf:	movzx eax, byte [edx]  ; Read 1 byte from stdstream_read_buf.
 		inc edx
-		mov [progx_read_buf_ptr], edx  ; We could combine this with `inc edx' above, but we don't want read-write memory operations, because a write-only is faster (?).
+		mov [stdstream_read_buf_ptr], edx  ; We could combine this with `inc edx' above, but we don't want read-write memory operations, because a write-only is faster (?).
 		ret  ; Return EAX: 0..255 byte value read.
+;
+fileio_fopen: equ $-B.code  ; FILE *fileio_fopen(const char *pathname, const char *mode);
+fopen: equ $-B.code
+		push ebx
+		push ecx
+		cmp byte [fileio_files], 0x0
+		je .fo6
+		cmp byte [fileio_files+0x1014], 0x0  ; TODO(pts): If fileio_files becomes shorter, also drop this.
+		je .fo7
+.fo5:		xor ebx, ebx
+		jmp short .fo1
+.fo6:		mov ebx, fileio_files
+		jmp short .fo2
+.fo7:		mov ebx, fileio_files+0x1014
+.fo2:		mov eax, [esp+0x10]
+		mov dl, [eax]
+		cmp dl, 0x77
+		mov [esp+0x3], dl
+		setne al
+		movzx eax, al
+		dec eax
+		and eax, 0x241
+		push dword 0x1b6
+		push eax
+		push dword [esp+0x14]
+		call B.code+fileio_open
+		add esp, byte 0xc
+		test eax, eax
+		js .fo5
+		mov dl, [esp+0x3]
+		cmp dl, 0x77
+		sete dl
+		inc edx
+		mov [ebx], dl
+		mov [ebx+0x4], eax
+		mov dword [ebx+0x10], 0x0
+		lea eax, [ebx+0x14]
+		mov [ebx+0xc], eax
+		mov [ebx+0x8], eax
+.fo1:		mov eax, ebx
+		pop edx
+		pop ebx
+		ret
+;
+fileio_fflush: equ $-B.code  ; int fileio_fflush(FILE *filep);
+fflush: equ $-B.code
+		push edi
+		push esi
+		push ebx
+		mov ebx, [esp+0x10]
+		or eax, byte -0x1
+		cmp byte [ebx], 0x2
+		jne .ff11
+		lea edi, [ebx+0x14]
+		mov esi, edi
+.ff13:		mov eax, [ebx+0x8]
+		cmp eax, esi
+		je .ff20
+		sub eax, esi
+		push eax
+		push esi
+		push dword [ebx+0x4]
+		call B.code+fileio_write
+		lea edx, [eax+0x1]
+		add esp, byte 0xc
+		cmp edx, byte 0x1
+		jbe .ff17
+		add esi, eax
+		jmp short .ff13
+.ff20:		xor eax, eax
+		jmp short .ff14
+.ff17:		or eax, byte -0x1
+.ff14:		sub esi, edi
+		add [ebx+0x10], esi
+		mov [ebx+0xc], edi
+		mov [ebx+0x8], edi
+.ff11:		pop ebx
+		pop esi
+		pop edi
+		ret
+;
+fileio_fclose: equ $-B.code  ; int fileio_fclose(FILE *filep);
+fclose: equ $-B.code
+		push esi
+		push ebx
+		mov ebx, [esp+0xc]
+		mov al, [ebx]
+		or esi, byte -0x1
+		test al, al
+		je .fc21
+		xor esi, esi
+		dec al
+		je .fc23
+		push ebx
+		call B.code+fileio_fflush
+		mov esi, eax
+		pop edx
+.fc23:		push dword [ebx+0x4]
+		call B.code+fileio_close
+		mov byte [ebx], 0x0
+		pop eax
+.fc21:		mov eax, esi
+		pop ebx
+		pop esi
+		ret
+;
+fileio_fread: equ $-B.code  ; size_t fileio_fread(void *ptr, size_t size, size_t nmemb, FILE *filep);
+fread: equ $-B.code
+		push edi
+		push esi
+		push ebx
+		mov ebx, [esp+0x1c]
+		mov edi, [esp+0x14]
+		imul edi, [esp+0x18]
+		cmp byte [ebx], 0x1
+		jne .fr35
+		test edi, edi
+		je .fr35
+		mov esi, [esp+0x10]
+.fr31:		mov edx, [ebx+0x8]
+		cmp edx, [ebx+0xc]
+		je .fr41
+		lea eax, [edx+0x1]
+		mov [ebx+0x8], eax
+		lea eax, [esi+0x1]
+		mov cl, [edx]
+		mov [esi], cl
+		dec edi
+		je .fr32
+.fr34:		mov esi, eax
+		jmp short .fr31
+.fr41:		lea eax, [ebx+0x14]
+		sub edx, eax
+		add [ebx+0x10], edx
+		mov [ebx+0xc], eax
+		mov [ebx+0x8], eax
+		push dword 0x1000
+		push eax
+		push dword [ebx+0x4]
+		call B.code+fileio_read
+		lea edx, [eax+0x1]
+		add esp, byte 0xc
+		cmp edx, byte 0x1
+		jbe .fr36
+		add [ebx+0xc], eax
+		mov eax, esi
+		jmp short .fr34
+.fr36:		mov eax, esi
+.fr32:		sub eax, [esp+0x10]
+		xor edx, edx
+		div dword [esp+0x14]
+		jmp short .fr29
+.fr35:		xor eax, eax
+.fr29:		pop ebx
+		pop esi
+		pop edi
+		ret
+;
+fileio_fwrite: equ $-B.code  ; size_t fileio_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *filep);
+fwrite: equ $-B.code
+		push ebp
+		push edi
+		push esi
+		push ebx
+		mov ebp, [esp+0x14]
+		mov esi, [esp+0x20]
+		mov edi, [esp+0x18]
+		imul edi, [esp+0x1c]
+		cmp byte [esi], 0x2
+		jne .51
+		test edi, edi
+		je .51
+		lea eax, [esi+0x14]
+		mov ebx, ebp
+		cmp [esi+0x8], eax
+		jne .53
+		cmp edi, 0xfff
+		ja .44
+.53:		lea ecx, [esi+0x1014]
+.46:		mov edx, [esi+0x8]
+		cmp edx, ecx
+		je .44
+		inc ebx
+		lea eax, [edx+0x1]
+		mov [esi+0x8], eax
+		mov al, [ebx-0x1]
+		mov [edx], al
+		dec edi
+		jne .46
+		jmp short .47
+.44:		push esi
+		call B.code+fileio_fflush
+		pop edx
+		test eax, eax
+		jne .47
+.49:		push edi
+		push ebx
+		push dword [esi+0x4]
+		call B.code+fileio_write
+		lea edx, [eax+0x1]
+		add esp, byte 0xc
+		cmp edx, byte 0x1
+		jbe .47
+		add ebx, eax
+		sub edi, eax
+		add [esi+0x10], eax
+		jmp short .49
+.47:		mov eax, ebx
+		sub eax, ebp
+		xor edx, edx
+		div dword [esp+0x18]
+		jmp short .42
+.51:		xor eax, eax
+.42:		pop ebx
+		pop esi
+		pop edi
+		pop ebp
+		ret
+;
+fileio_fseek: equ $-B.code  ; int fileio_fseek(FILE *filep, off_t offset, int whence);  /* Only 32-bit off_t. */
+fseek: equ $-B.code
+		push edi
+		push esi
+		push ebx
+		mov ebx, [esp+0x10]
+		mov esi, [esp+0x14]
+		mov edi, [esp+0x18]
+		mov al, [ebx]
+		cmp al, 0x1
+		jne .64
+		lea edx, [ebx+0x14]
+		cmp edi, byte 0x1
+		jne .65
+		mov eax, [ebx+0x8]
+		sub eax, edx
+		add eax, [ebx+0x10]
+		mov [ebx+0x10], eax
+		add esi, eax
+		xor edi, edi
+.65:		mov [ebx+0xc], edx
+		mov [ebx+0x8], edx
+		jmp short .66
+.64:		cmp al, 0x2
+		je .67
+.69:		or eax, byte -0x1
+		jmp short .63
+.67:		push ebx
+		call B.code+fileio_fflush
+		pop edx
+		test eax, eax
+		jne .69
+.66:		push edi
+		push esi
+		push dword [ebx+0x4]
+		call B.code+fileio_lseek
+		add esp, byte 0xc
+		cmp eax, byte -0x1
+		je .69
+		mov [ebx+0x10], eax
+		xor eax, eax
+.63:		pop ebx
+		pop esi
+		pop edi
+		ret
+;
+fileio_ftell: equ $-B.code  ; off_t fileio_ftell(FILE *filep);  /* Only 32-bit off_t */
+ftell: equ $-B.code
+		mov edx, [esp+0x4]
+		mov al, [edx]
+		lea ecx, [eax-0x1]
+		xor eax, eax
+		cmp cl, 0x1
+		ja .74
+		lea eax, [edx+0x14]
+		mov ecx, [edx+0x8]
+		sub ecx, eax
+		mov eax, [edx+0x10]
+		add eax, ecx
+.74:		ret
+;
+fileio_fgetc: equ $-B.code  ; int fileio_fgetc(FILE *filep);
+fgetc: equ $-B.code
+		push ecx
+		mov eax, [esp+0x8]
+		mov edx, [eax+0x8]
+		cmp edx, [eax+0xc]
+		je .78
+		inc edx
+		mov [eax+0x8], edx
+		dec edx
+		jmp short .79
+.78:		mov edx, esp  ; EDX := &uc.
+		push eax
+		push byte 0x1
+		push byte 0x1
+		push edx  ; &uc.
+		call B.code+fileio_fread
+		add esp, byte 0x10
+		xchg eax, edx
+		or eax, byte -0x1  ; EAX := -1 (== EOF).
+		test edx, edx
+		jz .77
+		mov edx, esp
+.79:		movzx eax, byte [edx]
+.77:		pop ecx  ; Value overwritten by fileio_fread above. That's fine, ECX is a scratch register.
+		ret
 ;
 ; Unconverted syscalls:
 ; fcntl 55
@@ -1507,10 +1759,24 @@ progx_getchar: equ $-B.code  ; int progx_getchar(void);
 ; rt_sigprocmask 175
 ; kill 37
 read: equ $-B.code
+fileio_read: equ $-B.code
 		mov al, 3  ; __NR_read.
 		jmp strict short B.code+progx_syscall3
 write: equ $-B.code
+fileio_write: equ $-B.code
 		mov al, 4  ; __NR_write.
+		jmp strict short B.code+progx_syscall3
+open: equ $-B.code
+fileio_open: equ $-B.code
+		mov al, 5  ; __NR_open.
+		jmp strict short B.code+progx_syscall3
+close: equ $-B.code
+fileio_close: equ $-B.code
+		mov al, 6  ; __NR_close.
+		jmp strict short B.code+progx_syscall3
+lseek: equ $-B.code
+fileio_lseek: equ $-B.code
+		mov al, 19  ; __NR_lseek.
 		jmp strict short B.code+progx_syscall3
 time: equ $-B.code
 		mov al, 13  ; __NR_time.
@@ -1548,11 +1814,12 @@ progx_syscall3: equ $-B.code  ; TODO(pts): Add this to minilibc686.
 .final_result:	pop ebx
 		ret
 ;
-progx_main: equ $-B.code
+;stdstream_init_stdin_linebuf: equ $-B.code  ; void stdstream_init_stdin_linebuf();  /* Autodetects and sets stdstream_buf_is_stdout_a_tty (false by default), which determines output buffering for stdout. */
+stdstream_main: equ $-B.code
 		push strict dword 1  ; STDOUT_FILENO (stdout).
 		call B.code+isatty
 		pop edx  ; Clean up argument of isatty(...) above from the stack.
-		mov [progx_buf_is_stdout_a_tty], al
+		mov [stdstream_buf_is_stdout_a_tty], al
 %if 0  ; For debugging of isatty(2).
 		add al, '0'
 		push eax
@@ -1563,11 +1830,12 @@ progx_main: equ $-B.code
                 call B.code+write
                 add esp, byte 4*4  ; Clean up arguments of write(...) above from the stack.
 %endif
+		;ret  ; From stdstream_init_stdin_linebuf(...).
 		jmp strict near B.code+main
 ;
 srand: equ $-B.code  ; uClibc function replaced with manually optimized shorter (and simpler) implementation. Uses seed.
 ; static unsigned long long seed;
-; void mini_srand(unsigned s) { seed = s - 1; }
+; void srand(unsigned s) { seed = s - 1; }
 		mov eax, [esp+0x4]
 		dec eax
 		push edi
@@ -1581,7 +1849,7 @@ srand: equ $-B.code  ; uClibc function replaced with manually optimized shorter 
 rand: equ $-B.code  ; uClibc function replaced with manually optimized shorter (and simpler) implementation. Uses seed.
 		push edi
 ; static unsigned long long seed;
-; int mini_rand(void) {
+; int rand(void) {
 ;   seed = 6364136223846793005ULL * seed + 1;
 ;   return seed >> 33;
 ; }
@@ -1702,7 +1970,7 @@ strcpy: equ $-B.code
 		ret
 ;
 		times $$+0x8045279-$+B.code hlt  ; Padding.
-fflush: equ $-B.code
+Qfflush: equ $-B.code
 ..@0x8045279: push edi
 ..@0x804527a: push esi
 ..@0x804527b: push ebx
@@ -1727,7 +1995,7 @@ fflush: equ $-B.code
 ..@0x80452b2: add esp, strict byte 0x10
 ..@0x80452b5: sub esp, strict byte 0xc
 ..@0x80452b8: push esi
-..@0x80452b9: call B.code+fflush_unlocked
+..@0x80452b9: call B.code+Qfflush_unlocked
 ..@0x80452be: add esp, strict byte 0x10
 ..@0x80452c1: db 0x85, 0xff  ;; test edi,edi
 ..@0x80452c3: db 0x89, 0xc3  ;; mov ebx,eax
@@ -1741,7 +2009,7 @@ fflush: equ $-B.code
 ..@0x80452d5: db 0xeb, 0x0b  ;; jmp short 0x80452e2
 ..@0x80452d7: sub esp, strict byte 0xc
 ..@0x80452da: push esi
-..@0x80452db: call B.code+fflush_unlocked
+..@0x80452db: call B.code+Qfflush_unlocked
 ..@0x80452e0: db 0x89, 0xc3  ;; mov ebx,eax
 ..@0x80452e2: add esp, strict byte 0x10
 ..@0x80452e5: add esp, strict byte 0x10
@@ -1750,7 +2018,7 @@ fflush: equ $-B.code
 ..@0x80452eb: pop esi
 ..@0x80452ec: pop edi
 ..@0x80452ed: ret
-fgetc: equ $-B.code  ; Used for reading non-stdin.
+Qfgetc: equ $-B.code  ; Used for reading non-stdin.
 ..@0x80452ee: push esi
 ..@0x80452ef: push ebx
 ..@0x80452f0: sub esp, strict byte 0x14
@@ -1766,7 +2034,7 @@ fgetc: equ $-B.code  ; Used for reading non-stdin.
 ..@0x804530c: db 0xeb, 0x5c  ;; jmp short 0x804536a
 ..@0x804530e: sub esp, strict byte 0xc
 ..@0x8045311: push esi
-..@0x8045312: call B.code+getc_unlocked
+..@0x8045312: call B.code+Qgetc_unlocked
 ..@0x8045317: db 0x89, 0xc3  ;; mov ebx,eax
 ..@0x8045319: db 0xeb, 0x4c  ;; jmp short 0x8045367
 ..@0x804531b: db 0x8d, 0x5e, 0x38  ;; lea ebx,[esi+0x38]
@@ -1788,7 +2056,7 @@ fgetc: equ $-B.code  ; Used for reading non-stdin.
 ..@0x8045349: db 0xeb, 0x0e  ;; jmp short 0x8045359
 ..@0x804534b: sub esp, strict byte 0xc
 ..@0x804534e: push esi
-..@0x804534f: call B.code+getc_unlocked
+..@0x804534f: call B.code+Qgetc_unlocked
 ..@0x8045354: add esp, strict byte 0x10
 ..@0x8045357: db 0x89, 0xc3  ;; mov ebx,eax
 ..@0x8045359: push eax
@@ -1807,7 +2075,7 @@ unused_fgets: equ $-B.code
 ..@0x8045372: times 0x80453d4-0x8045372 hlt  ; Padding.
 unused_fileno: equ $-B.code
 ..@0x80453d4: times 0x8045430-0x80453d4 hlt  ; Padding.
-fread: equ $-B.code
+Qfread: equ $-B.code
 ..@0x8045430: push edi
 ..@0x8045431: push esi
 ..@0x8045432: push ebx
@@ -1830,7 +2098,7 @@ fread: equ $-B.code
 ..@0x8045461: push dword [esp+0x2c]
 ..@0x8045465: push dword [esp+0x2c]
 ..@0x8045469: push dword [esp+0x2c]
-..@0x804546d: call B.code+fread_unlocked
+..@0x804546d: call B.code+Qfread_unlocked
 ..@0x8045472: add esp, strict byte 0x10
 ..@0x8045475: db 0x85, 0xff  ;; test edi,edi
 ..@0x8045477: db 0x89, 0xc3  ;; mov ebx,eax
@@ -1848,7 +2116,7 @@ fread: equ $-B.code
 ..@0x8045492: pop esi
 ..@0x8045493: pop edi
 ..@0x8045494: ret
-fwrite: equ $-B.code
+Qfwrite: equ $-B.code
 ..@0x8045495: push edi
 ..@0x8045496: push esi
 ..@0x8045497: push ebx
@@ -1871,7 +2139,7 @@ fwrite: equ $-B.code
 ..@0x80454c6: push dword [esp+0x2c]
 ..@0x80454ca: push dword [esp+0x2c]
 ..@0x80454ce: push dword [esp+0x2c]
-..@0x80454d2: call B.code+fwrite_unlocked
+..@0x80454d2: call B.code+Qfwrite_unlocked
 ..@0x80454d7: add esp, strict byte 0x10
 ..@0x80454da: db 0x85, 0xff  ;; test edi,edi
 ..@0x80454dc: db 0x89, 0xc3  ;; mov ebx,eax
@@ -1889,7 +2157,7 @@ fwrite: equ $-B.code
 ..@0x80454f7: pop esi
 ..@0x80454f8: pop edi
 ..@0x80454f9: ret
-_stdio_openlist_dec_use: equ $-B.code
+Q_stdio_openlist_dec_use: equ $-B.code
 ..@0x80454fa: push esi
 ..@0x80454fb: push ebx
 ..@0x80454fc: sub esp, strict byte 0x28
@@ -1961,7 +2229,7 @@ _stdio_openlist_dec_use: equ $-B.code
 ..@0x80455db: pop ebx
 ..@0x80455dc: pop esi
 ..@0x80455dd: ret
-fflush_unlocked: equ $-B.code
+Qfflush_unlocked: equ $-B.code
 ..@0x80455de: push ebp
 ..@0x80455df: db 0x31, 0xed  ;; xor ebp,ebp
 ..@0x80455e1: push edi
@@ -2027,7 +2295,7 @@ fflush_unlocked: equ $-B.code
 ..@0x80456a6: db 0x75, 0x23  ;; jnz 0x80456cb
 ..@0x80456a8: sub esp, strict byte 0xc
 ..@0x80456ab: push esi
-..@0x80456ac: call B.code+__stdio_wcommit
+..@0x80456ac: call B.code+Q__stdio_wcommit
 ..@0x80456b1: add esp, strict byte 0x10
 ..@0x80456b4: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80456b6: db 0x74, 0x05  ;; jz 0x80456bd
@@ -2050,7 +2318,7 @@ fflush_unlocked: equ $-B.code
 ..@0x80456e5: db 0x8b, 0x76, 0x20  ;; mov esi,[esi+0x20]
 ..@0x80456e8: db 0x85, 0xf6  ;; test esi,esi
 ..@0x80456ea: db 0x0f, 0x85, 0x7b, 0xff, 0xff, 0xff  ;; jnz near 0x804566b
-..@0x80456f0: call B.code+_stdio_openlist_dec_use
+..@0x80456f0: call B.code+Q_stdio_openlist_dec_use
 ..@0x80456f5: db 0xeb, 0x2a  ;; jmp short 0x8045721
 ..@0x80456f7: db 0x31, 0xff  ;; xor edi,edi
 ..@0x80456f9: db 0xf6, 0x03, 0x40  ;; test byte [ebx],0x40
@@ -2058,7 +2326,7 @@ fflush_unlocked: equ $-B.code
 ..@0x80456fe: sub esp, strict byte 0xc
 ..@0x8045701: or edi, strict byte -0x1
 ..@0x8045704: push ebx
-..@0x8045705: call B.code+__stdio_wcommit
+..@0x8045705: call B.code+Q__stdio_wcommit
 ..@0x804570a: add esp, strict byte 0x10
 ..@0x804570d: db 0x85, 0xc0  ;; test eax,eax
 ..@0x804570f: db 0x75, 0x10  ;; jnz 0x8045721
@@ -2075,7 +2343,7 @@ fflush_unlocked: equ $-B.code
 ..@0x8045728: pop edi
 ..@0x8045729: pop ebp
 ..@0x804572a: ret
-getc_unlocked: equ $-B.code
+Qgetc_unlocked: equ $-B.code
 ..@0x804572b: push ebx
 ..@0x804572c: sub esp, strict byte 0x18
 ..@0x804572f: db 0x8b, 0x5c, 0x24, 0x20  ;; mov ebx,[esp+0x20]
@@ -2090,7 +2358,7 @@ getc_unlocked: equ $-B.code
 ..@0x804574f: push edx
 ..@0x8045750: push strict dword 0x80
 ..@0x8045755: push ebx
-..@0x8045756: call B.code+__stdio_trans2r_o
+..@0x8045756: call B.code+Q__stdio_trans2r_o
 ..@0x804575b: add esp, strict byte 0x10
 ..@0x804575e: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8045760: db 0x0f, 0x85, 0x97, 0x00, 0x00, 0x00  ;; jnz near 0x80457fd
@@ -2117,7 +2385,7 @@ getc_unlocked: equ $-B.code
 ..@0x80457a2: db 0x74, 0x10  ;; jz 0x80457b4
 ..@0x80457a4: sub esp, strict byte 0xc
 ..@0x80457a7: push strict dword _stdio_openlist
-..@0x80457ac: call B.code+fflush_unlocked
+..@0x80457ac: call B.code+Qfflush_unlocked
 ..@0x80457b1: add esp, strict byte 0x10
 ..@0x80457b4: db 0x8b, 0x43, 0x08  ;; mov eax,[ebx+0x8]
 ..@0x80457b7: db 0x39, 0x43, 0x0c  ;; cmp [ebx+0xc],eax
@@ -2125,7 +2393,7 @@ getc_unlocked: equ $-B.code
 ..@0x80457bc: sub esp, strict byte 0xc
 ..@0x80457bf: db 0x89, 0x43, 0x18  ;; mov [ebx+0x18],eax
 ..@0x80457c2: push ebx
-..@0x80457c3: call B.code+__stdio_rfill
+..@0x80457c3: call B.code+Q__stdio_rfill
 ..@0x80457c8: add esp, strict byte 0x10
 ..@0x80457cb: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80457cd: db 0x74, 0x2e  ;; jz 0x80457fd
@@ -2141,7 +2409,7 @@ getc_unlocked: equ $-B.code
 ..@0x80457e4: db 0x8d, 0x44, 0x24, 0x1f  ;; lea eax,[esp+0x1f]
 ..@0x80457e8: push eax
 ..@0x80457e9: push ebx
-..@0x80457ea: call B.code+__stdio_READ
+..@0x80457ea: call B.code+Q__stdio_READ
 ..@0x80457ef: add esp, strict byte 0x10
 ..@0x80457f2: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80457f4: db 0x74, 0x07  ;; jz 0x80457fd
@@ -2160,7 +2428,7 @@ unused_fputc_unlocked: equ $-B.code
 unused_putc_unlocked: equ $-B.code
 unused_fputc: equ $-B.code
 ..@0x8045890: times 0x804594b-0x8045890 hlt  ; Padding.
-fputs_unlocked: equ $-B.code
+Qfputs_unlocked: equ $-B.code
 ..@0x804594b: push esi
 ..@0x804594c: push ebx
 ..@0x804594d: sub esp, strict byte 0x10
@@ -2173,7 +2441,7 @@ fputs_unlocked: equ $-B.code
 ..@0x8045962: db 0x89, 0xc6  ;; mov esi,eax
 ..@0x8045964: push strict byte 0x1
 ..@0x8045966: push ebx
-..@0x8045967: call B.code+fwrite_unlocked
+..@0x8045967: call B.code+Qfwrite_unlocked
 ..@0x804596c: db 0x89, 0xc2  ;; mov edx,eax
 ..@0x804596e: or eax, strict byte -0x1
 ..@0x8045971: db 0x39, 0xf2  ;; cmp edx,esi
@@ -2182,7 +2450,7 @@ fputs_unlocked: equ $-B.code
 ..@0x8045979: pop ebx
 ..@0x804597a: pop esi
 ..@0x804597b: ret
-fread_unlocked: equ $-B.code
+Qfread_unlocked: equ $-B.code
 ..@0x804597c: push ebp
 ..@0x804597d: push edi
 ..@0x804597e: push esi
@@ -2198,7 +2466,7 @@ fread_unlocked: equ $-B.code
 ..@0x804599c: push esi
 ..@0x804599d: push strict dword 0x80
 ..@0x80459a2: push ebp
-..@0x80459a3: call B.code+__stdio_trans2r_o
+..@0x80459a3: call B.code+Q__stdio_trans2r_o
 ..@0x80459a8: add esp, strict byte 0x10
 ..@0x80459ab: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80459ad: db 0x0f, 0x85, 0xd7, 0x00, 0x00, 0x00  ;; jnz near 0x8045a8a
@@ -2251,7 +2519,7 @@ fread_unlocked: equ $-B.code
 ..@0x8045a3b: db 0x74, 0x18  ;; jz 0x8045a55
 ..@0x8045a3d: sub esp, strict byte 0xc
 ..@0x8045a40: push strict dword _stdio_openlist
-..@0x8045a45: call B.code+fflush_unlocked
+..@0x8045a45: call B.code+Qfflush_unlocked
 ..@0x8045a4a: add esp, strict byte 0x10
 ..@0x8045a4d: db 0xeb, 0x06  ;; jmp short 0x8045a55
 ..@0x8045a4f: db 0x29, 0xc6  ;; sub esi,eax
@@ -2261,7 +2529,7 @@ fread_unlocked: equ $-B.code
 ..@0x8045a56: push esi
 ..@0x8045a57: push edi
 ..@0x8045a58: push ebp
-..@0x8045a59: call B.code+__stdio_READ
+..@0x8045a59: call B.code+Q__stdio_READ
 ..@0x8045a5e: add esp, strict byte 0x10
 ..@0x8045a61: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8045a63: db 0x75, 0xea  ;; jnz 0x8045a4f
@@ -2282,7 +2550,7 @@ fread_unlocked: equ $-B.code
 ..@0x8045a91: pop edi
 ..@0x8045a92: pop ebp
 ..@0x8045a93: ret
-fwrite_unlocked: equ $-B.code
+Qfwrite_unlocked: equ $-B.code
 ..@0x8045a94: push edi
 ..@0x8045a95: push esi
 ..@0x8045a96: push ebx
@@ -2297,7 +2565,7 @@ fwrite_unlocked: equ $-B.code
 ..@0x8045ab3: push edx
 ..@0x8045ab4: push strict dword 0x80
 ..@0x8045ab9: push ebx
-..@0x8045aba: call B.code+__stdio_trans2w_o
+..@0x8045aba: call B.code+Q__stdio_trans2w_o
 ..@0x8045abf: add esp, strict byte 0x10
 ..@0x8045ac2: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8045ac4: db 0x75, 0x40  ;; jnz 0x8045b06
@@ -2316,7 +2584,7 @@ fwrite_unlocked: equ $-B.code
 ..@0x8045adf: push ebx
 ..@0x8045ae0: push eax
 ..@0x8045ae1: push dword [esp+0x1c]
-..@0x8045ae5: call B.code+__stdio_fwrite
+..@0x8045ae5: call B.code+Q__stdio_fwrite
 ..@0x8045aea: db 0x31, 0xd2  ;; xor edx,edx
 ..@0x8045aec: add esp, strict byte 0x10
 ..@0x8045aef: db 0xf7, 0xf6  ;; div esi
@@ -2345,7 +2613,7 @@ unused_strcpy: equ $-B.code
 ..@0x8045bac: times 0x8045bc7-0x8045bac hlt  ; Padding.
 unused_strlen: equ $-B.code
 ..@0x8045bc7: times 0x8045bda-0x8045bc7 hlt  ; Padding.
-strnlen: equ $-B.code
+Qstrnlen: equ $-B.code
 ..@0x8045bda: db 0x8b, 0x4c, 0x24, 0x04  ;; mov ecx,[esp+0x4]
 ..@0x8045bde: db 0x8b, 0x54, 0x24, 0x08  ;; mov edx,[esp+0x8]
 ..@0x8045be2: db 0x89, 0xc8  ;; mov eax,ecx
@@ -2549,7 +2817,7 @@ malloc: equ $-B.code
 ..@0x8046046: db 0x75, 0x05  ;; jnz 0x804604d
 ..@0x8046048: db 0x39, 0x41, 0x08  ;; cmp [ecx+0x8],eax
 ..@0x804604b: db 0x74, 0x05  ;; jz 0x8046052
-..@0x804604d: call B.code+abort
+..@0x804604d: call B.code+abort_used_by_malloc
 ..@0x8046052: db 0x89, 0xde  ;; mov esi,ebx
 ..@0x8046054: db 0x2b, 0x74, 0x24, 0x14  ;; sub esi,[esp+0x14]
 ..@0x8046058: db 0x89, 0x4a, 0x0c  ;; mov [edx+0xc],ecx
@@ -3049,7 +3317,7 @@ realloc: equ $-B.code
 ..@0x80466de: db 0x75, 0x05  ;; jnz 0x80466e5
 ..@0x80466e0: db 0x39, 0x70, 0x08  ;; cmp [eax+0x8],esi
 ..@0x80466e3: db 0x74, 0x05  ;; jz 0x80466ea
-..@0x80466e5: call B.code+abort
+..@0x80466e5: call B.code+abort_used_by_malloc
 ..@0x80466ea: db 0x89, 0x42, 0x0c  ;; mov [edx+0xc],eax
 ..@0x80466ed: db 0x89, 0x50, 0x08  ;; mov [eax+0x8],edx
 ..@0x80466f0: jmp strict near R.code+0x80467a5
@@ -3349,7 +3617,7 @@ __malloc_consolidate: equ $-B.code
 ..@0x8046a48: db 0x75, 0x05  ;; jnz 0x8046a4f
 ..@0x8046a4a: db 0x39, 0x70, 0x08  ;; cmp [eax+0x8],esi
 ..@0x8046a4d: db 0x74, 0x05  ;; jz 0x8046a54
-..@0x8046a4f: call B.code+abort
+..@0x8046a4f: call B.code+abort_used_by_malloc
 ..@0x8046a54: db 0x01, 0xef  ;; add edi,ebp
 ..@0x8046a56: db 0x89, 0x42, 0x0c  ;; mov [edx+0xc],eax
 ..@0x8046a59: db 0x89, 0x50, 0x08  ;; mov [eax+0x8],edx
@@ -3487,7 +3755,7 @@ free: equ $-B.code
 ..@0x8046c01: db 0x75, 0x05  ;; jnz 0x8046c08
 ..@0x8046c03: db 0x39, 0x78, 0x08  ;; cmp [eax+0x8],edi
 ..@0x8046c06: db 0x74, 0x05  ;; jz 0x8046c0d
-..@0x8046c08: call B.code+abort
+..@0x8046c08: call B.code+abort_used_by_malloc
 ..@0x8046c0d: db 0x89, 0x42, 0x0c  ;; mov [edx+0xc],eax
 ..@0x8046c10: db 0x01, 0xeb  ;; add ebx,ebp
 ..@0x8046c12: db 0x89, 0x50, 0x08  ;; mov [eax+0x8],edx
@@ -3558,7 +3826,7 @@ malloc_trim: equ $-B.code
 ..@0x8046ce2: db 0x89, 0xd8  ;; mov eax,ebx
 ..@0x8046ce4: pop ebx
 ..@0x8046ce5: jmp strict near B.code+__malloc_trim
-abort: equ $-B.code
+abort_used_by_malloc: equ $-B.code
 ..@0x8046cea: push ebx
 ..@0x8046ceb: db 0x81, 0xec, 0x24, 0x01, 0x00, 0x00  ;; sub esp,0x124
 ..@0x8046cf1: push strict dword __mylock1
@@ -4160,7 +4428,7 @@ exit: equ $-B.code
 ..@0x804756a: call B.code+__pthread_return_void
 ..@0x804756f: db 0xc7, 0x04, 0x24, 0x80, 0xd1, 0x05, 0x08  ;; mov dword [esp],__atexit_lock
 ..@0x8047576: call B.code+__pthread_return_0
-..@0x804757b: mov eax, progx_fflush  ; Previously: mov eax,[__exit_cleanup]
+..@0x804757b: mov eax, stdstream_and_fileio_flushall  ; Previously: mov eax,[__exit_cleanup]
 ..@0x8047580: add esp, strict byte 0x10
 ..@0x8047583: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8047585: db 0x74, 0x09  ;; jz 0x8047590
@@ -4174,11 +4442,11 @@ exit: equ $-B.code
 ..@0x8047594: push ebx
 ..@0x8047595: call B.code+__pthread_return_void
 ..@0x804759a: call B.code+__uClibc_fini
-..@0x804759f: db 0xb8, 0xf9, 0x44, 0x04, 0x08  ;; mov eax,_stdio_term
+..@0x804759f: mov eax, 0  ; _stdio_init.
 ..@0x80475a4: add esp, strict byte 0x10
 ..@0x80475a7: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80475a9: db 0x74, 0x05  ;; jz 0x80475b0
-..@0x80475ab: call B.code+_stdio_term
+..@0x80475ab: times 5 hlt  ; call B.code+_stdio_term  ; Padding.
 ..@0x80475b0: sub esp, strict byte 0xc
 ..@0x80475b3: push esi
 ..@0x80475b4: call B.code+_exit  ; Never returns.
@@ -4242,7 +4510,7 @@ __check_one_fd: equ $-B.code
 ..@0x8047765: add esp, strict byte 0x10
 ..@0x8047768: db 0x39, 0xf0  ;; cmp eax,esi
 ..@0x804776a: db 0x74, 0x05  ;; jz 0x8047771
-..@0x804776c: call B.code+abort
+..@0x804776c: call B.code+abort_used_by_malloc
 ..@0x8047771: pop eax
 ..@0x8047772: pop ebx
 ..@0x8047773: pop esi
@@ -4257,11 +4525,11 @@ __uClibc_init: equ $-B.code
 ..@0x804778f: db 0xc7, 0x05, 0x74, 0xea, 0x87, 0x09, 0x00, 0x10, 0x00, 0x00  ;; mov dword [__pagesize],0x1000  ; PAGE_SIZE == 0x1000.
 ..@0x8047799: db 0x74, 0x05  ;; jz 0x80477a0
 ..@0x804779b: call B.code+__pthread_initialize_minimal  ; Never called, because of the NULL check above.
-..@0x80477a0: mov eax, _stdio_init
+..@0x80477a0: mov eax, 0  ; _stdio_init
 ..@0x80477a5: db 0x85, 0xc0  ;; test eax,eax
-..@0x80477a7: db 0x74, 0x08  ;; jz 0x80477b1  ; Always false (_stdio_init != NULL).
+..@0x80477a7: db 0x74, 0x08  ;; jz 0x80477b1  ; Now true (_stdio_init == NULL).
 ..@0x80477a9: add esp, strict byte 0xc
-..@0x80477ac: jmp strict near B.code+_stdio_init
+..@0x80477ac: times 5 hlt  ; jmp strict near B.code+_stdio_init
 ..@0x80477b1: add esp, strict byte 0xc
 ..@0x80477b4: ret
 __uClibc_main: equ $-B.code
@@ -4455,7 +4723,7 @@ unused__exit: equ $-B.code
 ..@0x8047b1b: times 0x8047b43-0x8047b1b hlt  ; Padding.
 unused_clock_getres: equ $-B.code
 ..@0x8047b43: times 0x8047b75-0x8047b43 hlt  ; Padding.
-close: equ $-B.code
+Qclose: equ $-B.code
 ..@0x8047b75: push edi
 ..@0x8047b76: sub esp, strict byte 0x8
 ..@0x8047b79: db 0x8b, 0x7c, 0x24, 0x10  ;; mov edi,[esp+0x10]
@@ -4635,7 +4903,7 @@ munmap: equ $-B.code
 ..@0x8047da6: pop ecx
 ..@0x8047da7: pop ebx
 ..@0x8047da8: ret
-open: equ $-B.code
+Qopen: equ $-B.code
 ..@0x8047da9: push edi
 ..@0x8047daa: db 0x31, 0xc0  ;; xor eax,eax
 ..@0x8047dac: push ebx
@@ -4665,7 +4933,7 @@ open: equ $-B.code
 ..@0x8047df1: pop ebx
 ..@0x8047df2: pop edi
 ..@0x8047df3: ret
-creat: equ $-B.code
+Qcreat: equ $-B.code
 ..@0x8047df4: sub esp, strict byte 0x10
 ..@0x8047df7: push dword [esp+0x18]
 ..@0x8047dfb: push strict dword 0x241
@@ -4740,7 +5008,7 @@ sigprocmask: equ $-B.code
 ..@0x8047eaf: ret
 unused_wcrs: equ $-B.code
 ..@0x8047eb0: times 0x8047f98-0x8047eb0 hlt  ; Unused, 0xe8 bytes.
-__stdio_READ: equ $-B.code
+Q__stdio_READ: equ $-B.code
 ..@0x8047f98: push ebx
 ..@0x8047f99: db 0x31, 0xc9  ;; xor ecx,ecx
 ..@0x8047f9b: sub esp, strict byte 0x8
@@ -4773,7 +5041,7 @@ __stdio_READ: equ $-B.code
 ..@0x8047fe4: pop ecx
 ..@0x8047fe5: pop ebx
 ..@0x8047fe6: ret
-__stdio_WRITE: equ $-B.code
+Q__stdio_WRITE: equ $-B.code
 ..@0x8047fe7: push ebp
 ..@0x8047fe8: push edi
 ..@0x8047fe9: push esi
@@ -4829,7 +5097,7 @@ __stdio_WRITE: equ $-B.code
 ..@0x8048064: pop edi
 ..@0x8048065: pop ebp
 ..@0x8048066: ret
-__stdio_fwrite: equ $-B.code
+Q__stdio_fwrite: equ $-B.code
 ..@0x8048067: push ebp
 ..@0x8048068: push edi
 ..@0x8048069: push esi
@@ -4878,7 +5146,7 @@ __stdio_fwrite: equ $-B.code
 ..@0x80480d7: db 0x74, 0x6e  ;; jz 0x8048147
 ..@0x80480d9: sub esp, strict byte 0xc
 ..@0x80480dc: push esi
-..@0x80480dd: call B.code+__stdio_wcommit
+..@0x80480dd: call B.code+Q__stdio_wcommit
 ..@0x80480e2: add esp, strict byte 0x10
 ..@0x80480e5: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80480e7: db 0x74, 0x5e  ;; jz 0x8048147
@@ -4906,7 +5174,7 @@ __stdio_fwrite: equ $-B.code
 ..@0x8048119: db 0x74, 0x14  ;; jz 0x804812f
 ..@0x804811b: sub esp, strict byte 0xc
 ..@0x804811e: push esi
-..@0x804811f: call B.code+__stdio_wcommit
+..@0x804811f: call B.code+Q__stdio_wcommit
 ..@0x8048124: add esp, strict byte 0x10
 ..@0x8048127: db 0x85, 0xc0  ;; test eax,eax
 ..@0x8048129: db 0x74, 0x04  ;; jz 0x804812f
@@ -4920,7 +5188,7 @@ __stdio_fwrite: equ $-B.code
 ..@0x804813f: pop esi
 ..@0x8048140: pop edi
 ..@0x8048141: pop ebp
-..@0x8048142: jmp strict near B.code+__stdio_WRITE
+..@0x8048142: jmp strict near B.code+Q__stdio_WRITE
 ..@0x8048147: add esp, strict byte 0xc
 ..@0x804814a: db 0x89, 0xf8  ;; mov eax,edi
 ..@0x804814c: pop ebx
@@ -4928,7 +5196,7 @@ __stdio_fwrite: equ $-B.code
 ..@0x804814e: pop edi
 ..@0x804814f: pop ebp
 ..@0x8048150: ret
-__stdio_rfill: equ $-B.code
+Q__stdio_rfill: equ $-B.code
 ..@0x8048151: push ebx
 ..@0x8048152: sub esp, strict byte 0xc
 ..@0x8048155: db 0x8b, 0x5c, 0x24, 0x14  ;; mov ebx,[esp+0x14]
@@ -4938,7 +5206,7 @@ __stdio_rfill: equ $-B.code
 ..@0x8048161: push eax
 ..@0x8048162: push edx
 ..@0x8048163: push ebx
-..@0x8048164: call B.code+__stdio_READ
+..@0x8048164: call B.code+Q__stdio_READ
 ..@0x8048169: db 0x8b, 0x53, 0x08  ;; mov edx,[ebx+0x8]
 ..@0x804816c: db 0x89, 0x53, 0x10  ;; mov [ebx+0x10],edx
 ..@0x804816f: db 0x01, 0xc2  ;; add edx,eax
@@ -4946,7 +5214,7 @@ __stdio_rfill: equ $-B.code
 ..@0x8048174: add esp, strict byte 0x18
 ..@0x8048177: pop ebx
 ..@0x8048178: ret
-__stdio_trans2r_o: equ $-B.code
+Q__stdio_trans2r_o: equ $-B.code
 ..@0x8048179: push ebx
 ..@0x804817a: sub esp, strict byte 0x8
 ..@0x804817d: db 0x8b, 0x5c, 0x24, 0x10  ;; mov ebx,[esp+0x10]
@@ -4972,7 +5240,7 @@ __stdio_trans2r_o: equ $-B.code
 ..@0x80481b9: db 0x74, 0x1e  ;; jz 0x80481d9
 ..@0x80481bb: sub esp, strict byte 0xc
 ..@0x80481be: push ebx
-..@0x80481bf: call B.code+__stdio_wcommit
+..@0x80481bf: call B.code+Q__stdio_wcommit
 ..@0x80481c4: add esp, strict byte 0x10
 ..@0x80481c7: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80481c9: db 0x75, 0xdf  ;; jnz 0x80481aa
@@ -4989,7 +5257,7 @@ __stdio_trans2r_o: equ $-B.code
 ..@0x80481e4: pop ecx
 ..@0x80481e5: pop ebx
 ..@0x80481e6: ret
-__stdio_trans2w_o: equ $-B.code
+Q__stdio_trans2w_o: equ $-B.code
 ..@0x80481e7: push ebx
 ..@0x80481e8: sub esp, strict byte 0x8
 ..@0x80481eb: db 0x8b, 0x5c, 0x24, 0x10  ;; mov ebx,[esp+0x10]
@@ -5028,7 +5296,7 @@ __stdio_trans2w_o: equ $-B.code
 ..@0x804824c: push eax
 ..@0x804824d: push strict byte 0x0
 ..@0x804824f: push ebx
-..@0x8048250: call B.code+fseeko
+..@0x8048250: call B.code+Qfseeko
 ..@0x8048255: add esp, strict byte 0x10
 ..@0x8048258: db 0x85, 0xc0  ;; test eax,eax
 ..@0x804825a: db 0x75, 0xbd  ;; jnz 0x8048219
@@ -8356,8 +8624,8 @@ jmp_ask_for_overwrite_again: equ $-B.code
 jmp_read_prompt_response: equ $-B.code
 %ifidn TARGET, x
 ..@0x804a66c: ; This implementation doesn't use use [prog_stdin] or [esp+MAIN_LOCAL_PROMPT_FGETS_BUF].
-              call B.code+progx_fflush  ; Flush stdout before reading from stdin.
-              call B.code+progx_getchar
+              call B.code+stdstream_flush  ; Flush stdout before reading from stdin.
+              call B.code+stdstream_getchar
               cmp eax, byte -1
               jz strict short B.code+jmp_jz_to_operation_cancelled  ; Jump iff byte_value == EOF. EOF is -1.
               mov edx, eax  ; Save first byte (or EOF).
@@ -8367,7 +8635,7 @@ jmp_continue_reading_prompt_response: equ $-B.code
               cmp al, 0xa
               je strict short B.code+jmp_got_prompt_response  ; Jump iff byte_value == '\n'.
               push edx  ; Save it.
-              call B.code+progx_getchar
+              call B.code+stdstream_getchar
               pop edx  ; Restore it. EDX := first byte_value read.
               jmp strict short B.code+jmp_continue_reading_prompt_response
 jmp_got_prompt_response: equ $-B.code
@@ -25766,19 +26034,16 @@ __atexit_lock: equ $-B.data
 ..@0x805d180: dd 0, 0, 0, 1, 0, 0
 __uclibc_progname: equ $-B.data
 ..@0x805d198: dd 0x8042565
-progx_buf_ptr: equ $-B.data ; Next byte to write to buffer.
-..@0x805d19c: dd progx_buf
-progx_buf_is_stdout_a_tty: equ $-B.data
-..@0x805d1a0: db 1  ; It's safe to do more frequent flushes.
-              times 3 db 0  ; Padding.
-progx_read_buf_ptr: equ $-B.data ; Next byte to read from progx_read_buf.
-..@0x805d1a4: dd progx_read_buf
-progx_read_buf_last: equ $-B.data ; Last byte avialble to read in progx_read_buf.
-..@0x805d1a8: dd progx_read_buf
+stdstream_buf_ptr: equ $-B.data ; Next byte to write to buffer.
+..@0x805d19c: dd stdstream_buf
+stdstream_read_buf_ptr: equ $-B.data ; Next byte to read from stdstream_read_buf.
+..@0x805d1a0: dd stdstream_read_buf
+stdstream_read_buf_last: equ $-B.data ; Last byte avialble to read in stdstream_read_buf.
+..@0x805d1a4: dd stdstream_read_buf
 
-X.gap7:      ;0x1a1ac..0x1a1c4  +0x00028    @0x805d19c...0x805d1c4
-..@0x805d1ac:
-times +0x00018 db 0
+X.gap7:      ;0x1a1a8..0x1a1c4  +0x00028    @0x805d19c...0x805d1c4
+..@0x805d1a8:
+times +0x0001c db 0
 %endif  ; TARGET, x
 
 $DT:  ; Symbolic constants for ELF DT_... (dynamic type).
@@ -26778,13 +27043,13 @@ seed: equ $-B.data
 ..@0x987ca58: resb 8
 _fixed_buffers: equ $-B.data
 buf_stdin: equ $-B.data
-progx_read_buf: equ $-B.data  ; We reuse buf_stdin, since it won't be used by regular calls.
-progx_read_buf.end: equ progx_read_buf+0x400  ; We could make it even shorter for PNGOUT, as short as 0x80 bytes would still be efficient. PNGOUT uses it only for reading the prompt response (jmp_read_prompt_response).
+stdstream_read_buf: equ $-B.data  ; We reuse buf_stdin, since it won't be used by regular calls.
+stdstream_read_buf.end: equ stdstream_read_buf+0x400  ; We could make it even shorter for PNGOUT, as short as 0x80 bytes would still be efficient. PNGOUT uses it only for reading the prompt response (jmp_read_prompt_response).
 ..@0x987ca60: resb +BUFSIZ
 buf_stdin.end: equ $-B.data
 buf_stdout: equ $-B.data
-progx_buf: equ $-B.data  ; We reuse buf_stdout, since it won't be used by regular calls.
-progx_buf.end: equ progx_buf+0x400  ; Match glibc 2.19 stdout buffer size on a TTY.
+stdstream_buf: equ $-B.data  ; We reuse buf_stdout, since it won't be used by regular calls.
+stdstream_buf.end: equ stdstream_buf+0x400  ; Match glibc 2.19 stdout buffer size on a TTY.
 ..@0x987da60: resb +BUFSIZ
 buf_stdout.end: equ $-B.data
 strtok_global_ptr: equ $-B.data
@@ -26811,7 +27076,7 @@ been_there_done_that.3001: equ $-B.data
 errno: equ $-B.data
 ..@0x987ea84: resb 4
 h_errno: equ $-B.data
-progx_buf_fd: equ $-B.data  ; Reuse h_errno (otherwise unused) for printf output buffering.
+stdstream_buf_fd: equ $-B.data  ; Reuse h_errno (otherwise unused) for printf output buffering.
 ..@0x987ea88: resb 4
 __curbrk: equ $-B.data
 ..@0x987ea8c: resb 4
@@ -26822,11 +27087,14 @@ _dl_phdr: equ $-B.data
 ..@0x987ee18: resb 4
 _dl_phnum: equ $-B.data
 ..@0x987ee1c: resb 4
-..@0x987ee20:
+fileio_files: equ $-B.data
+..@0x987ee20: resb 2*0x1014  ; Contains 2 `struct _SFS_FILE()s, reserved for allocation by fileio_fopen(...). TODO(pts): Is 2 _SFS_FILE enough?
+stdstream_buf_is_stdout_a_tty: equ $-B.data
+              resb 1  ; By default it's 0 (false).
 X.ucbss.end:
 _ucbss.end: equ $-B.data
-times -(X.ucbss.end-X.ucbss)+(0x987ee20-0x987ca50) times 0 nop  ; Assert.
-times +(X.ucbss.end-X.ucbss)-(0x987ee20-0x987ca50) times 0 nop  ; Assert.
+times -(X.ucbss.end-X.ucbss)+(0x987ee20-0x987ca50+2*0x1014+1) times 0 nop  ; Assert.
+times +(X.ucbss.end-X.ucbss)-(0x987ee20-0x987ca50+2*0x1014+1) times 0 nop  ; Assert.
 %endif  ; TARGET, x
 
 %ifidn TARGET, d
