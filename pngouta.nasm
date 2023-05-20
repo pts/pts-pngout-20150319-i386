@@ -28,7 +28,7 @@
 %endif
 
 %ifidn TARGET, x  ; statically linked for Linux i386 using a custom libc.
-  B.code equ -0x8046000  ; !! Where are the big paddings? Can we remove them?
+  B.code equ -0x8048000  ; !! Where are the big paddings? Can we remove them?
   B.data equ B.code-0x1000
 %elifidn TARGET, l  ; dynamically linked for Linux i386 against glibc, remastered
   ; Originally created with glibc 2.19.
@@ -261,19 +261,14 @@ phdr2:					; Elf32_Phdr
 		dd 0			;   p_align
 X.ELF_phdr.end:
 
-X.mcrodata:  ; ...0x8043ae0
+X.mcrodata:
 BUFSIZ equ 0x1000  ; Buffer size for stdin, stdout and newly fopen()ed files.
 str_null: equ $-B.code
 		db '(null)', 0
 nan_inf_str: equ $-B.code  ; 0x15 bytes. static char nan_inf_str[] in strtod(...).
 		db 5, 'nan', 0, 0xa, 'infinity', 0, 5, 'inf', 0, 0
-;
-		times $$+0x8047ae0 -$+B.code db 0   ; Padding.
 
-X.mctext:    ;0x01ae0..0x06d09  +0x05229    @0x8043ae0...0x8048d09
-times -($-$$+0x8046000)+0x8047ae0 times 0 nop  ; Assert.
-times +($-$$+0x8046000)-0x8047ae0 times 0 nop  ; Assert.
-..@0x8043ae0:
+X.mctext:
 _start: equ $-B.code  ; Entry point (_start) of the Linux i386 executable.
 		; Now the stack looks like (from top to bottom):
 		;   dword [esp]: argc
@@ -1899,7 +1894,7 @@ strtok_labels:
 		pop ebx
 		ret
 ;
-		times $$+0x8048d10-$+B.code hlt   ; Padding. 0x79b bytes. !!
+		times $$+0x8048d10-$+B.code hlt   ; Padding. 0x1cb bytes. Required to start P.text at its original address.
 %endif  ; TARGET, x
 
 ; http://www.linker-aliens.org/blogs/ali/entry/gnu_hash_elf_sections/
@@ -22931,7 +22926,7 @@ opendir@GLIBC_2.0@got: equ $-B.code
 P.data:      ;0x1a1c4..0x1a1f0  +0x0002c    @0x805d1c4...0x805d1f0  file_size=end_off=0x1a1f0=106992 (previous attempt was 122880 bytes)
 times -(P.data-B.data-$$)+0x805d1c4 times 0 nop  ; Assert.
 times +(P.data-B.data-$$)-0x805d1c4 times 0 nop  ; Assert.
-; !! Move these variables closer to the code for TARGET==x.
+; !! Move these variables closer to the code for TARGET==x, thus reducing file size.
 ..@0x805d1c4: db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 code_ptr_0x805d1cc: equ $-B.data
 ..@0x805d1cc: dd unknown_func1
@@ -22944,8 +22939,8 @@ times -(P.data.end-P.data)+(0x805d1f0-0x805d1c4) times 0 nop  ; Assert.
 times +(P.data.end-P.data)-(0x805d1f0-0x805d1c4) times 0 nop  ; Assert.
 
 %ifidn TARGET, x
-times (+($-$$)-0x161f0) times 0 nop  ; Assert on file size.
-times (-($-$$)+0x161f0) times 0 nop  ; Assert on file size.
+times (+($-$$)-0x141f0) times 0 nop  ; Assert on file size.
+times (-($-$$)+0x141f0) times 0 nop  ; Assert on file size.
 absolute $
 ..@0x805d1f0: resb +0x35
 %endif  ; TARGET, x
