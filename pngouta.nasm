@@ -238,6 +238,7 @@ times +0x0042c db 0
 X.ucrodata:  ;0x004c0..0x01adc  +0x0161c    @0x80424c0...0x8043adc
 times -($-$$+0x8042000)+0x80424c0 times 0 nop  ; Assert.
 times +($-$$+0x8042000)-0x80424c0 times 0 nop  ; Assert.
+BUFSIZ equ 0x1000  ; Buffer size for stdin, stdout and newly fopen()ed files.
 ucrodata_unknown1: equ $-B.code  ; No labels here.
 ..@0x80424c0: db 0x00, 0x00, 0x80, 0xda, 0x00, 0x00, 0x80, 0x5a, 0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0x00, 0x40
 unused_f32_10: equ $-B.code
@@ -846,13 +847,13 @@ _stdio_fopen: equ $-B.code
 ..@0x80443a8: db 0x83, 0x7d, 0x08, 0x00  ;; cmp dword [ebp+0x8],byte +0x0
 ..@0x80443ac: db 0x75, 0x32  ;; jnz 0x80443e0
 ..@0x80443ae: sub esp, strict byte 0xc
-..@0x80443b1: push strict dword 0x1000
+..@0x80443b1: push strict dword BUFSIZ
 ..@0x80443b6: call B.code+malloc
 ..@0x80443bb: add esp, strict byte 0x10
 ..@0x80443be: db 0x85, 0xc0  ;; test eax,eax
 ..@0x80443c0: db 0x89, 0x45, 0x08  ;; mov [ebp+0x8],eax
 ..@0x80443c3: db 0x74, 0x14  ;; jz 0x80443d9
-..@0x80443c5: db 0x05, 0x00, 0x10, 0x00, 0x00  ;; add eax,0x1000
+..@0x80443c5: add eax, BUFSIZ
 ..@0x80443ca: db 0x89, 0x45, 0x0c  ;; mov [ebp+0xc],eax
 ..@0x80443cd: db 0x8b, 0x45, 0x00  ;; mov eax,[ebp+0x0]
 ..@0x80443d0: db 0x80, 0xcc, 0x40  ;; or ah,0x40
@@ -26776,12 +26777,12 @@ _fixed_buffers: equ $-B.data
 buf_stdin: equ $-B.data
 progx_read_buf: equ $-B.data  ; We reuse buf_stdin, since it won't be used by regular calls.
 progx_read_buf.end: equ progx_read_buf+0x400  ; We could make it even shorter for PNGOUT, as short as 0x80 bytes would still be efficient. PNGOUT uses it only for reading the prompt response (jmp_read_prompt_response).
-..@0x987ca60: resb +0x1000
+..@0x987ca60: resb +BUFSIZ
 buf_stdin.end: equ $-B.data
 buf_stdout: equ $-B.data
 progx_buf: equ $-B.data  ; We reuse buf_stdout, since it won't be used by regular calls.
 progx_buf.end: equ progx_buf+0x400  ; Match glibc 2.19 stdout buffer size on a TTY.
-..@0x987da60: resb +0x1000
+..@0x987da60: resb +BUFSIZ
 buf_stdout.end: equ $-B.data
 strtok_global_ptr: equ $-B.data
 ..@0x987ea60: resb 4
