@@ -799,7 +799,7 @@ stdstream_and_fileio_flushall: equ $-B.code  ; void stdstream_and_fileio_flushal
 		push dword fileio_files
 		call B.code+fileio_fflush
 		pop eax
-		push dword fileio_files+0x1014
+		push dword fileio_files+0x14+BUFSIZ
 		call B.code+fileio_fflush
 		pop eax
 		;ret  ; For fileio_flushall(...).
@@ -858,13 +858,13 @@ fopen: equ $-B.code
 		push ecx
 		cmp byte [fileio_files], 0x0
 		je .fo6
-		cmp byte [fileio_files+0x1014], 0x0  ; TODO(pts): If fileio_files becomes shorter, also drop this.
+		cmp byte [fileio_files+0x14+BUFSIZ], 0x0  ; TODO(pts): If fileio_files becomes shorter, also drop this.
 		je .fo7
 .fo5:		xor ebx, ebx
 		jmp short .fo1
 .fo6:		mov ebx, fileio_files
 		jmp short .fo2
-.fo7:		mov ebx, fileio_files+0x1014
+.fo7:		mov ebx, fileio_files+0x14+BUFSIZ
 .fo2:		mov eax, [esp+0x10]
 		mov dl, [eax]
 		cmp dl, 0x77
