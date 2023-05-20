@@ -28,7 +28,7 @@
 %endif
 
 %ifidn TARGET, x  ; statically linked for Linux i386 using a custom libc.
-  B.code equ -0x8048000  ; !! Where are the big paddings? Can we remove them?
+  B.code equ -0x8048000
   B.data equ B.code-0x1000
 %elifidn TARGET, l  ; dynamically linked for Linux i386 against glibc, remastered
   ; Originally created with glibc 2.19.
@@ -1894,7 +1894,7 @@ strtok_labels:
 		pop ebx
 		ret
 ;
-		times $$+0x8048d10-$+B.code hlt   ; Padding. 0x1cb bytes. Required to start P.text at its original address.
+		times $$+0x8048d10-$+B.code hlt  ; Big padding: 0x1cb bytes. Required to start P.text at its original address.
 %endif  ; TARGET, x
 
 ; http://www.linker-aliens.org/blogs/ali/entry/gnu_hash_elf_sections/
@@ -21671,7 +21671,7 @@ times +(P.text.end-P.text)-(0x805a698-0x8048d10) times 0 nop  ; Assert.
 
 %ifidn TARGET, x
 X.gap5:      ;0x18698..0x1876c  +0x000d4    @0x805a698...0x805a76c
-..@0x805a698: times 0x805a76c-0x805a698 db 0  ; Padding.
+..@0x805a698: times 0x805a76c-0x805a698 db 0  ; Big padding: 0xd4 bytes.
 ;..@0x805a76c:
 %endif  ; TARGET, x
 
