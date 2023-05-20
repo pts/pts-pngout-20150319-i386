@@ -181,8 +181,8 @@ A.code equ 0
   ;   void fileio_flushall(void);
   ;   void stdstream_and_fileio_flushall(void);
   ;
-  %define stdstream_stdout_val 1  ; Same as the file descriptor (fd).
-  %define stdstream_stderr_val 2  ; Same as the file descriptor (fd).
+  stdstream_stdout_val equ 1  ; Same as the file descriptor (fd).
+  stdstream_stderr_val equ 2  ; Same as the file descriptor (fd).
   %define MOV_EAX_PROG_STDOUT_REF mov eax, stdstream_stdout_val  ; Same number of bytes as `mov eax, [stdout]'. Good.
   %define MOV_EAX_PROG_STDERR_REF mov eax, stdstream_stderr_val
   %define prog_fflush stdstream_flush  ; Always called with stdout.
