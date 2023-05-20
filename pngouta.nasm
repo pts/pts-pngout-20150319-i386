@@ -6066,8 +6066,9 @@ handle_sigint: equ $-B.code
 ..@0x804b6c0: db 0x83, 0x3d, 0x40, 0xd2, 0x05, 0x08, 0x01  ;; cmp dword [global_cleanup_counter],byte +0x1
 ..@0x804b6c7: db 0x75, 0xf1  ;; jnz A.code+0x804b6ba
 ..@0x804b6c9: MOV_EAX_PROG_STDERR_REF
-..@0x804b6ce: db 0xc7, 0x44, 0x24, 0x08, 0x24, 0x00, 0x00, 0x00  ;; mov dword [esp+0x8],0x24
-..@0x804b6d6: db 0xc7, 0x44, 0x24, 0x04, 0x01, 0x00, 0x00, 0x00  ;; mov dword [esp+0x4],0x1
+..@0x804b6ce: db 0xc7, 0x44, 0x24, 0x08
+              dd str_message_on_sigint.end-str_message_on_sigint  ;; mov dword [esp+0x8], str_message_on_sigint.end-str_message_on_sigint
+..@0x804b6d6: mov dword [esp+0x4], 1
 ..@0x804b6de: db 0xc7, 0x04, 0x24, 0x48, 0xa7, 0x05, 0x08  ;; mov dword [esp],str_message_on_sigint
 ..@0x804b6e5: db 0x89, 0x44, 0x24, 0x0c  ;; mov [esp+0xc],eax
 ..@0x804b6e9: call B.code+fwrite
@@ -21670,21 +21671,21 @@ times -(P.text.end-P.text)+(0x805a698-0x8048d10) times 0 nop  ; Assert.
 times +(P.text.end-P.text)-(0x805a698-0x8048d10) times 0 nop  ; Assert.
 
 %ifidn TARGET, x
-X.gap5:      ;0x18698..0x1876c  +0x000d4    @0x805a698...0x805a76c
-..@0x805a698: times 0x805a76c-0x805a698 db 0  ; Big padding: 0xd4 bytes.
-;..@0x805a76c:
+X.gap5:      ;0x18698..0x18770  +0x000d8    @0x805a698...0x805a770
+..@0x805a698: times 0x805a770-0x805a698 db 0  ; Big padding: 0xd4 bytes.
+;..@0x805a770:
 %endif  ; TARGET, x
 
 %ifidn TARGET, l
 L.gap16:  ; addr=0x805a698 off=0x12698
-..@0x805a698: times 0x805a76c-0x805a698 db 0  ; Padding.
-;..@0x805a76c:
+..@0x805a698: times 0x805a770-0x805a698 db 0  ; Padding.
+;..@0x805a770:
 %endif  ; TARGET, l
 
 %ifidn TARGET, d
 D.gap15:  ; addr=0x805a698 off=0x12698
-..@0x805a698: times 0x805a76c-0x805a698 db 0  ; Padding.
-;..@0x805a76c:
+..@0x805a698: times 0x805a770-0x805a698 db 0  ; Padding.
+;..@0x805a770:
 %endif
 
 %ifidn TARGET, ls
@@ -21777,15 +21778,14 @@ _IO_stdin_used: equ $-B.code
 
 LS.rodata:  ; addr=0x805a748 off=0x12748
 str_message_on_sigint: equ $-B.code
-..@0x805a748: db 'Press ^C again to exit immediately.', 0x0a, ''
+..@0x805a748: db 'Press ^C again to exit immediately.', 0x0a
 str_message_on_sigint.end: equ $-B.code
+..@0x805a76c: dd 0  ; Padding, unused.
 %endif  ; TARGET, ls
 
-P.rodata:    ;0x1876c..0x19a20  +0x012b4    @0x805a76c...0x805ba20
-times -(P.rodata-B.code-$$)+0x805a76c times 0 nop  ; Assert.
-times +(P.rodata-B.code-$$)-0x805a76c times 0 nop  ; Assert.
-..@0x805a76c: db 0
-..@0x805a76d: db 0, 0, 0
+P.rodata:    ;0x1876c..0x19a20  +0x012b8    @0x805a770...0x805ba20
+times -(P.rodata-B.code-$$)+0x805a770 times 0 nop  ; Assert.
+times +(P.rodata-B.code-$$)-0x805a770 times 0 nop  ; Assert.
 str_message_help_line1: equ $-B.code
 ..@0x805a770: db 'PNGOUT [In:{PNG,JPG,GIF,TGA,PCX,BMP}] (Out:PNG) (options...)        %s', 10, 0
 ..@0x805a7b8: db 'by Ken Silverman (http://advsys.net/ken)', 0x0a, 0, 0, 0
@@ -22273,8 +22273,8 @@ code_ptr_0x805b88c: equ $-B.code
 ..@0x805ba00: db 0xe6, 0x09, 0x6a, 0x01, 0x0b, 0x15, 0x63, 0x01, 0xe9, 0x7a, 0x4e, 0x01, 0x2f, 0x06, 0x2d, 0x01
 ..@0x805ba10: db 0x00, 0x00, 0x00, 0x01, 0x4e, 0x23, 0xc9, 0x00, 0xd4, 0x8b, 0x8a, 0x00, 0x57, 0xa1, 0x46, 0x00
 P.rodata.end:
-times -(P.rodata.end-P.rodata)+(0x805ba20-0x805a76c) times 0 nop  ; Assert.
-times +(P.rodata.end-P.rodata)-(0x805ba20-0x805a76c) times 0 nop  ; Assert.
+times -(P.rodata.end-P.rodata)+(0x805ba20-0x805a770) times 0 nop  ; Assert.
+times +(P.rodata.end-P.rodata)-(0x805ba20-0x805a770) times 0 nop  ; Assert.
 _rodata.end: equ $-B.code
 
 $DT:  ; Symbolic constants for ELF DT_... (dynamic type).
