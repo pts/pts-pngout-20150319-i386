@@ -22277,19 +22277,6 @@ times -(P.rodata.end-P.rodata)+(0x805ba20-0x805a76c) times 0 nop  ; Assert.
 times +(P.rodata.end-P.rodata)-(0x805ba20-0x805a76c) times 0 nop  ; Assert.
 _rodata.end: equ $-B.code
 
-%ifidn TARGET, x
-X.mcdata:
-_mcdata: equ $-B.data
-stdstream_buf_ptr: equ $-B.data ; Next byte to write to buffer.
-..@0x805d19c: dd stdstream_buf
-stdstream_read_buf_ptr: equ $-B.data ; Next byte to read from stdstream_read_buf.
-..@0x805d1a0: dd stdstream_read_buf
-stdstream_read_buf_last: equ $-B.data ; Last byte avialble to read in stdstream_read_buf.
-..@0x805d1a4: dd stdstream_read_buf
-;
-              times $$+0x805d1c4-$+B.data db 0  ; Padding.
-%endif  ; TARGET, x
-
 $DT:  ; Symbolic constants for ELF DT_... (dynamic type).
 .NULL equ 0
 .NEEDED equ 1
@@ -22922,14 +22909,22 @@ opendir@GLIBC_2.0@got: equ $-B.code
 %endif  ; TARGET, ls
 
 P.data:      ;0x1a1c4..0x1a1f0  +0x0002c    @0x805d1c4...0x805d1f0  file_size=end_off=0x1a1f0=106992 (previous attempt was 122880 bytes)
+%ifidn TARGET, x
+_mcdata: equ $-B.data
+stdstream_buf_ptr: equ $-B.data ; Next byte to write to buffer.
+		dd stdstream_buf
+stdstream_read_buf_ptr: equ $-B.data ; Next byte to read from stdstream_read_buf.
+		dd stdstream_read_buf
+stdstream_read_buf_last: equ $-B.data ; Last byte avialble to read in stdstream_read_buf.
+		dd stdstream_read_buf
+%else  ; TARGET, x
 times -(P.data-B.data-$$)+0x805d1c4 times 0 nop  ; Assert.
 times +(P.data-B.data-$$)-0x805d1c4 times 0 nop  ; Assert.
-; !! Move these variables closer to the code for TARGET==x, thus reducing file size.
 ..@0x805d1c4: times 8 db 0  ; Padding.
 code_ptr_unknown_func1: equ $-B.data
 ..@0x805d1cc: dd unknown_func1
-_data2: equ $-B.data
 ..@0x805d1d0:
+%endif  ; TARGET, x
 datavar0: equ $-B.data
 		dd 0x80
 datavar1: equ $-B.data
@@ -22949,12 +22944,15 @@ datavar7: equ $-B.data
 ;..@0x805d1f0:
 P.data.end:
 _data.end: equ $-B.data
+%ifidn TARGET, x
+%else  ; TARGET, x
 times -(P.data.end-P.data)+(0x805d1f0-0x805d1c4) times 0 nop  ; Assert.
 times +(P.data.end-P.data)-(0x805d1f0-0x805d1c4) times 0 nop  ; Assert.
+%endif  ; TARGET, x
 
 %ifidn TARGET, x
-times (+($-$$)-0x141f0) times 0 nop  ; Assert on file size.
-times (-($-$$)+0x141f0) times 0 nop  ; Assert on file size.
+times (+($-$$)-0x13a4c) times 0 nop  ; Assert on file size.
+times (-($-$$)+0x13a4c) times 0 nop  ; Assert on file size.
 absolute $
 ..@0x805d1f0: resb +0x35
 %endif  ; TARGET, x
@@ -23260,8 +23258,13 @@ completed.6600: equ $-B.data  ; A bool flag (0 or 1).
 %endif  ; TARGET, ls
 
 P.bss:       ;---               +0x181f840  @0x805d225...0x987ca40
+%ifidn TARGET, x
+		resb $$+0x805d225-$+B.data
+%else  ; TARGET, x
 times -(P.bss-B.data-$$)+0x805d225 times 0 nop  ; Assert.
 times +(P.bss-B.data-$$)-0x805d225 times 0 nop  ; Assert.
+%endif  ; TARGET, x
+P.bss.after_gap:
 bss_unknown1: equ $-B.data
 ..@0x805d225: resb 0x1b
 global_cleanup_counter: equ $-B.data ; 0, 1 or 2.
@@ -23289,8 +23292,8 @@ bss_unknown4: equ $-B.data
 _bss_end: equ $-B.data
 ;..@0x987ca50:;
 P.bss.end:
-times -(P.bss.end-P.bss)+(0x987ca50-0x805d225) times 0 nop  ; Assert.
-times +(P.bss.end-P.bss)-(0x987ca50-0x805d225) times 0 nop  ; Assert.
+times -(P.bss.end-P.bss.after_gap)+(0x987ca50-0x805d225) times 0 nop  ; Assert.
+times +(P.bss.end-P.bss.after_gap)-(0x987ca50-0x805d225) times 0 nop  ; Assert.
 
 %ifidn TARGET, x
 X.mcbss:     ;---               +0x023e0    @0x987ca50...*
