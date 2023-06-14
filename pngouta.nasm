@@ -870,12 +870,12 @@ fopen: equ $-B.code
 		cmp dl, 0x77
 		mov [esp+0x3], dl
 		setne al
-		movzx eax, al
+		movzx eax, al  ; flags: O_RDONLY == 0.
 		dec eax
-		and eax, 0x241
-		push dword 0x1b6
-		push eax
-		push dword [esp+0x14]
+		and eax, 1101o  ; flags: O_WRONLY | O_CREAT | O_TRUNC == 1 | 100o | 1000o.
+		push dword 666o  ; mode_t mode argument of open(2).
+		push eax  ; flags argument of open(2).
+		push dword [esp+0x14]  ; pathname argument of open(2).
 		call B.code+fileio_open
 		add esp, byte 0xc
 		test eax, eax
