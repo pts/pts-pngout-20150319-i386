@@ -1,5 +1,5 @@
 ;
-; pngoutx.nasm: PNGOUT statically linked for Linux i386 using uClibc (106992 bytes)
+; pngoutx.nasm: PNGOUT statically linked for Linux i386 using a custom libc (80460 bytes)
 ; by pts@fazekas.hu at Fri May  5 15:57:26 CEST 2023
 ;
 ; Compile: tools/nasm-0.98.39 -O0 -w+orphan-labels -f bin -o pngoutx pngoutx.nasm && chmod +x pngoutx && cmp pngoutx.golden pngoutx && echo OK
@@ -28,10 +28,22 @@
 ;   for execution).
 ; * EI_OSABI in ELF_phdr were changed from SYSV to Linux.
 ; * Dynamic linking against glibc was replaced with static linking against
-;   uClibc. The entire file was remastered as a byproduct.
+;   uClibc 0.9.30.1 (released on 2009-03-02). The entire file was remastered
+;   as a byproduct.
 ; * stdout output buffer (1024 bytes) is larger than in glibc 2.19 (1024
 ;   bytes for TTY, larger for non-TTY) for non-TTY. Also buffer boundaries
 ;   are different by a few bytes (sometimes uClibc flushes at 1023 bytes).
+; * uClibc functions were gradually replaced with functions from a
+;   size-optimized custom libc tailored for this pts-pngout port, and
+;   finally all uClibc functions and variables have been replaced. (The
+;   custom libc is available separately as well
+;   (https://github.com/pts/minilibc686 , e.g.
+;   https://github.com/pts/minilibc686/blob/master/src/strtod.nasm)
+; * By using a custom libc, it was possible to reduce the executable program
+;   size from 106992 bytes (uClibc) to 80460 bytes (custom libc), even
+;   smaller than the original after stripping (pngoutls, 86512 bytes),
+;   even smaller than the hand-optimized version dynamically linked against
+;   glibc (pngoutl, 82416 bytes).
 ;
 ; Memory map and file layout with -Ttext=0x8042000:
 ;
