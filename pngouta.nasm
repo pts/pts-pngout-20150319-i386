@@ -168,9 +168,9 @@ A.code equ 0
   ;   const stdstream_FILE *stdstream_stdout = (FILE*)1;
   ;   const stdstream_FILE *stdstream_stderr = (FILE*)2;
   ;   int stdstream_getchar(void);  /* Uses stdstream_stdin implicitly. */
-  ;   int stdstream_vfprintf(stdstream_FILE *filep, const char *format, va_list ap);  
+  ;   int stdstream_vfprintf(stdstream_FILE *filep, const char *format, va_list ap);
   ;   void stdstream_autoflush(void);
-  ;   void stdstream_flushall(void); 
+  ;   void stdstream_flushall(void);
   ;   void stdstream_flush(stdstream_FILE*); /* Always called with stdout. Flushes may happen more often than explcitly called. */
   ;   void stdstream_init_stdin_linebuf();  /* Autodetects and sets stdstream_buf_is_stdout_a_tty (false by default), which determines output buffering for stdout. */
   ;   void stdstream_and_fileio_flushall(void);
@@ -338,48 +338,9 @@ exit: equ $-B.code  ; void exit(int exit_code);
 		call B.code+stdstream_and_fileio_flushall
 		; Fall through to _exit(...).
 _exit: equ $-B.code  ; void _exit(int exit_code);
-%if TARGET_X_WITH_FREEBSD  ; This works on both Linux and FreeBSD, unconditionally.
-		xor eax, eax
-		inc eax  ; EAX := __NR_exit on both Linux and FreeBSD.
-		mov ebx, [esp+1*4]  ; Argument exit_code of _exit(...), for Linux.
-		int 0x80
-%else
 		mov al, 1  ; __NR_exit.
-		; Fall through to progx_syscall3.
-%endif
-progx_syscall3: equ $-B.code
-; Calls syscall(number, arg1, arg2, arg3).
-;
-; It takes the Linux i386 syscall number from AL (8 bits only!), arg1
-; (optional) from [esp+4], arg2 (optional) from [esp+8], arg3 (optional)
-; from [esp+0xc]. It keeps these args on the stack.
-;
-; It can EAX, EDX and ECX as scratch.
-;
-; It returns result (or -1 as error) in EAX.
-		movzx eax, al  ; number.
 %if TARGET_X_WITH_FREEBSD
-		cmp [progx_is_freebsd], ah  ; AH == 0.
-		je .linux_syscall
-		; None of the syscalls are implemented for FreeBSD, just exit.
-		or ebx, byte -1
-		mov [esp+1*4], ebx
-		jmp short B.code+_exit
-.linux_syscall:
-%endif
-		push ebx  ; Save it, it's not a scratch register.
-		mov ebx, [esp+8]  ; arg1.
-		mov ecx, [esp+0xc]  ; arg2.
-		mov edx, [esp+0x10]  ; arg3.
-		int 0x80  ; Linux i386 syscall.
-		; test eax, eax
-		; jns .final_result
-		cmp eax, -0x100  ; Treat very large (e.g. <-0x100; with Linux 5.4.0, 0x85 seems to be the smallest) non-negative return values as success rather than errno. This is needed by time(2) when it returns a negative timestamp. uClibc has -0x1000 here.
-		jna .final_result
-		or eax, byte -1  ; EAX := -1 (error).
-.final_result:	pop ebx
-		ret
-;
+		jmp strict short B.code+progx_syscall3
 read: equ $-B.code
 stdstream_read: equ $-B.code
 fileio_read: equ $-B.code
@@ -411,18 +372,145 @@ ioctl: equ $-B.code
 gettimeofday: equ $-B.code
 		mov al, 78  ; __NR_gettimeofday.
 		jmp strict short B.code+progx_syscall3
+%else
+		; Fall through to progx_syscall3.
+%endif
+progx_syscall3: equ $-B.code
+; Calls syscall(number, arg1, arg2, arg3).
+;
+; It takes the system Linux i386 syscall number from AL (8 bits
+; only!), arg1 (optional) from [esp+4], arg2 (optional) from [esp+8], arg3
+; (optional) from [esp+0xc]. It keeps these args on the stack.
+;
+; It can EAX, EDX and ECX as scratch.
+;
+; It returns result (or -1 as error) in EAX.
+		movzx eax, al  ; number.
+%if TARGET_X_WITH_FREEBSD
+		cmp [progx_is_freebsd], ah  ; AH == 0.
+		jne .freebsd_syscall
+%endif
+.linux_syscall:
+		push ebx  ; Save it, it's not a scratch register.
+		mov ebx, [esp+8]  ; arg1.
+		mov ecx, [esp+0xc]  ; arg2.
+		mov edx, [esp+0x10]  ; arg3.
+		int 0x80  ; Linux i386 syscall.
+		; test eax, eax
+		; jns .final_result
+		cmp eax, -0x100  ; Treat very large (e.g. <-0x100; with Linux 5.4.0, 0x85 seems to be the smallest) non-negative return values as success rather than errno. This is needed by time(2) when it returns a negative timestamp. uClibc has -0x1000 here.
+		jna .final_result
+		or eax, byte -1  ; EAX := -1 (error).
+.final_result:	pop ebx
+		ret
+%if TARGET_X_WITH_FREEBSD
+.freebsd_syscall:
+		cmp al, 5
+		jne .not_open
+		cmp word [esp+1*4], 1101o  ; Linux O_WRONLY | O_CREAT | O_TRUNC == 1 | 100o | 1000o.
+		jne .not_open
+		mov ax, 0x601  ; FreeBSD O_WRONLY | O_CREAT | O_TRUNC == 1 | 0x200 | 0x400 == 0x601.
+.not_open:	cmp al, 7  ; 0: none (unused), 1: sys_exit, 2: fork (unused), 3: read, 4: write, 5: open, 6: close.
+		jb .good_freebsd_syscall
+		cmp al, 78  ; Linux __NR_gettimeofday.
+		jne .not_gettimeofday
+		mov al, 116  ; FreeBSD __NR_gettimeofday.
+		jmp short .good_freebsd_syscall
+.not_gettimeofday:
+		cmp al, 54  ; Linux and FreeBSD __NR_ioctl.
+		jne .not_ioctl
+		mov dword [esp+2*4], 0x402c7413  ; Change assumed Linux TCGETS (0x5401) to FreeBSD TIOCGETA (0x402c7413).
+		jmp short .good_freebsd_syscall
+.not_ioctl:	cmp al, 13  ; FreeBSD __NR_time. It assumes that the tloc argument of time(2) is 0, and just returns the time.
+		je strict short B.code+freebsd_time
+.not_time:	; !! Implement these FreeBSD syscalls: mmap (71 or 197), mremap (none), munmap (73), lseek (19 or 199).
+.unknown_freebsd_syscall:
+		mov al, 1  ; EAX := __NR_exit. We don't know how to emulate this syscall, so we just exit(255).
+		or dword [esp+1*4], byte -1  ; Exit code := 255.
+.good_freebsd_syscall:
+		int 0x80  ; FreeBSD i386 syscall.
+		jnc .syscall_ok
+		sbb eax, eax  ; EAX := 1, indicating error.
+.syscall_ok:	ret
+%else
+read: equ $-B.code
+stdstream_read: equ $-B.code
+fileio_read: equ $-B.code
+		mov al, 3  ; __NR_read.
+		jmp strict short B.code+progx_syscall3
+;write: equ $-B.code
+stdstream_write: equ $-B.code
+fileio_write: equ $-B.code
+		mov al, 4  ; __NR_write.
+		jmp strict short B.code+progx_syscall3
+;open: equ $-B.code
+fileio_open: equ $-B.code
+		mov al, 5  ; __NR_open.
+		jmp strict short B.code+progx_syscall3
+;close: equ $-B.code
+fileio_close: equ $-B.code
+		mov al, 6  ; __NR_close.
+		jmp strict short B.code+progx_syscall3
+;lseek: equ $-B.code
+fileio_lseek: equ $-B.code
+		mov al, 19  ; __NR_lseek.
+		jmp strict short B.code+progx_syscall3
+time: equ $-B.code
+		mov al, 13  ; __NR_time.
+		jmp strict short B.code+progx_syscall3
+ioctl: equ $-B.code
+		mov al, 54  ; __NR_ioctl.
+		jmp strict short B.code+progx_syscall3
+gettimeofday: equ $-B.code
+		mov al, 78  ; __NR_gettimeofday.
+		jmp strict short B.code+progx_syscall3
+%endif
+;
+%if TARGET_X_WITH_FREEBSD  ; Works on both FreeBSD only.
+freebsd_time: equ $-B.code
+		push eax  ; tv_usec output.
+		push eax  ; tv_sec output.
+		mov eax, esp
+		push byte 0  ; Argument tz of gettimeofday (NULL).
+		push eax  ; Argument tv of gettimeofday.
+		push eax  ; Dummy value.
+		mov eax, 116  ; FreeBSD __NR_gettimeofday.
+		int 0x80  ; FreeBSD i386 syscall.
+		jc .unknown_freebsd_syscall
+		pop eax  ; Dummy value.
+		pop eax  ; Argument tv of gettimeofday.
+		pop eax  ; Argument tz of gettimeofday.
+		pop eax  ; tv_sec.
+		pop edx  ; tv_usec (ignored).
+		ret
+%endif
 ;
 isatty: equ $-B.code  ; int isatty(int fd);
+%if TARGET_X_WITH_FREEBSD  ; Works on both FreeBSD and Linux.
+		sub esp, strict byte 0x2c  ; 0x2c is the maximum sizeof(struct termios) for Linux (0x24) and FreeBSD (0x2c).
+		push esp  ; 3rd argument of ioctl TCGETS.
+		push strict dword 0x5401  ; TCGETS. The syscall will change it to TIOCGETA for FreeBSD.
+		push dword [esp+0x2c+4+2*4]  ; fd argument of ioctl.
+		call B.code+ioctl  ; !! Inline the syscall number here.
+		add esp, strict byte 0x2c+3*4  ; Clean up everything pushed.
+		; Now convert result EAX: -1 to 0, everything else to 1. TODO(pts): Can we assume that FreeBSD TIOCGETA returns 0 here?
+		inc eax
+		jz .have_retval
+		xor eax, eax
+		inc eax
+.have_retval:
+%else  ; Linux only.
 		sub esp, strict byte 0x24
 		push esp  ; 3rd argument of ioctl TCGETS.
 		push strict dword 0x5401  ; TCGETS.
 		push dword [esp+0x24+4+2*4]  ; fd argument of ioctl.
-		call B.code+ioctl
+		call B.code+ioctl  ; !! Inline the syscall number here.
 		add esp, strict byte 0x24+3*4  ; Clean up everything pushed.
 		; Now convert result EAX: 0 to 1, everything else to 0.
 		cmp eax, byte 1
 		sbb eax, eax
 		neg eax
+%endif
 		ret
 log: equ $-B.code  ; double log(double x);
 ; This needs an >=586 CPU, or a 386+387, or a 486+387. Linux, if the kernel is built with CONFIG_MATH_EMULATION, will emulate a 387.
@@ -845,7 +933,7 @@ stdstream_and_fileio_flushall: equ $-B.code  ; void stdstream_and_fileio_flushal
 		pop eax
 		;ret  ; For fileio_flushall(...).
 		; Fall through to stdstream_flush.
-stdstream_flushall: equ $-B.code  ; void stdstream_flushall(void); 
+stdstream_flushall: equ $-B.code  ; void stdstream_flushall(void);
 stdstream_flush: equ $-B.code  ; void stdstream_flush(stdstream_FILE*); /* Always called with stdout. */
 ; Flushes stdstream_buf buf to its respective filehandle. It is a function entry
 ; point with the cdecl ABI, so it can use EAX, EDX and ECX as scratch.
