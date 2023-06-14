@@ -1,6 +1,15 @@
+#
+# darwin_sized.s: creates a macOS 10.5 Mach-O executable with proper section sizes
 # by pts@fazekas.hu at Fri May  5 19:36:30 CEST 2023
 #
-# Compile: i386-apple-darwin14-gcc -mmacosx-version-min=10.5 -W -Wall -O2 -march=i386 -fno-pic -fno-builtin -Wl,-read_only_relocs,suppress -Wl,-image_base,0x8048000 -s -o sized sized.s
+# Compile: i386-apple-darwin14-gcc -mmacosx-version-min=10.5 -W -Wall -O2 -march=i386 -fno-pic -fno-builtin -Wl,-read_only_relocs,suppress -Wl,-image_base,0x8048000 -s -o darwin_sized darwin_sized.s
+#
+# This file is of historical interest only, because pngoutd.nasm (TARGET==d
+# for pngouta.nasm) was based on it. All the development is now done in
+# pngouta.nasm. However, the Mach-O headers there are still not symbolic,
+# i.e. it won't be possible to add an extern libc function there; for that,
+# this file has to be modified, and then recompiled with
+# i386-apple-darwin14-gcc (from https://github.com/pts/pts-osxcross).
 #
 
 .macosx_version_min 10, 5
