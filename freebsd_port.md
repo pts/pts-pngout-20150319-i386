@@ -318,9 +318,9 @@ lseek(...):
   ```
   Please note that `off_t` is 64 bits on FreeBSD.
 * `__getosreldate()` seems to look at ELF auxv (_elf_aux_info(...)), falling back to sysctl(...).
-  I will simplify it to:
+  My plan was to simplify it to:
   ```
-  off_t lseek(int fd, off_t offset, int whence) {  /* FreeBSD, off_t is int64_t. */
+  int32_t lseek(int fd, int32_t offset, int whence) {  /* FreeBSD. */
     off_t result = sys_freebsd6_lseek(fd, 0, offset, whence);  /* FreeBSD syscall 199. */
     if (result != (off_t)-1) return result;
     return sys_olseek(fd, offset, whence);  /* FreeBSD COMPAT syscall 19. */
@@ -330,6 +330,14 @@ lseek(...):
 * On Linux, the program used Linux i386 syscall 19 for lseek(...), with int32_t offset.
 * The SEEK_SET, SEEK_CUR and SEEK_END constant values for whence are the
   same in Linux and FreeBSD.
+* Later when I looked at FreeBSD 3.0 (released on 1998-10-16), and it also
+  had syscall 199, falling back to syscall 19 became unnecessary, and I
+  decided to omit sys_olseek:
+  ```
+  int32_t lseek(int fd, int32_t offset, int whence) {  /* FreeBSD. */
+    return sys_freebsd6_lseek(fd, 0, (off_t)offset, whence);  /* FreeBSD syscall 199. */
+  }
+  ```
 
 gettimeofday(...):
 

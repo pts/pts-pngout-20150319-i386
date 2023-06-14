@@ -418,9 +418,13 @@ progx_syscall3: equ $-B.code
 		jne .not_ioctl
 		mov dword [esp+2*4], 0x402c7413  ; Change assumed Linux TCGETS (0x5401) to FreeBSD TIOCGETA (0x402c7413).
 		jmp short .good_freebsd_syscall
-.not_ioctl:	cmp al, 13  ; FreeBSD __NR_time. It assumes that the tloc argument of time(2) is 0, and just returns the time.
+.not_ioctl:	cmp al, 13  ; Linux __NR_time. It assumes that the tloc argument of time(2) is 0, and just returns the time.
 		je strict short B.code+freebsd_time
-.not_time:	; !! Implement these FreeBSD syscalls: mmap (71 or 197), mremap (none), munmap (73), lseek (19 or 199).
+.not_time:	cmp al, 91  ; Linux __NR_munmap.
+		jne .not_munmap
+		mov al, 73  ; FreeBSD __NR_munmap.
+		jmp short .good_freebsd_syscall
+.not_munmap:	; !! Implement these FreeBSD syscalls: mmap (71 or 197), mremap (none), lseek (19 or 199).
 .unknown_freebsd_syscall:
 		mov al, 1  ; EAX := __NR_exit. We don't know how to emulate this syscall, so we just exit(255).
 		or dword [esp+1*4], byte -1  ; Exit code := 255.
@@ -464,7 +468,7 @@ gettimeofday: equ $-B.code
 %endif
 ;
 %if TARGET_X_WITH_FREEBSD  ; Works on both FreeBSD only.
-freebsd_time: equ $-B.code
+freebsd_time: equ $-B.code  ; It assumes that the tloc argument of time(2) is 0, and just returns the time.
 		push eax  ; tv_usec output.
 		push eax  ; tv_sec output.
 		mov eax, esp
@@ -1368,14 +1372,24 @@ free: equ $-B.code  ; void free(void *ptr);
 		mov eax, [esp+4]
 		test eax, eax
 		jz .fdone  ; It's a no-op to free(NULL).
+%if TARGET_X_WITH_FREEBSD
+		sub eax, byte 0x10
+		push dword [eax]  ; length argument of munmap(2).
+		push eax  ; addr argument of munmap(2).
+		mov al, 91  ; Linux __NR_munmap.
+		call B.code+progx_syscall3
+		pop ecx  ; addr argument of munmap(2).
+		pop ecx  ; length argument of munmap(2).
+%else
 		push ebx
 		lea ebx, [eax-0x10]  ; addr argument of munmap(2).
 		xor eax, eax
 		push byte 91  ; __NR_munmap.
 		pop eax
 		mov ecx, [ebx]  ; length argument of munmap(2).
-		int 0x80  ; TODO(pts): abort() on failure.
+		int 0x80  ; Linux i386 syscall. TODO(pts): abort() on failure.
 		pop ebx
+%endif
 .fdone:		ret
 ;
 srand: equ $-B.code  ; void srand(unsigned s);
