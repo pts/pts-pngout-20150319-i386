@@ -366,9 +366,6 @@ fileio_lseek: equ $-B.code
 time: equ $-B.code
 		mov al, 13  ; __NR_time.
 		jmp strict short B.code+progx_syscall3
-ioctl: equ $-B.code
-		mov al, 54  ; __NR_ioctl.
-		jmp strict short B.code+progx_syscall3
 gettimeofday: equ $-B.code
 		mov al, 78  ; __NR_gettimeofday.
 		jmp strict short B.code+progx_syscall3
@@ -491,7 +488,8 @@ isatty: equ $-B.code  ; int isatty(int fd);
 		push esp  ; 3rd argument of ioctl TCGETS.
 		push strict dword 0x5401  ; TCGETS. The syscall will change it to TIOCGETA for FreeBSD.
 		push dword [esp+0x2c+4+2*4]  ; fd argument of ioctl.
-		call B.code+ioctl  ; !! Inline the syscall number here.
+		mov al, 54  ; Linux and FreeBSD __NR_ioctl.
+		call B.code+progx_syscall3
 		add esp, strict byte 0x2c+3*4  ; Clean up everything pushed.
 		; Now convert result EAX: -1 to 0, everything else to 1. TODO(pts): Can we assume that FreeBSD TIOCGETA returns 0 here?
 		inc eax
@@ -504,7 +502,8 @@ isatty: equ $-B.code  ; int isatty(int fd);
 		push esp  ; 3rd argument of ioctl TCGETS.
 		push strict dword 0x5401  ; TCGETS.
 		push dword [esp+0x24+4+2*4]  ; fd argument of ioctl.
-		call B.code+ioctl  ; !! Inline the syscall number here.
+		mov al, 54  ; __NR_ioctl.
+		call B.code+progx_syscall3
 		add esp, strict byte 0x24+3*4  ; Clean up everything pushed.
 		; Now convert result EAX: 0 to 1, everything else to 0.
 		cmp eax, byte 1
