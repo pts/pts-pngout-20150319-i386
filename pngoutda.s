@@ -1,3 +1,5 @@
+#
+# pngoutda.s: creates a macOS 10.5 Mach-O executable with approximately pngout
 # by pts@fazekas.hu at Fri May  5 Fri May  5 23:03:47 CEST 2023
 #
 # Compile: i386-apple-darwin14-gcc -mmacosx-version-min=10.5 -W -Wall -O2 -march=i386 -fno-pic -fno-builtin -Wl,-image_base,0x8048000 -nodefaultlibs -o pngoutda pngoutda.s
@@ -10,6 +12,13 @@
 # because the macOS dynamic loader is not able to load such an
 # executable. Instead of that, we use our stdin+stdout+stderr, initializing
 # it at the beginning of _main using fdopen(3), isatty(2) and setvbuf(3).
+#
+# This file is of historical interest only, because pngoutd.nasm (TARGET==d
+# for pngouta.nasm) was based on it. All the development is now done in
+# pngouta.nasm. However, the Mach-O headers there are still not symbolic,
+# i.e. it won't be possible to add an extern libc function there; for that,
+# this file has to be modified, and then recompiled with
+# i386-apple-darwin14-gcc (from https://github.com/pts/pts-osxcross).
 #
 
 .macosx_version_min 10, 5
