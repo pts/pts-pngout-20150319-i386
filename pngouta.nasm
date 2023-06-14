@@ -1312,7 +1312,8 @@ PROT:  ; Symbolic constants.
 ;
 MAP:  ; Symbolic constants.
 .PRIVATE: equ 2
-.ANONYMOUS: equ 0x20
+.ANONYMOUS_LINUX: equ 0x20
+.ANONYMOUS_FREEBSD: equ 0x1000
 ;
 MREMAP:  ; Symbolic constants.
 .MAYMOVE: equ 1
@@ -1327,21 +1328,21 @@ malloc: equ $-B.code  ; void *malloc(size_t size);
 ; * There is 0x10 bytes of overhead per allocation, so if you call
 ;   malloc(0x1000), it will use 8 KiB instead of 4 KiB.
 		; We return a valid (non-NULL) pointer even if size == 0. uClibc malloc(3) does the same.
+		mov ecx, [esp+4]
+		add ecx, byte 0x10  ; length argument of mmap2(2). The kernel will round it up to page boundary. We add 0x10 to have room (4 bytes) for the size of the mapping, plus alignment.
+		xor eax, eax
 		push ebx
 		push esi
 		push edi
 		push ebp
-		xor eax, eax
-		mov al, 192  ; __NR_mmap2.
 		xor ebx, ebx  ; addr argument to mmap2(2).
-		mov ecx, [esp+4+0x10]
-		add ecx, byte 0x10  ; length argument of mmap2(2). The kernel will round it up to page boundary. We add 0x10 to have room (4 bytes) for the size of the mapping, plus alignment.
 		push byte PROT.READ|PROT.WRITE  ; prot argument of mmap2(2).
 		pop edx
-		push byte MAP.PRIVATE|MAP.ANONYMOUS  ; flags argument of mmap2(2).
+		push byte MAP.PRIVATE|MAP.ANONYMOUS_LINUX  ; flags argument of mmap2(2).
 		pop esi
 		or edi, byte -1  ; fd argument of mmap2(2).
 		xor ebp, ebp  ; offset argument of mmap2(2). The file offset is arg << 12, but we don't care, because this is an anonymous mapping.
+		mov al, 192  ; Linux __NR_mmap2.
 		int 0x80  ; Linux i386 syscall.
 		cmp eax, -0x100  ; Error? uClibc has -0x1000 here.
 		ja .merror
