@@ -424,7 +424,23 @@ progx_syscall3: equ $-B.code
 		jne .not_munmap
 		mov al, 73  ; FreeBSD __NR_munmap.
 		jmp short .good_freebsd_syscall
-.not_munmap:	; !! Implement these FreeBSD syscalls: mmap (71 or 197), mremap (none), lseek (19 or 199).
+.not_munmap:	cmp al, 19  ; Linux __NR_lseek.
+		jne .not_lseek
+.lseek:		push dword [esp+3*4]  ; Argument whence of lseek and sys_freebsd6_lseek.
+		mov eax, [esp+3*4]  ; Argument offset of lseek.
+		cdq  ; Sign-extend EAX (32-bit offset) to EDX:EAX (64-bit offset).
+		push edx  ; High dword of argument offset of sys_freebsd6_lseek.
+		push eax  ; Low dword of argument offset of sys_freebsd6_lseek.
+		push eax ; Dummy argument pad of sys_freebsd6_lseek.
+		push dword [esp+5*4]  ; Argument fd of lseek and sys_freebsd6_lseek.
+		push eax  ; Dummy return address.
+		mov eax, 199  ; FreeBSD __NR_freebsd6_lseek (also available in FreeBSD 3.0, released on 1998-10-16), with 64-bit offset.
+		int 0x80  ; FreeBSD i386 syscall.
+		jnc .lseek_ok
+		sbb eax, eax
+.lseek_ok:	add esp, byte 6*4  ; Clean up arguments of sys_freebsd6_lseek(...) above from the stack.
+		ret
+.not_lseek:  ; !! Implement these FreeBSD syscalls: mmap (71 or 197), mremap (none).
 .unknown_freebsd_syscall:
 		mov al, 1  ; EAX := __NR_exit. We don't know how to emulate this syscall, so we just exit(255).
 		or dword [esp+1*4], byte -1  ; Exit code := 255.
