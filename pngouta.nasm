@@ -22,14 +22,22 @@
 %define TARGET x  ; statically linked for Linux i386 using a custom libc (used to be uClibc 0.9.30.1, 2009-03-02).
 %endif
 
-%ifidn TARGET, lo
-%define TARGET ls
-%define TARGET_LS_WITH_ELF_SECTIONS 1
+%ifidn TARGET, lo  ; dynamically linked for Linux i386 against glibc, section headers unstripped, original pngout-20150319-linux/i686/pngout executable program file
+  %define TARGET ls  ; dynamically linked for Linux i386 against glibc, section headers stripped
+  %define TARGET_LS_WITH_ELF_SECTIONS 1
+%elifidn TARGET, xf  ; statically linked for FreeBSD i386 and Linux i386 using a custom libc.
+  %define TARGET x  ; statically linked for Linux using a custom libc.
+  %define TARGET_X_WITH_FREEBSD 1
 %endif
 
-%ifidn TARGET, x  ; statically linked for Linux i386 using a custom libc.
+%ifidn TARGET, x  ; statically linked for Linux i386 (and maybe for FreeBSD i386) using a custom libc.
   B.code equ -0x8048000
   B.data equ B.code-0x1000
+  %ifndef TARGET_X_WITH_FREEBSD
+    %define TARGET_X_WITH_FREEBSD 0
+  %elifidn TARGET_X_WITH_FREEBSD,
+    %define TARGET_X_WITH_FREEBSD 0
+  %endif
 %elifidn TARGET, l  ; dynamically linked for Linux i386 against glibc, remastered
   ; Originally created with glibc 2.19.
   ;
@@ -42,7 +50,7 @@
   ; TODO(pts): Add stripped macOS target. It's probably not worth it, it saves only 644 bytes.
   B.code equ -0x8048000
   B.data equ B.code
-%elifidn TARGET, ls  ; dynamically linked for Linux i386 against glibc, section headers stripped
+%elifidn TARGET, ls  ; dynamically linked for Linux i386 against glibc, section headers maybe stripped
   ; Compiled on Debian with gcc 4.4.7-2 and 4.7.2-5, with crt*.o from glibc
   ; other than 2.19.
   ;
@@ -205,6 +213,11 @@ PT:  ; Symbolic constants for ELF PT_... (program header type).
 .GNU_EH_FRAME equ 0x6474e550
 .GNU_STACK equ 0x6474e551  ; GNU stack.
 
+OSABI:
+.SYSV: equ 0
+.Linux: equ 3
+.FreeBSD: equ 9
+
 %ifidn TARGET, x
 X.ELF_ehdr:  ;0x00000..0x00034  +0x00034    ---
 ehdr:					; Elf32_Ehdr
@@ -212,7 +225,11 @@ ehdr:					; Elf32_Ehdr
 		db 1			;   e_ident[EI_CLASS]: 32-bit
 		db 1			;   e_ident[EI_DATA]: little endian
 		db 1			;   e_ident[EI_VERSION]
-		db 3			;   e_ident[EI_OSABI]: Linux
+%if TARGET_X_WITH_FREEBSD
+		db OSABI.FreeBSD	;   e_ident[EI_OSABI]. FreeBSD requires OSABI.FreeBSD here (otherwise error: `ELF binary type "0" not known.', or tries to emulate Linux), Linux ignores it.
+%else
+		db OSABI.Linux		;   e_ident[EI_OSABI]
+%endif
 		db 0			;   e_ident[EI_ABIVERSION]
 		db 0, 0, 0, 0, 0, 0, 0	;   e_ident[EI_PAD]
 		dw 2			;   e_type == ET_EXEC.
@@ -269,8 +286,17 @@ nan_inf_str: equ $-B.code  ; 0x15 bytes. static char nan_inf_str[] in strtod(...
 		db 5, 'nan', 0, 0xa, 'infinity', 0, 5, 'inf', 0, 0
 
 X.mctext:
-_start: equ $-B.code  ; Entry point (_start) of the Linux i386 executable.
-		; Now the stack looks like (from top to bottom):
+_start: equ $-B.code  ; Entry point (_start) of the Linux i386 or FreeBSD i386 executable.
+%if TARGET_X_WITH_FREEBSD  ; Detect FreeBSD.
+		xor eax, eax
+		mov al, 20		; EAX := __NR_getpid for both Linux and FreeBSD.
+		stc			; CF := 1.
+		int 0x80		; Linux and FreeBSD i386 syscall.
+		sbb eax, eax		; FreeBSD set s CF := 0 on success, Linux keeps it intact (== 1). EAX := 0 in FreeBSD, -1 on Linux.
+		inc eax			; EAX := 1 in FreeBSD, 0 on Linux.
+		mov [progx_is_freebsd], al
+%endif
+		; Now the stack looks like (from top to bottom) for on both Linux and FreeBSD:
 		;   dword [esp]: argc
 		;   dword [esp+4]: argv[0] pointer
 		;   esp+8...: argv[1..] pointers
@@ -288,7 +314,6 @@ _start: equ $-B.code  ; Entry point (_start) of the Linux i386 executable.
 		push ecx  ; Argument envp for main.
 		push edx  ; Argument argv for main.
 		push eax  ; Argument argc for main.
-;
 ;stdstream_init_stdin_linebuf: equ $-B.code  ; void stdstream_init_stdin_linebuf();  /* Autodetects and sets stdstream_buf_is_stdout_a_tty (false by default), which determines output buffering for stdout. */
 		push strict dword 1  ; STDOUT_FILENO (stdout).
 		call B.code+isatty
@@ -313,20 +338,36 @@ exit: equ $-B.code  ; void exit(int exit_code);
 		call B.code+stdstream_and_fileio_flushall
 		; Fall through to _exit(...).
 _exit: equ $-B.code  ; void _exit(int exit_code);
+%if TARGET_X_WITH_FREEBSD  ; This works on both Linux and FreeBSD, unconditionally.
+		xor eax, eax
+		inc eax  ; EAX := __NR_exit on both Linux and FreeBSD.
+		mov ebx, [esp+1*4]  ; Argument exit_code of _exit(...), for Linux.
+		int 0x80
+%else
 		mov al, 1  ; __NR_exit.
 		; Fall through to progx_syscall3.
-progx_syscall3: equ $-B.code  ; TODO(pts): Add this to minilibc686.
+%endif
+progx_syscall3: equ $-B.code
 ; Calls syscall(number, arg1, arg2, arg3).
 ;
-; It takes the syscall number from AL (8 bits only!), arg1 (optional) from
-; [esp+4], arg2 (optional) from [esp+8], arg3 (optional) from [esp+0xc]. It
-; keeps these args on the stack.
+; It takes the Linux i386 syscall number from AL (8 bits only!), arg1
+; (optional) from [esp+4], arg2 (optional) from [esp+8], arg3 (optional)
+; from [esp+0xc]. It keeps these args on the stack.
 ;
 ; It can EAX, EDX and ECX as scratch.
 ;
 ; It returns result (or -1 as error) in EAX.
-		push ebx  ; Save it, it's not a scratch register.
 		movzx eax, al  ; number.
+%if TARGET_X_WITH_FREEBSD
+		cmp [progx_is_freebsd], ah  ; AH == 0.
+		je .linux_syscall
+		; None of the syscalls are implemented for FreeBSD, just exit.
+		or ebx, byte -1
+		mov [esp+1*4], ebx
+		jmp short B.code+_exit
+.linux_syscall:
+%endif
+		push ebx  ; Save it, it's not a scratch register.
 		mov ebx, [esp+8]  ; arg1.
 		mov ecx, [esp+0xc]  ; arg2.
 		mov edx, [esp+0x10]  ; arg3.
@@ -1925,7 +1966,7 @@ ehdr:					; Elf32_Ehdr
 		db 1			;   e_ident[EI_CLASS]: 32-bit
 		db 1			;   e_ident[EI_DATA]: little endian
 		db 1			;   e_ident[EI_VERSION]
-		db 3			;   e_ident[EI_OSABI]: Linux
+		db OSABI.Linux		;   e_ident[EI_OSABI]
 		db 0			;   e_ident[EI_ABIVERSION]
 		db 0, 0, 0, 0, 0, 0, 0	;   e_ident[EI_PAD]
 		dw 2			;   e_type == ET_EXEC.
@@ -2593,9 +2634,9 @@ ehdr:					; Elf32_Ehdr
 		db 1			;   e_ident[EI_DATA]: little endian
 		db 1			;   e_ident[EI_VERSION]
 %if TARGET_LS_WITH_ELF_SECTIONS
-		db 0			;   e_ident[EI_OSABI]: SYSV. Make it bitwise identical to the original pngout executable.
+		db OSABI.SYSV		;   e_ident[EI_OSABI]. Make it bitwise identical to the original pngout executable.
 %else
-		db 3			;   e_ident[EI_OSABI]: Linux
+		db OSABI.Linux		;   e_ident[EI_OSABI]
 %endif
 		db 0			;   e_ident[EI_ABIVERSION]
 		db 0, 0, 0, 0, 0, 0, 0	;   e_ident[EI_PAD]
@@ -23312,7 +23353,11 @@ fileio_files: equ $-B.data
 stdstream_buf_fd: equ $-B.data  ; Reuse h_errno (otherwise unused) for printf output buffering.
 		resb 4
 stdstream_buf_is_stdout_a_tty: equ $-B.data
-              resb 1  ; By default it's 0 (false).
+		resb 1  ; By default it's 0 (false).
+%if TARGET_X_WITH_FREEBSD
+progx_is_freebsd: equ $-B.data
+		resb 1  ; 0 (default) means Linux i386, 1 means FreeBSD i386.
+%endif
 X.mcbss.end:
 _mcbss.end: equ $-B.data
 %endif  ; TARGET, x

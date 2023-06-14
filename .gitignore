@@ -4,6 +4,8 @@
 /pngoutl
 /pngoutl.o
 /pngoutx
+/pngoutxf
+/pngoutxf.iso
 /pngoutd
 /test/*.png
 /test/*.png.golden
