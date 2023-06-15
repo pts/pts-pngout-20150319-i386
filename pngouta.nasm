@@ -307,7 +307,7 @@ _start: equ $-B.code  ; Entry point (_start) of the Linux i386 or FreeBSD i386 e
 		;   argv strings
 		;   environment strings
 		;   program name
-		;   NULL		
+		;   NULL
 		pop eax  ; argc.
 		mov edx, esp  ; argv.
 		lea ecx, [edx+eax*4+4]  ; envp.
@@ -440,7 +440,7 @@ progx_syscall3: equ $-B.code
 		sbb eax, eax
 .lseek_ok:	add esp, byte 6*4  ; Clean up arguments of sys_freebsd6_lseek(...) above from the stack.
 		ret
-.not_lseek:  ; !! Implement these FreeBSD syscalls: mremap (none).
+.not_lseek:
 .unknown_freebsd_syscall:
 		mov al, 1  ; EAX := __NR_exit. We don't know how to emulate this syscall, so we just exit(255).
 		or dword [esp+1*4], byte -1  ; Exit code := 255.
@@ -1331,6 +1331,7 @@ malloc: equ $-B.code  ; void *malloc(size_t size);
 		mov ecx, [esp+4]
 		add ecx, 0x10+0xfff  ; length argument of mmap2(2). No need manually to round up to page boundary for FreeBSD or Linux. The kernel will round it up to page boundary. We add 0x10 to have room (4 bytes) for the size of the mapping, plus alignment.
 		and ecx, ~0xfff  ; Round up to page boundary (0x1000). Not needed by FreeBSD or Linux, but it makes realloc(...) do fewer allocations.
+progx_malloc_block: equ $-B.code  ; Expects argument size in ECX.
 		xor eax, eax
 %if TARGET_X_WITH_FREEBSD
 		cmp [progx_is_freebsd], ah  ; AH == 0.
@@ -1385,38 +1386,70 @@ realloc: equ $-B.code  ; void *realloc(void *ptr, size_t size);
 ; To try this function with NULL and then non-NULL ptr: dd bs=1024 count=1100 if=/dev/zero | ./pngoutx -
 		mov eax, [esp+4]
 		test eax, eax
+		mov edx, [esp+8]  ; Argument size (desired size in bytes).
 		jnz .existing
-		push dword [esp+8]  ; size.
+		push edx
 		call B.code+malloc  ; realloc(NULL, size) is equivalent to It's a no-op to free(NULL).
-		pop edx  ; Value doesn't matter.
+		pop edx  ; Clean up argument size of malloc from the stack. The value doesn't matter.
 		ret
-.existing:	push ebx
-		push esi
-		lea ebx, [eax-0x10]  ; old_address argument of mremap(2).
-		mov ecx, [ebx]  ; old_size argument of mremap(2).
-		mov edx, [esp+8+8]  ; new_size argument of mremap(2).
-		add edx, byte 0x10
+.existing:	add edx, 0x10+0xfff  ; TODO(pts): Check for overflow.
+		and edx, ~0xfff  ; Round up to page boundary.
+		push esi  ; Save.
+		push edi  ; Save.
+%if TARGET_X_WITH_FREEBSD
+		cmp byte [progx_is_freebsd], 0
+		je .mremap  ; mremap(2) is missing from FreeBSD (but Linux has it). On FreeBSD we do a malloc(...) + memcpy(...) + free(...) as a fallback.
+		sub eax, byte 0x10
+		cmp [eax], edx
+		jae .rfdone  ; Block large enough already for new size.
+		push eax
+		push edx
+		mov ecx, edx  ; Desired new block size in ECX, for progx_malloc_block.
+		call B.code+progx_malloc_block  ; EAX := new block start pointer.
+		pop edx  ; EDX := desired new block size.
+		pop ecx  ; ECX := old block start pointer.
+		test eax, eax
+		jz .rerror  ; Out of memory, return NULL.
+		sub eax, byte 0x10
+		push ecx
+		mov esi, ecx
+		mov edi, eax
+		xchg edx, [ecx]
+		mov ecx, edx  ; EDX := old block size.
+		rep movsb  ; memcpy(...).
+		xchg esi, eax  ; ESI := new block start pointer; EAX := junk.
+		pop eax  ; Old block start pointer.
+		mov [eax], edx  ; Old block size.
+		call B.code+progx_free_block
+		xchg esi, eax  ; EAX := new block start pointer; ESI := junk.
+		jmp short .rfdone
+%endif
+.mremap:	lea edi, [eax-0x10]  ; old_address argument of mremap(2).
+		mov ecx, [edi]  ; old_size argument of mremap(2).
 		push byte MREMAP.MAYMOVE  ; flags argument of mremap(2).
 		pop esi
 		xor eax, eax
 		mov al, 163  ; __NR_mremap.
+		xchg edi, ebx
 		int 0x80  ; Linux i386 syscall.
+		xchg edi, ebx
 		cmp eax, -0x100  ; Error? uClibc has -0x1000 here.
 		ja .rerror
 		mov [eax], edx  ; Save the new size of the mapping.
-		add eax, byte 0x10
-.rdone:		pop esi
-		pop ebx
+.rfdone:	add eax, byte 0x10
+.rdone:		pop edi  ; Restore.
+		pop esi  ; Restore.
 		ret
 .rerror:	xor eax, eax  ; EAX := 0 (== NULL, error).
 		jmp short .rdone
-;		
+;
 free: equ $-B.code  ; void free(void *ptr);
 		mov eax, [esp+4]
 		test eax, eax
 		jz .fdone  ; It's a no-op to free(NULL).
 %if TARGET_X_WITH_FREEBSD
 		sub eax, byte 0x10
+progx_free_block: equ $-B.code  ; Expects the block start pointer in EAX.
 		push dword [eax]  ; length argument of munmap(2).
 		push eax  ; addr argument of munmap(2).
 		mov al, 91  ; Linux __NR_munmap.
@@ -1664,7 +1697,7 @@ strtol: equ $-B.code  ; long strtol(const char *nptr, char **endptr, int base);
 		test ebx, ebx
 		jz .endptr_null_1
 		mov [ebx], esi
-.endptr_null_1:	
+.endptr_null_1:
 .isspace_next:	lodsb
 		sub al, 9  ; ASCII 9 is the smallest allowed whitespace.
 		cmp al, ' '-9  ; ASCII 32 (space).
