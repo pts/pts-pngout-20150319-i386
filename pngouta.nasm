@@ -718,7 +718,7 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 		jne .5
 		or byte [esp+0x10], 0x2
 		inc ebx
-		jmp .4
+		jmp short .4
 .5:
 		xor eax, eax
 .5cont:
@@ -730,7 +730,7 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 		imul edi, byte 0xa
 		add edi, eax
 		inc ebx
-		jmp .5cont
+		jmp short .5cont
 .6:
 		mov al, [ebx]
 		mov esi, esp
@@ -767,7 +767,7 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 		je .9
 		inc edx
 		inc ecx
-		jmp .8
+		jmp short .8
 .9:
 		cmp edx, edi
 		jb .10
@@ -788,21 +788,21 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 		mov al, byte [esp+0x1c]
 		call .call_fputc
 		dec edi
-		jmp .13
+		jmp short .13
 .14:
 		mov al, [esi]
 		test al, al
 		je .15
 		call .call_fputc
 		inc esi
-		jmp .14
+		jmp short .14
 .15:
 		test edi, edi
 		jbe near .32
 		mov al, byte [esp+0x1c]
 		call .call_fputc
 		dec edi
-		jmp .15
+		jmp short .15
 .16:
 		cmp al, 0x63
 		jne .17
@@ -812,7 +812,7 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 		test edi, edi
 		je near .31
 		mov byte [esp+0x1], 0x0
-		jmp .7
+		jmp near .7
 .17:
 		mov [esp+0x3c], ecx
 		mov ecx, [ecx-0x4]
@@ -887,19 +887,19 @@ vfprintf: equ $-B.code  ; int vfprintf(FILE *filep, const char *format, va_list 
 		mov al, byte [esp+0x14]
 		call .call_fputc
 		dec edi  ; EDI contains the (remaining) width of the current number.
-		jmp .7
+		jmp near .7
 .28:
 		dec esi
 		mov al, [esp+0x14]
 		mov [esi], al
-		jmp .7
+		jmp near .7
 .30:
 		mov al, byte [ebx]
 .31:
 		call .call_fputc
 .32:
 		inc ebx  ; TODO(pts): Swap the role of EBX and ESI, and use lodsb.
-		jmp .1
+		jmp near .1
 .33:
 		call B.code+stdstream_autoflush
 		xchg eax, ebp  ; EAX := number of bytes written; EBP := junk.
@@ -1767,7 +1767,7 @@ strtol: equ $-B.code  ; long strtol(const char *nptr, char **endptr, int base);
 		add edx, eax
 		jnc .no_overflow_2
 		mov ch, 1
-.no_overflow_2: jmp .next_digit
+.no_overflow_2: jmp short .next_digit
 .after_loop:	test cl, 2
 		jz .endptr_null_2
 		mov ebx, [STRTOL_ARG_ENDPTR]
@@ -1826,7 +1826,7 @@ strtod_labels:
 		cmp ah, 4  ; ord("\r")-ord("\t").
 		ja .3
 .2:		inc ebx
-		jmp .1
+		jmp short .1
 .3:		xor ebp, ebp
 		cmp al, '-'
 		je .4
@@ -1858,14 +1858,14 @@ strtod_labels:
 		fmul dword [esp+STRTOD_VAR_F32_10]
 		fiadd dword [esp+STRTOD_VAR_TMP_DIGIT]
 .10:		inc ebx
-		jmp .loop7
+		jmp short .loop7
 .after_loop7:	cmp dl, '.'-'0'
 		jne .done_loop7
 		test esi, esi
 		jne .done_loop7
 		inc ebx
 		mov esi, ebx  ; pos0 = pos;
-		jmp .loop7
+		jmp short .loop7
 .done_loop7:	test eax, eax
 		jge .18
 		test esi, esi
@@ -1958,7 +1958,7 @@ strtod_labels:
 		imul eax, byte 10
 		add eax, edx
 .26:		inc ebx
-		jmp .loop25
+		jmp short .loop25
 .27:		cmp ebx, ebp
 		jne .28
 		mov ebx, [esp+STRTOD_VAR_TMP_DIGIT]  ; pos = pos1;
@@ -2088,7 +2088,7 @@ strtok_labels:
 .1:		cmp dl, [eax]
 		jne .2
 		inc eax
-		jmp .1
+		jmp short .1
 .2:		cmp byte [eax], 0
 		jne .3
 		xor ecx, ecx
@@ -2099,7 +2099,7 @@ strtok_labels:
 		cmp dl, [eax]
 		je .5
 		inc eax
-		jmp .4
+		jmp short .4
 .5:		mov [ebx], eax
 		cmp byte [eax], 0
 		je .set0_return
