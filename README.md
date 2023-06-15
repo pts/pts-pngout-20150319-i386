@@ -41,6 +41,28 @@ pts-pngout-20150319-i386 provides the following new ports:
   syscalls. Some rarely used functionality (including directory listings)
   has been removed.
 
+Who would benefit from these ports?
+
+* Everyday Linux users would benefit from `pngoutxf`, because it's
+  statically linked, thus it's independent of the system libc, thus it runs
+  on more Linux distributions. Please note that Jonathon Fowler's Linux
+  static ports also provide these benefits, at the expense of the executable
+  files being at least 9.5 times larger than `pngoutxf`.
+
+* Linux container users optimizing for container image size would benefit
+  from `pngoutxf`, because it's smaller than any other ports, and it doesn't
+  even need a libc. Similarly, FreeBSD jail users optimizing for code size
+  would benefit.
+
+* Users of very old Macs (which can only run 32-bit apps, i.e. any Apple
+  hardware launched before 2006-09-06) would benefit from `pngoutd`. Newer
+  Macs support 64-bit apps, and Jonathon Fowler's ports work.
+
+* Users of very old macOS (Mac OS X 10.5 Leopard .. Mac OS X 10.7 Lion)
+  would benefit from `pngoutd`. Jonathon Fowler's latest ports need Mac OS X
+  10.8 Mountain Lion (released on 2012-07-25), and his older, 20150920 ports
+  need Mac OS X 10.6 Snow Leopard (released on 2009-08-28).
+
 pts-pngout-20150319-i386 provides the following ports as well, for
 completeness and educational interest:
 
