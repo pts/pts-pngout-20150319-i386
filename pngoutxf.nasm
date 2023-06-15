@@ -47,7 +47,10 @@
 ; * FreeBSD i386 compatibility was added to to pngoutx.nasm while retaning
 ;   Linux i386 compatibility with operating system autodetection.
 ;   pngoutx.nasm remains Linux-only. See freebsd_port.md for a documentation
-;   of the porting process.
+;   of the porting process. FreeBSD compatibility code is 0xf8 bytes
+;   (compared to pngoutx), but it didn't make the executable program file
+;   any larger, it only pade the padding before pngout .text (which must
+;   start at a fixed memory address) shorter.
 ; * See pngoutx.nasm for the memory and file layout.
 ;
 
