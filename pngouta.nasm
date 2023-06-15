@@ -1329,7 +1329,8 @@ malloc: equ $-B.code  ; void *malloc(size_t size);
 ;   malloc(0x1000), it will use 8 KiB instead of 4 KiB.
 		; We return a valid (non-NULL) pointer even if size == 0. uClibc malloc(3) does the same.
 		mov ecx, [esp+4]
-		add ecx, byte 0x10  ; length argument of mmap2(2). No need manually to round up to page boundary for FreeBSD or Linux. The kernel will round it up to page boundary. We add 0x10 to have room (4 bytes) for the size of the mapping, plus alignment.
+		add ecx, 0x10+0xfff  ; length argument of mmap2(2). No need manually to round up to page boundary for FreeBSD or Linux. The kernel will round it up to page boundary. We add 0x10 to have room (4 bytes) for the size of the mapping, plus alignment.
+		and ecx, ~0xfff  ; Round up to page boundary (0x1000). Not needed by FreeBSD or Linux, but it makes realloc(...) do fewer allocations.
 		xor eax, eax
 %if TARGET_X_WITH_FREEBSD
 		cmp [progx_is_freebsd], ah  ; AH == 0.
