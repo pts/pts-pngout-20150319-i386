@@ -1,6 +1,7 @@
 ;
 ; pngouta.nasm: remastering multi-target for PNGOUT (pngout-20150319)
-; by pts@fazekas.hu at Tue May  9 00:29:55 CEST 2023
+; ports by pts@fazekas.hu at Tue May  9 00:29:55 CEST 2023
+; most code, including the compression algorithm was written by Ken Silverman (see all mentions of his name below)
 ;
 ; See other pngout*.asm source files for compilation instructions of
 ; individual targets.
@@ -3526,6 +3527,7 @@ _text: equ $-B.code
 %else
 %define maybe_prog_printf prog_printf  ; Use the one in this executable.
 %endif
+; The following code, all the way to P.text.end_main, was written by Ken Silverman (not in this source form).
 unknown_func2: equ $-B.code
 ..@0x8048d10: push ebp
 ..@0x8048d11: push edi
@@ -6038,6 +6040,8 @@ abort_out_of_memory: equ $-B.code
 ..@0x804b566: call B.code+maybe_prog_printf
 ..@0x804b56b: jmp strict near R.code+0x804b4bb
 ; End of function main.
+; The preceding code, all the way to P.text, was written by Ken Silverman (not in this source form).
+P.text.end_main:
 
 %ifidn TARGET, ls
 LS.glibc.text:  ; addr=0x804b570 off=0x3570
@@ -6227,6 +6231,8 @@ _str_r: equ $-B.code
 ..@0x804b570: times 0x804b660-0x804b570 nop
 %endif  ; TARGET
 
+P.text.cont:
+; The following code, all the way to P.text.end, was written by Ken Silverman (not in this source form).
 check_abort: equ $-B.code  ; _Bool check_abort(int x) { return x == 0 && global_cleanup_counter == 2; }
 ..@0x804b660: mov edx,[esp+0x4]
 ..@0x804b664: db 0x31, 0xc0  ;; xor eax,eax
@@ -21895,6 +21901,7 @@ unknown_func1: equ $-B.code
 ..@0x805a68c: db 0x8b, 0x6c, 0x24, 0x48  ;; mov ebp,[esp+0x48]
 ..@0x805a690: add esp, strict byte 0x4c
 ..@0x805a693: jmp strict near R.code+0x805a4f0
+; The preceding code, all the way to P.text.cont, was written by Ken Silverman (not in this source form).
 P.text.end:
 times -(P.text.end-P.text)+(0x805a698-0x8048d10) times 0 nop  ; Assert.
 times +(P.text.end-P.text)-(0x805a698-0x8048d10) times 0 nop  ; Assert.
@@ -22006,15 +22013,19 @@ _IO_stdin_used: equ $-B.code
 ; End from crt1.o.
 
 LS.rodata:  ; addr=0x805a748 off=0x12748
+; The following data, all the way to LS.rodata.end, was written by Ken Silverman (not in this source form).
 str_message_on_sigint: equ $-B.code
 ..@0x805a748: db 'Press ^C again to exit immediately.', 0x0a
 str_message_on_sigint.end: equ $-B.code
 ..@0x805a76c: dd 0  ; Padding, unused.
+; The preceding data, all the way to LS.rodata, was written by Ken Silverman (not in this source form).
+LS.rodata.end:
 %endif  ; TARGET, ls
 
 P.rodata:    ;0x1876c..0x19a20  +0x012b8    @0x805a770...0x805ba20
 times -(P.rodata-B.code-$$)+0x805a770 times 0 nop  ; Assert.
 times +(P.rodata-B.code-$$)-0x805a770 times 0 nop  ; Assert.
+; The following data, all the way to P.rodata.end, was written by Ken Silverman (not in this source form).
 str_message_help_line1: equ $-B.code
 ..@0x805a770: db 'PNGOUT [In:{PNG,JPG,GIF,TGA,PCX,BMP}] (Out:PNG) (options...)        %s', 10, 0
 ..@0x805a7b8: db 'by Ken Silverman (http://advsys.net/ken)', 0x0a, 0, 0, 0
@@ -22505,6 +22516,7 @@ code_ptr_0x805b88c: equ $-B.code
 ..@0x805b9f0: db 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x40, 0x00, 0x00, 0x00, 0x80
 ..@0x805ba00: db 0xe6, 0x09, 0x6a, 0x01, 0x0b, 0x15, 0x63, 0x01, 0xe9, 0x7a, 0x4e, 0x01, 0x2f, 0x06, 0x2d, 0x01
 ..@0x805ba10: db 0x00, 0x00, 0x00, 0x01, 0x4e, 0x23, 0xc9, 0x00, 0xd4, 0x8b, 0x8a, 0x00, 0x57, 0xa1, 0x46, 0x00
+; The preceding data, all the way to P.rodata, was written by Ken Silverman (not in this source form).
 P.rodata.end:
 times -(P.rodata.end-P.rodata)+(0x805ba20-0x805a770) times 0 nop  ; Assert.
 times +(P.rodata.end-P.rodata)-(0x805ba20-0x805a770) times 0 nop  ; Assert.
@@ -23158,6 +23170,7 @@ code_ptr_unknown_func1: equ $-B.data
 ..@0x805d1cc: dd unknown_func1
 ..@0x805d1d0:
 %endif  ; TARGET, x
+; The following data, all the way to P.data.end, was written by Ken Silverman (not in this source form).
 datavar0: equ $-B.data
 		dd 0x80
 datavar1: equ $-B.data
@@ -23174,6 +23187,7 @@ datavar6: equ $-B.data
 		dd -1
 datavar7: equ $-B.data
 		dd -1
+; The preceding data, all the way to P.data, was written by Ken Silverman (not in this source form).
 ;..@0x805d1f0:
 P.data.end:
 _data.end: equ $-B.data
@@ -23498,6 +23512,7 @@ times -(P.bss-B.data-$$)+0x805d225 times 0 nop  ; Assert.
 times +(P.bss-B.data-$$)-0x805d225 times 0 nop  ; Assert.
 %endif  ; TARGET, x
 P.bss.after_gap:
+; The following data, all the way to P.bss.end, was written by Ken Silverman (not in this source form).
 bss_unknown1: equ $-B.data
 ..@0x805d225: resb 0x1b
 global_cleanup_counter: equ $-B.data ; 0, 1 or 2.
@@ -23522,6 +23537,7 @@ bss_unknown3: equ $-B.data
 global_struct_sigaction: equ $-B.data
 bss_unknown4: equ $-B.data
 ..@0x987c580: resb 0x4d0
+; The preceding data, all the way to P.bss, was written by Ken Silverman (not in this source form).
 _bss_end: equ $-B.data
 ;..@0x987ca50:;
 P.bss.end:

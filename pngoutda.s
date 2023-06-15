@@ -46,6 +46,7 @@
 .globl _main
 .fill 2, 1, 0x90
 _text:  # Addr: 0x8048d10
+# The following code, all the way to _main, was written by Ken Silverman (not in this source form).
 	## push ebp  # @0x8048d10
 	.byte 0x55
 	## push edi  # @0x8048d11
@@ -12306,6 +12307,7 @@ _main2:  # @0x80499c0
 	.byte 0xff
 	.byte 0xff
 	.byte 0xff
+# The preceding code, all the way to _text, was written by Ken Silverman (not in this source form).
 	#
 _main:  # @0x804b570
 	# This implements the init_my_stdio() function defined in init_my_stdio.c.
@@ -12386,6 +12388,8 @@ _str_r: ## db 'r', 0
 	.byte 0x00
 	.fill 0x804b660-0x804b570-4-0xba-5, 1, 0x90  ## times 0x804b660-0x804b570 nop  # @0x804b570
 	#
+_text_cont:
+# The following code, all the way to _text_end, was written by Ken Silverman (not in this source form).
 	## mov edx,[esp+0x4]  # @0x804b660
 	.byte 0x8b
 	.byte 0x54
@@ -88555,6 +88559,7 @@ _str_r: ## db 'r', 0
 	.byte 0xfe
 	.byte 0xff
 	.byte 0xff
+# The preceding code, all the way to _text_cont, was written by Ken Silverman (not in this source form).
 _text_end:  # Addr: 0x805a698
 
 .fill 0xa8, 1, 0x90
@@ -88610,6 +88615,7 @@ _before_rodata:  # Addr: 0x805a740
 	#.byte 0x0a
 	.fill 0x2c, 1, 0x27  # daa
 _rodata:  # Addr: 0x805a76c
+# The following data, all the way to _data_end, was written by Ken Silverman (not in this source form).
 	## nocode  # @0x805a76c
 	.byte 0x00
 	.byte 0x00
@@ -93754,6 +93760,7 @@ _data:  # Addr: 0x805d1c4
 	.byte 0xff
 	.byte 0xff
 	.byte 0xff
+# The preceding data, all the way to _rodata, was written by Ken Silverman (not in this source form).
 _data_end:  # Addr: 0x805d1f0.
 
 _prebss:  # @0x805d200
