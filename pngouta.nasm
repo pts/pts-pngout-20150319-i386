@@ -440,7 +440,7 @@ progx_syscall3: equ $-B.code
 		sbb eax, eax
 .lseek_ok:	add esp, byte 6*4  ; Clean up arguments of sys_freebsd6_lseek(...) above from the stack.
 		ret
-.not_lseek:  ; !! Implement these FreeBSD syscalls: mmap (71 or 197), mremap (none).
+.not_lseek:  ; !! Implement these FreeBSD syscalls: mremap (none).
 .unknown_freebsd_syscall:
 		mov al, 1  ; EAX := __NR_exit. We don't know how to emulate this syscall, so we just exit(255).
 		or dword [esp+1*4], byte -1  ; Exit code := 255.
@@ -1329,9 +1329,32 @@ malloc: equ $-B.code  ; void *malloc(size_t size);
 ;   malloc(0x1000), it will use 8 KiB instead of 4 KiB.
 		; We return a valid (non-NULL) pointer even if size == 0. uClibc malloc(3) does the same.
 		mov ecx, [esp+4]
-		add ecx, byte 0x10  ; length argument of mmap2(2). The kernel will round it up to page boundary. We add 0x10 to have room (4 bytes) for the size of the mapping, plus alignment.
+		add ecx, byte 0x10  ; length argument of mmap2(2). No need manually to round up to page boundary for FreeBSD or Linux. The kernel will round it up to page boundary. We add 0x10 to have room (4 bytes) for the size of the mapping, plus alignment.
 		xor eax, eax
-		push ebx
+%if TARGET_X_WITH_FREEBSD
+		cmp [progx_is_freebsd], ah  ; AH == 0.
+		je .linux
+.freebsd:  ; caddr_t freebsd6_mmap(caddr_t addr, size_t length, int prot, int flags, int fd, int pad, off_t offset);  /* 197 for FreeBSD. */
+		push eax  ; High dword of argument offset of freebsd6_mmap == 0.
+		push eax  ; Low dword of argument offset of freebsd6_mmap == 0.
+		push eax  ; Argument pad of freebsd6_mmap == 0.
+		push byte -1  ; Argument fd of freebsd6_mmap == -1.
+		push dword MAP.PRIVATE|MAP.ANONYMOUS_FREEBSD  ; Argument flags of freebsd6_mmap.
+		push byte PROT.READ|PROT.WRITE  ; Argument prot of freebsd6_mmap.
+		push ecx  ; Argument length of freebsd6_mmap. No need manually to round up to page boundary for FreeBSD.
+		push eax  ; Argument addr of freebsd6_mmap == NULL.
+		push eax  ; Dummy return address.
+		mov al, 197  ; FreeBSD __NR_freebsd6_mmap (also available in FreeBSD 3.0, released on 1998-10-16), with 64-bit offset.
+		int 0x80  ; FreeBSD i386 syscall.
+		jnc .fmmap_ok
+		xor eax, eax  ; EAX := 0 (== NULL, error).
+		jmp short .fmdone
+.fmmap_ok:	mov [eax], ecx  ; Save the size of the mapping.
+		add eax, byte 0x10
+.fmdone:	add esp, byte 9*4  ; Clean up arguments of sys_freebsd6_mmap(...) above from the stack.
+		ret
+%endif
+.linux:		push ebx
 		push esi
 		push edi
 		push ebp

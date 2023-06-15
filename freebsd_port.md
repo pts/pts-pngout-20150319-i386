@@ -309,6 +309,7 @@ lseek(...):
   ```
 * More info about libstand:
   https://man.freebsd.org/cgi/man.cgi?query=libstand&apropos=0&sektion=0&manpath=FreeBSD+9.3-RELEASE&format=html
+* syscalls.master says: off_t freebsd6_lseek(int fd, int pad, off_t offset, int whence); }
 * It looks like *libstand* is bootloader stuff, so let's look at `src/lib/libc/sys/lseek.c`.
   ```
   off_t lseek(int fd, off_t offset, int whence) {  /* FreeBSD, off_t is int64_t. */
