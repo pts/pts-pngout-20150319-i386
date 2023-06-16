@@ -125,3 +125,23 @@ A quick size comparison with PNGOUT.EXE 2015:
 * pngoutx.upxbc (for Linux i396, compressed with [upxbc](https://github.com/pts/upxbc)): 42299 bytes
 
   Compression command: `upxbc --elftiny --ultra-brute --no-lzma -f -o pngoutx.upxbc pngoutx`
+
+Other ports of PNGOUT:
+
+* [PNGOUT.EXE](http://advsys.net/ken/util/pngout.exe) (version 20150213,
+  38912 bytes): Original PNGOUT for Win32, written by Ken Silverman.
+* [Linux i386, amd64, armv7, aarch64, statically
+  linked](http://www.jonof.id.au/files/kenutils/pngout-20200115-linux-static.tar.gz)
+  port (version 20200115), created by Jonathon Fowler (JonoF).
+* [Linux i386, amd64, armv7, aarch64, dynamically linked against
+  glibc](http://www.jonof.id.au/files/kenutils/pngout-20200115-linux.tar.gz)
+  port (version 20200115), created by Jonathon Fowler (JonoF).
+* [FreeBSD i386, amd64, statically
+  linked](http://www.jonof.id.au/files/kenutils/pngout-20200115-bsd-static.tar.gz)
+  (version 20200115), created by Jonathon Fowler (JonoF).
+* [FreeBSD i386, amd64, dynamically linked against FreeBSD
+  libc](http://www.jonof.id.au/files/kenutils/pngout-20200115-bsd.tar.gz)
+  (version 20200115), created by Jonathon Fowler (JonoF).
+* [macOS amd64, aarch64, dynamically linked against macOS
+  libSystem](http://www.jonof.id.au/files/kenutils/pngout-20230322-mac.zip)
+  (version 20230322), created by Jonathon Fowler (JonoF).
