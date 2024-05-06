@@ -351,7 +351,7 @@ gettimeofday(...):
   src/sys/sys/_timeval.h:struct timeval {
   ```
 * Both struct timeval fields (time_t tv_sec; tv_usec) are int32_t on FreeBSD
-* i386, just like on Linux.
+  i386, just like on Linux.
 * However, the syscall number is different: gettimeofday(...)  /* 78 for Linux, 116 for FreeBSD. */
 
 time(...):
@@ -375,7 +375,8 @@ time(...):
   ```
   time_t time(time_t *t) {  /* FreeBSD. */
     struct timeval tv;
-    const time_t retval = (sys_gettimeofday(CLOCK_SECOND, &tt) < 0) ? -1 : tv.tv_sec;
+    struct timezone tz;
+    const time_t retval = (sys_gettimeofday(&tv, &tz) < 0) ? -1 : tv.tv_sec;
     if (t != NULL) *t = retval;
     return retval;
   }
@@ -413,7 +414,7 @@ mmap(...), mremap(...) and munmap(...):
   ```
 * munmap(...): 91 for Linux, 73 for FreeBSD.
 * mremap(...): 163 for Linux. Not implemented for FreeBSD. We need a
-* fallback: mmap(...) + memcpy(...) + munmap(...).
+  fallback: mmap(...) + memcpy(...) + munmap(...).
 
 Plan:
 
