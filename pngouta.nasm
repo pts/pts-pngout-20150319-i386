@@ -405,9 +405,9 @@ progx_syscall3: equ $-B.code
 .freebsd_syscall:
 		cmp al, 5
 		jne .not_open
-		cmp word [esp+1*4], 1101o  ; Linux O_WRONLY | O_CREAT | O_TRUNC == 1 | 100o | 1000o.
+		cmp word [esp+2*4], 1101o  ; Linux O_WRONLY | O_CREAT | O_TRUNC == 1 | 100o | 1000o.
 		jne .not_open
-		mov ax, 0x601  ; FreeBSD O_WRONLY | O_CREAT | O_TRUNC == 1 | 0x200 | 0x400 == 0x601.
+		mov word [esp+2*4], 0x601  ; FreeBSD O_WRONLY | O_CREAT | O_TRUNC == 1 | 0x200 | 0x400 == 0x601.
 .not_open:	cmp al, 7  ; 0: none (unused), 1: sys_exit, 2: fork (unused), 3: read, 4: write, 5: open, 6: close.
 		jb .good_freebsd_syscall
 		cmp al, 78  ; Linux __NR_gettimeofday.
